@@ -14,7 +14,7 @@ provider, off-site upload to a real remote, and real push delivery.
 
 | Item | Notes |
 |---|---|
-| A server | Ubuntu 24.04 (or 22.04), **4 GB RAM or more**, 2+ vCPU, 60+ GB disk, a public IPv4 address. ClamAV alone needs about 2 GB. |
+| A server | Ubuntu 24.04 (or 22.04), public IPv4 address, 2+ vCPU, 60+ GB disk. **4 GB RAM or more with virus scanning** (ClamAV alone needs about 2 GB); a 2 GB server can run everything else if you set `MALWARE_SCAN=off`. |
 | A domain | Strongly recommended. The mobile app stores the login address, which contains the domain, so changing it later means shipping an app update. Create two DNS "A" records pointing at the server: `api.<domain>` and `auth.<domain>`. |
 | No domain yet? | For testing only, use `<ip-with-dashes>.sslip.io`, e.g. `203-0-113-5.sslip.io` for 203.0.113.5. `api.203-0-113-5.sslip.io` and `auth.203-0-113-5.sslip.io` then resolve to your server automatically, no DNS work. Get a real domain **before** you publish the app. |
 | A mail service | For sign-up verification, password reset and deletion notices. Brevo, Resend or Amazon SES all give SMTP details (host, port, user, password) and need your sending domain verified. Do not send mail from the server itself. |
@@ -69,6 +69,13 @@ point at the server and that ports 80/443 are open (`./up.sh logs caddy`).
 
 The values for the app developer: **issuer** `https://auth.YOUR-DOMAIN/realms/returnit`, **client id**
 `returnit-app`, **API base** `https://api.YOUR-DOMAIN/api/v1`. Guide: `Docs/mobile/README.md`.
+
+### Virus scanning on or off
+
+`MALWARE_SCAN` in `.env.prod` is the only switch. `off` does not start ClamAV and accepts uploads without scanning
+(the API logs a warning at start-up); `on` starts ClamAV and rejects infected files. To change it, edit the line and run
+`./up.sh up -d`; the first start with `on` needs a few minutes while ClamAV downloads its signatures. Uploads made while
+scanning was off stay unscanned. Use `off` only on a small pilot server; keep `on` once real users upload documents.
 
 ## 6. Administering the login server (Keycloak)
 

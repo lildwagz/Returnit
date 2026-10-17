@@ -18,4 +18,15 @@ starttls) export KC_SMTP_SSL=false KC_SMTP_STARTTLS=true ;;
 esac
 if [ -n "${SMTP_USERNAME:-}" ]; then export KC_SMTP_AUTH=true; else export KC_SMTP_AUTH=false; fi
 
+# One switch for the virus scanner: MALWARE_SCAN=on|off (default on). The "scan" profile starts ClamAV.
+MALWARE_SCAN="${MALWARE_SCAN:-on}"
+case "$MALWARE_SCAN" in
+on | off) ;;
+*) echo "MALWARE_SCAN in .env.prod must be on or off" >&2; exit 1 ;;
+esac
+export MALWARE_SCAN
+profiles="$(printf '%s' "${COMPOSE_PROFILES:-}" | tr ',' '\n' | { grep -vx 'scan' || true; } | { grep -v '^$' || true; } | paste -sd, -)"
+if [ "$MALWARE_SCAN" = on ]; then profiles="${profiles:+$profiles,}scan"; fi
+export COMPOSE_PROFILES="$profiles"
+
 dc() { docker compose --env-file .env.prod -f docker-compose.prod.yml "$@"; }

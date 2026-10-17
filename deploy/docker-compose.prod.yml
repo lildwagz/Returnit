@@ -76,8 +76,10 @@ services:
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
     volumes: ["minio-data:/data"]
 
+  # Virus scanner (about 2 GB of RAM). Started only when MALWARE_SCAN=on in .env.prod (./up.sh handles the profile).
   clamav:
     <<: *restart
+    profiles: ["scan"]
     image: clamav/clamav:1.4
     # First start downloads the virus signatures (a few minutes); then it reports healthy.
     volumes: ["clamav-db:/var/lib/clamav"]
@@ -141,6 +143,7 @@ services:
       OIDC_ISSUER: https://auth.${DOMAIN}/realms/returnit
       OIDC_DISCOVERY_URL: http://keycloak:8080/realms/returnit
       OIDC_AUDIENCE: returnit-api
+      MALWARE_SCAN: ${MALWARE_SCAN:-on}
       CLAMAV_ADDR: clamav:3310
       # Caddy's address on the private network: only it may tell us the real client IP.
       TRUSTED_PROXIES: 172.30.0.0/24
@@ -153,7 +156,7 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
-      clamav: { condition: service_healthy }
+      clamav: { condition: service_healthy, required: false } # absent when MALWARE_SCAN=off
       keycloak: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
 
