@@ -1,0 +1,6 @@
+# Keep Unix line endings everywhere: the deployment scripts and Dockerfile break on Linux with Windows (CRLF) endings.
+* text=auto eol=lf
+*.docx binary
+*.png binary
+*.jpg binary
+*.pdf binary

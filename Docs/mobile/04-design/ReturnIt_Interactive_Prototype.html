@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReturnIt — Interactive Prototype</title>
+<style>
+:root{--blue:#2563eb;--navy:#17324d;--slate:#64748b;--green:#16a34a;--amber:#f59e0b;--red:#ef4444;--bg:#f8fafc;--line:#e2e8f0;--white:#fff;--shadow:0 12px 34px rgba(23,50,77,.09)}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#edf4ff,#f8fafc 55%,#eefbf7);font:15px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--navy)}
+button,input,select{font:inherit}button{cursor:pointer}.shell{max-width:1120px;margin:0 auto;padding:28px 18px 40px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}.brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:15px;background:var(--blue);display:grid;place-items:center;color:white;font-size:24px;box-shadow:0 8px 18px #2563eb33}.brand h1{margin:0;font-size:24px;letter-spacing:-.7px}.brand p{margin:0;color:var(--slate);font-size:13px}.pill{padding:7px 12px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:12px;font-weight:700}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:20px;align-items:start}.side,.main{background:rgba(255,255,255,.92);border:1px solid #e6edf6;border-radius:24px;box-shadow:var(--shadow)}.side{padding:16px;position:sticky;top:16px}.side h3{font-size:12px;color:var(--slate);text-transform:uppercase;letter-spacing:1px;margin:6px 8px 12px}.nav{display:flex;flex-direction:column;gap:6px}.nav button{border:0;background:transparent;text-align:left;padding:12px 13px;border-radius:13px;color:var(--slate);font-weight:650;display:flex;gap:10px;align-items:center}.nav button.active,.nav button:hover{background:#eff6ff;color:var(--blue)}.side-note{margin-top:18px;padding:14px;border-radius:16px;background:#f0fdf4;color:#166534;font-size:13px}.main{padding:24px;min-height:700px}.view{display:none}.view.active{display:block}.heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}.heading h2{margin:0;font-size:25px;letter-spacing:-.6px}.heading p{margin:5px 0 0;color:var(--slate)}.btn{border:0;border-radius:12px;padding:12px 16px;font-weight:750;display:inline-flex;align-items:center;justify-content:center;gap:8px}.primary{background:var(--blue);color:white;box-shadow:0 5px 12px #2563eb2a}.secondary{background:white;color:var(--navy);border:1px solid var(--line)}.danger{background:#fff1f2;color:#be123c;border:1px solid #fecdd3}.small{padding:8px 11px;font-size:13px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}.stat{padding:17px;border:1px solid var(--line);border-radius:17px;background:#fff}.stat .label{color:var(--slate);font-size:13px}.stat strong{display:block;font-size:27px;margin-top:5px}.stat.green{background:#f0fdf4;border-color:#bbf7d0}.stat.amber{background:#fffbeb;border-color:#fde68a}.section-title{display:flex;justify-content:space-between;align-items:center;margin:18px 0 12px}.section-title h3{margin:0;font-size:17px}.search{width:100%;border:1px solid var(--line);background:#fff;border-radius:13px;padding:12px 14px;outline:none}.search:focus,input:focus,select:focus{border-color:#93c5fd;box-shadow:0 0 0 3px #dbeafe}.filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}.chip{border:1px solid var(--line);background:white;color:var(--slate);padding:8px 12px;border-radius:999px;font-size:13px}.chip.active{background:#dbeafe;color:#1d4ed8;border-color:#bfdbfe;font-weight:700}.items{display:grid;gap:10px}.item{display:flex;align-items:center;gap:13px;padding:13px;border:1px solid var(--line);border-radius:16px;background:white;cursor:pointer;transition:.15s}.item:hover{border-color:#93c5fd;transform:translateY(-1px)}.thumb{width:52px;height:52px;flex:none;border-radius:14px;background:#eff6ff;display:grid;place-items:center;font-size:24px}.item-main{flex:1;min-width:0}.item h4{margin:0 0 3px;font-size:15px}.muted{color:var(--slate);font-size:13px}.status{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 8px;font-size:11px;font-weight:800;white-space:nowrap}.status.active{background:#dcfce7;color:#166534}.status.soon{background:#fef3c7;color:#92400e}.status.expired{background:#fee2e2;color:#991b1b}.status.unknown{background:#f1f5f9;color:#475569}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:13px;font-weight:750}.field input,.field select{border:1px solid var(--line);border-radius:12px;padding:12px;background:white;outline:none;min-width:0}.help{font-size:12px;color:var(--slate)}.upload{border:1.5px dashed #93c5fd;background:#f8fbff;border-radius:16px;padding:22px;text-align:center}.upload input{display:block;margin:12px auto 0;max-width:100%}.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}.error{display:none;background:#fff1f2;color:#be123c;padding:10px 12px;border-radius:10px;margin-top:12px;font-size:13px}.detail-card{border:1px solid var(--line);border-radius:18px;padding:18px;background:#fff}.detail-top{display:flex;gap:16px;align-items:center;margin-bottom:18px}.bigthumb{width:80px;height:80px;border-radius:18px;background:#eff6ff;display:grid;place-items:center;font-size:36px}.warranty-banner{padding:15px;border-radius:15px;margin:16px 0}.warranty-banner.active{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}.warranty-banner.soon{background:#fffbeb;border:1px solid #fde68a;color:#92400e}.warranty-banner.expired{background:#fff1f2;border:1px solid #fecdd3;color:#9f1239}.warranty-banner.unknown{background:#f8fafc;border:1px solid var(--line);color:#475569}.detailrows{display:grid;grid-template-columns:1fr 1fr;gap:14px}.detailrow span{display:block;color:var(--slate);font-size:12px}.detailrow strong{display:block;margin-top:3px}.receipt{margin-top:15px;padding:14px;border:1px solid var(--line);border-radius:14px;display:flex;align-items:center;gap:12px}.receipt-preview{width:50px;height:58px;border:1px solid var(--line);border-radius:7px;background:#fff;display:grid;place-items:center;font-size:24px}.setting{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}.setting:last-child{border-bottom:0}.setting strong{display:block}.setting p{margin:3px 0 0;color:var(--slate);font-size:13px}.toggle{width:44px;height:26px;border:0;border-radius:99px;background:#cbd5e1;padding:3px;flex:none}.toggle:after{content:"";display:block;width:20px;height:20px;background:#fff;border-radius:50%;transition:.15s}.toggle.on{background:var(--blue)}.toggle.on:after{transform:translateX(18px)}.toast{position:fixed;right:20px;bottom:20px;max-width:340px;background:var(--navy);color:#fff;padding:14px 18px;border-radius:14px;box-shadow:var(--shadow);display:none;z-index:10}.empty{text-align:center;padding:35px 15px;color:var(--slate)}.empty strong{display:block;color:var(--navy);margin-bottom:5px}.footer{text-align:center;color:var(--slate);font-size:12px;margin-top:18px}
+@media(max-width:760px){.shell{padding:15px 10px 28px}.top{align-items:flex-start}.pill{display:none}.layout{display:block}.side{position:static;padding:10px;margin-bottom:12px}.side h3,.side-note{display:none}.nav{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.nav button{justify-content:center;flex-direction:column;gap:3px;padding:9px 4px;font-size:11px}.main{padding:17px;min-height:640px}.heading{flex-direction:column}.heading h2{font-size:23px}.stats{grid-template-columns:1fr 1fr}.stats .stat:last-child{grid-column:1/-1}.formgrid,.detailrows{grid-template-columns:1fr}.field.full{grid-column:auto}.item{gap:9px;padding:10px}.thumb{width:43px;height:43px;font-size:20px}.status{font-size:10px}.heading .btn{width:100%}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="brand"><div class="logo">▤✓</div><div><h1>ReturnIt</h1><p>Warranty & Receipt Organizer</p></div></div>
+    <span class="pill">Interactive MVP Preview · Demo data only</span>
+  </header>
+  <div class="layout">
+    <aside class="side">
+      <h3>Workspace</h3>
+      <nav class="nav">
+        <button class="active" data-view="home">⌂ <span>Home</span></button>
+        <button data-view="purchases">▤ <span>Pembelian</span></button>
+        <button data-view="notifications">♧ <span>Pengingat</span></button>
+        <button data-view="settings">⚙ <span>Pengaturan</span></button>
+      </nav>
+      <div class="side-note"><strong>✦ Privasi utama</strong><br>Struk seharusnya disimpan privat dan hanya dapat dibuka oleh pemilik akun. Prototype ini menggunakan data demo lokal.</div>
+    </aside>
+    <main class="main">
+      <section class="view active" id="view-home">
+        <div class="heading"><div><h2>Halo, selamat datang 👋</h2><p>Semua bukti pembelian dan garansi dalam satu tempat.</p></div><button class="btn primary" id="homeAdd">＋ Tambah Pembelian</button></div>
+        <div class="stats">
+          <div class="stat green"><div class="label">Garansi aktif</div><strong id="activeCount">2</strong></div>
+          <div class="stat amber"><div class="label">Segera berakhir</div><strong id="soonCount">1</strong></div>
+          <div class="stat"><div class="label">Total pembelian</div><strong id="totalCount">4</strong></div>
+        </div>
+        <div class="section-title"><h3>Pembelian terbaru</h3><button class="btn secondary small" id="seeAll">Lihat semua →</button></div>
+        <div class="items" id="recentItems"></div>
+      </section>
+
+      <section class="view" id="view-purchases">
+        <div class="heading"><div><h2>Pembelian Saya</h2><p>Cari produk dan cek status garansinya.</p></div><button class="btn primary" id="listAdd">＋ Tambah Pembelian</button></div>
+        <input id="search" class="search" placeholder="⌕  Cari nama produk atau toko…" aria-label="Cari pembelian">
+        <div class="filters" id="filters">
+          <button class="chip active" data-filter="Semua">Semua</button><button class="chip" data-filter="Aktif">Aktif</button><button class="chip" data-filter="Segera Berakhir">Segera Berakhir</button><button class="chip" data-filter="Kedaluwarsa">Kedaluwarsa</button><button class="chip" data-filter="Tidak Diketahui">Tidak Diketahui</button>
+        </div>
+        <div class="items" id="allItems"></div>
+      </section>
+
+      <section class="view" id="view-add">
+        <div class="heading"><div><h2 id="formTitle">Tambah Pembelian</h2><p>Isi informasi dasar. Struk dapat ditambahkan sekarang atau nanti.</p></div></div>
+        <form id="purchaseForm">
+          <div class="formgrid">
+            <div class="field full"><label for="product">Nama produk *</label><input id="product" required placeholder="Contoh: Headphone Sony"></div>
+            <div class="field"><label for="store">Toko / Store</label><input id="store" placeholder="Contoh: Toko Elektronik"></div>
+            <div class="field"><label for="purchaseDate">Tanggal pembelian *</label><input id="purchaseDate" type="date" required></div>
+            <div class="field"><label for="duration">Durasi garansi</label><select id="duration"><option value="">Tidak diketahui</option><option value="3">3 bulan</option><option value="6">6 bulan</option><option value="12" selected>12 bulan</option><option value="24">24 bulan</option><option value="36">36 bulan</option></select></div>
+            <div class="field"><label for="price">Harga (opsional)</label><input id="price" type="number" min="0" placeholder="Contoh: 1500000"></div>
+            <div class="field full"><label for="receipt">Unggah struk (opsional)</label><div class="upload">▧<br><strong>Pilih foto atau PDF struk</strong><div class="help">Prototype hanya menyimpan nama file dalam sesi browser.</div><input id="receipt" type="file" accept="image/*,.pdf"></div><div id="fileName" class="help"></div></div>
+          </div>
+          <div id="formError" class="error"></div>
+          <div class="form-actions"><button type="button" class="btn secondary" id="cancelForm">Batal</button><button type="submit" class="btn primary">Simpan Pembelian</button></div>
+        </form>
+      </section>
+
+      <section class="view" id="view-detail">
+        <div class="heading"><div><h2>Detail Pembelian</h2><p>Informasi produk, masa garansi, dan bukti pembelian.</p></div><button class="btn secondary" id="backToList">← Kembali</button></div>
+        <div id="detailContent"></div>
+      </section>
+
+      <section class="view" id="view-notifications">
+        <div class="heading"><div><h2>Pengingat Garansi</h2><p>Atur kapan ReturnIt mengingatkan Anda.</p></div></div>
+        <div class="detail-card">
+          <div class="setting"><div><strong>Pengingat garansi</strong><p>Aktifkan pengingat untuk item dengan tanggal akhir yang diketahui.</p></div><button class="toggle on" id="reminderToggle" aria-label="Aktifkan pengingat"></button></div>
+          <div class="setting"><div><strong>30 hari sebelumnya</strong><p>Pengingat awal untuk memeriksa syarat garansi.</p></div><button class="toggle on reminder-pref" data-pref="30" aria-label="Pengingat 30 hari"></button></div>
+          <div class="setting"><div><strong>14 hari sebelumnya</strong><p>Pengingat lanjutan.</p></div><button class="toggle on reminder-pref" data-pref="14" aria-label="Pengingat 14 hari"></button></div>
+          <div class="setting"><div><strong>7 hari sebelumnya</strong><p>Pengingat lanjutan sebelum masa garansi berakhir.</p></div><button class="toggle on reminder-pref" data-pref="7" aria-label="Pengingat 7 hari"></button></div>
+          <div class="setting"><div><strong>3 hari sebelumnya</strong><p>Pengingat mendekati akhir garansi.</p></div><button class="toggle reminder-pref" data-pref="3" aria-label="Pengingat 3 hari"></button></div>
+          <div class="setting"><div><strong>1 hari sebelumnya</strong><p>Pengingat terakhir sehari sebelum garansi berakhir.</p></div><button class="toggle reminder-pref" data-pref="1" aria-label="Pengingat 1 hari"></button></div>
+          <p class="help" style="margin-top:15px">Demo: preferensi hanya mengubah state prototype. Notifikasi perangkat nyata belum dikirim.</p>
+        </div>
+        <div class="section-title"><h3>Garansi yang perlu diperhatikan</h3></div><div class="items" id="reminderItems"></div>
+      </section>
+
+      <section class="view" id="view-settings">
+        <div class="heading"><div><h2>Pengaturan</h2><p>Preferensi dan pengelolaan data.</p></div></div>
+        <div class="detail-card">
+          <div class="setting"><div><strong>Preferensi pengingat</strong><p>Pengingat 30, 14, 7, 3, dan 1 hari sebelum akhir garansi.</p></div><button class="btn secondary small" id="goReminders">Atur →</button></div>
+          <div class="setting"><div><strong>Privasi & keamanan</strong><p>Gunakan private storage dan akses per pemilik pada versi produksi.</p></div><span>🔒</span></div>
+          <div class="setting"><div><strong>Ekspor data</strong><p>Unduh daftar pembelian demo sebagai file CSV.</p></div><button class="btn secondary small" id="exportBtn">Ekspor CSV</button></div>
+          <div class="setting"><div><strong>Reset data demo</strong><p>Kembalikan contoh pembelian ke kondisi awal.</p></div><button class="btn danger small" id="resetBtn">Reset</button></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="footer">ReturnIt · Prototype UI/UX · Data demo tersimpan di memori browser, bukan server.</div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+const seed = [
+{id:1,product:"iPhone 15",store:"iBox",date:"2025-10-15",months:12,price:14999000,receipt:"Struk_iPhone.pdf",icon:"📱"},
+{id:2,product:"Samsung Galaxy Buds",store:"Samsung Store",date:"2025-05-05",months:12,price:1299000,receipt:"",icon:"🎧"},
+{id:3,product:"Mesin Cuci LG",store:"Electronic City",date:"2025-01-20",months:24,price:4200000,receipt:"Struk_LG.jpg",icon:"🧺"},
+{id:4,product:"Kulkas Sharp",store:"Toko Elektronik",date:"2024-09-12",months:12,price:2800000,receipt:"",icon:"🧊"}
+];
+let items=seed.map(x=>({...x})), filter="Semua", editingId=null, selectedId=null, reminderOn=true;
+const $=id=>document.getElementById(id);
+function dateObj(s){return s?new Date(s+"T12:00:00"):null}
+function addMonths(date,months){if(months===null||months===undefined||months==="")return null;let d=dateObj(date);if(!d)return null;let day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+Number(months));let last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return d}
+function fmt(d){if(!d)return "Tidak diketahui";return d.toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"})}
+function status(item){let end=addMonths(item.date,item.months);if(!end)return {key:"unknown",label:"Tidak diketahui",end:null};let today=new Date();today.setHours(0,0,0,0);let diff=Math.ceil((end-today)/86400000);if(diff<0)return {key:"expired",label:"Kedaluwarsa",end};if(diff<=30)return {key:"soon",label:"Segera Berakhir",end};return {key:"active",label:"Aktif",end}}
+function money(v){return v?new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(v):"—"}
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function card(item){let st=status(item);return `<article class="item" data-id="${item.id}" tabindex="0" role="button" aria-label="Buka detail ${escapeHtml(item.product)}"><div class="thumb">${item.icon||"📦"}</div><div class="item-main"><h4>${escapeHtml(item.product)}</h4><div class="muted">${escapeHtml(item.store||"Toko tidak diisi")} · ${fmt(dateObj(item.date))}</div><div style="margin-top:7px"><span class="status ${st.key}">${st.key==="active"?"✓":st.key==="soon"?"◷":st.key==="expired"?"!":"•"} ${st.label}</span></div></div><span style="color:#94a3b8">›</span></article>`}
+function render(){let active=items.filter(x=>status(x).key==="active").length, soon=items.filter(x=>status(x).key==="soon").length;$("activeCount").textContent=active;$("soonCount").textContent=soon;$("totalCount").textContent=items.length;
+$("recentItems").innerHTML=items.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3).map(card).join("")||empty("Belum ada pembelian","Tambahkan pembelian pertama Anda.");
+let q=($("search")?.value||"").toLowerCase();let all=items.filter(x=>(x.product+" "+x.store).toLowerCase().includes(q)).filter(x=>filter==="Semua"||status(x).label===filter).sort((a,b)=>b.date.localeCompare(a.date));$("allItems").innerHTML=all.map(card).join("")||empty("Tidak ada hasil","Coba kata kunci atau filter yang berbeda.");
+$("reminderItems").innerHTML=items.filter(x=>["soon","expired"].includes(status(x).key)).map(card).join("")||empty("Belum ada garansi mendekati akhir","Item yang perlu diperhatikan akan tampil di sini.");}
+function empty(title,desc){return `<div class="empty"><strong>${title}</strong>${desc}</div>`}
+function show(view){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+view));document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===view));if(view==="home"||view==="purchases"||view==="notifications")render();window.scrollTo({top:0,behavior:"smooth"})}
+function toast(msg){$("toast").textContent=msg;$("toast").style.display="block";clearTimeout(window._toast);window._toast=setTimeout(()=>$("toast").style.display="none",2800)}
+function openDetail(id){selectedId=Number(id);let x=items.find(i=>i.id===selectedId);if(!x)return;let st=status(x);$("detailContent").innerHTML=`<div class="detail-card"><div class="detail-top"><div class="bigthumb">${x.icon||"📦"}</div><div style="flex:1"><h2 style="margin:0 0 4px">${escapeHtml(x.product)}</h2><div class="muted">${escapeHtml(x.store||"Toko tidak diisi")}</div><div style="margin-top:9px"><span class="status ${st.key}">${st.label}</span></div></div></div><div class="warranty-banner ${st.key}"><strong>${st.key==="active"?"Garansi masih aktif":st.key==="soon"?"Garansi segera berakhir":st.key==="expired"?"Masa garansi telah berakhir":"Tanggal garansi belum diketahui"}</strong><div style="margin-top:4px">${st.end?"Tanggal akhir: "+fmt(st.end):"Tambahkan durasi garansi untuk menghitung tanggal akhir."}</div></div><div class="detailrows"><div class="detailrow"><span>Tanggal pembelian</span><strong>${fmt(dateObj(x.date))}</strong></div><div class="detailrow"><span>Durasi garansi</span><strong>${x.months?x.months+" bulan":"Tidak diketahui"}</strong></div><div class="detailrow"><span>Harga</span><strong>${money(x.price)}</strong></div><div class="detailrow"><span>Tanggal akhir garansi</span><strong>${fmt(st.end)}</strong></div></div><div class="receipt"><div class="receipt-preview">▤</div><div style="flex:1"><strong>Struk pembelian</strong><div class="muted">${x.receipt?escapeHtml(x.receipt):"Belum ada struk terlampir"}</div></div>${x.receipt?'<button class="btn secondary small" id="viewReceipt">Lihat</button>':'<button class="btn secondary small" id="addReceiptFromDetail">Tambah</button>'}</div><div class="form-actions"><button class="btn secondary" id="editItem">✎ Edit</button><button class="btn danger" id="deleteItem">Hapus</button></div></div>`;show("detail");$("editItem").onclick=()=>openForm(x.id);$("deleteItem").onclick=()=>{if(confirm("Hapus "+x.product+" dari data demo?")){items=items.filter(i=>i.id!==x.id);show("purchases");toast("Pembelian dihapus dari demo.")}};if($("viewReceipt"))$("viewReceipt").onclick=()=>toast("Preview file adalah simulasi; prototype hanya menyimpan nama file.");if($("addReceiptFromDetail"))$("addReceiptFromDetail").onclick=()=>{openForm(x.id);$("receipt").focus()}}
+function openForm(id=null){editingId=id;let x=id?items.find(i=>i.id===id):null;$("purchaseForm").reset();$("formError").style.display="none";$("fileName").textContent="";$("formTitle").textContent=x?"Edit Pembelian":"Tambah Pembelian";$("product").value=x?.product||"";$("store").value=x?.store||"";$("purchaseDate").value=x?.date||new Date().toISOString().slice(0,10);$("duration").value=x?.months??"12";$("price").value=x?.price||"";$("fileName").textContent=x?.receipt?"Struk tersimpan: "+x.receipt:"";show("add")}
+document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>show(b.dataset.view)));
+$("homeAdd").onclick=$("listAdd").onclick=()=>openForm();
+$("seeAll").onclick=()=>show("purchases");$("cancelForm").onclick=()=>show(editingId?"detail":"home");$("backToList").onclick=()=>show("purchases");
+$("search").addEventListener("input",render);
+document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(c=>c.classList.toggle("active",c===b));render()});
+$("receipt").addEventListener("change",()=>{$("fileName").textContent=$("receipt").files[0]?"File dipilih: "+$("receipt").files[0].name:""});
+$("purchaseForm").addEventListener("submit",e=>{e.preventDefault();let name=$("product").value.trim(),date=$("purchaseDate").value;if(!name||!date){$("formError").textContent="Nama produk dan tanggal pembelian wajib diisi.";$("formError").style.display="block";return}let old=editingId?items.find(x=>x.id===editingId):null;let f=$("receipt").files[0];let x={id:old?.id||Math.max(0,...items.map(i=>i.id))+1,product:name,store:$("store").value.trim(),date,months:$("duration").value===""?null:Number($("duration").value),price:Number($("price").value)||0,receipt:f?f.name:(old?.receipt||""),icon:old?.icon||"📦"};if(old)items=items.map(i=>i.id===old.id?x:i);else items.unshift(x);toast(old?"Pembelian berhasil diperbarui.":"Pembelian berhasil disimpan.");if(old){openDetail(x.id)}else show("home");});
+document.querySelectorAll(".toggle").forEach(t=>t.onclick=()=>{t.classList.toggle("on");if(t.id==="reminderToggle"){reminderOn=t.classList.contains("on");toast(reminderOn?"Pengingat diaktifkan (demo).":"Pengingat dinonaktifkan (demo).")}else toast("Preferensi pengingat diperbarui (demo).")});
+$("goReminders").onclick=()=>show("notifications");
+$("exportBtn").onclick=()=>{let rows=[["Produk","Toko","Tanggal Pembelian","Durasi Garansi (bulan)","Tanggal Akhir","Status","Harga","Struk"],...items.map(x=>[x.product,x.store,x.date,x.months??"",status(x).end?status(x).end.toISOString().slice(0,10):"",status(x).label,x.price,x.receipt])];let csv=rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));a.download="returnit-purchases-demo.csv";a.click();URL.revokeObjectURL(a.href);toast("CSV demo diekspor.")};
+$("resetBtn").onclick=()=>{if(confirm("Kembalikan data demo ke contoh awal?")){items=seed.map(x=>({...x}));filter="Semua";$("search").value="";document.querySelectorAll("[data-filter]").forEach(c=>c.classList.toggle("active",c.dataset.filter==="Semua"));render();show("home");toast("Data demo direset.")}};
+document.addEventListener("click",e=>{let item=e.target.closest(".item");if(item)openDetail(item.dataset.id)});
+document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.classList.contains("item"))openDetail(e.target.dataset.id)});
+render();
+</script>
+</body></html>

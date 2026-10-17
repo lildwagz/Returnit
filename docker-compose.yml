@@ -1,0 +1,129 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: returnit
+      POSTGRES_PASSWORD: returnit_dev
+      POSTGRES_DB: returnit
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U returnit"]
+      interval: 3s
+      retries: 20
+  minio:
+    # Official minio/minio images are no longer published; Chainguard builds MinIO from source.
+    # Dev-only: pin by digest before relying on it elsewhere.
+    image: cgr.dev/chainguard/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: returnit
+      MINIO_ROOT_PASSWORD: returnit_dev_secret
+    ports: ["9000:9000", "9001:9001"]
+    volumes: ["minio-data:/data"]
+  redis:
+    image: redis:7-alpine
+    # Job queue only: Postgres is the source of truth, so a short Redis outage loses no data.
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["6379:6379"]
+    volumes: ["redis-data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      retries: 20
+  clamav:
+    image: clamav/clamav:1.4
+    ports: ["3310:3310"]
+    # First start downloads virus signatures and can take a few minutes; wait for "healthy".
+    volumes: ["clamav-db:/var/lib/clamav"]
+  # The application itself, built from the Dockerfile. Opt in with: docker compose --profile app up
+  worker:
+    profiles: ["app"]
+    build: .
+    command: ["/worker"]
+    healthcheck:
+      test: ["CMD", "/worker", "-healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    environment: &app-env
+      DATABASE_URL: postgres://returnit:returnit_dev@postgres:5432/returnit?sslmode=disable
+      REDIS_ADDR: redis:6379
+      S3_ENDPOINT: minio:9000
+      S3_ACCESS_KEY: returnit
+      S3_SECRET_KEY: returnit_dev_secret
+      SMTP_ADDR: mailpit:1025
+      SMTP_FROM: noreply@returnit.local
+      SMTP_TLS: none
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: returnit
+      KEYCLOAK_ADMIN_CLIENT_ID: returnit-worker
+      KEYCLOAK_ADMIN_CLIENT_SECRET: dev-worker-secret
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_started }
+      migrate: { condition: service_completed_successfully }
+  web:
+    profiles: ["app"]
+    build: .
+    command: ["/web"]
+    ports: ["8080:8080"]
+    healthcheck:
+      test: ["CMD", "/web", "-healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    environment:
+      <<: *app-env
+      # Tokens carry the address a phone/host uses (localhost:8180); this container reads the provider's
+      # metadata from the Keycloak container instead (needs: --profile auth).
+      OIDC_ISSUER: ${OIDC_ISSUER:-http://localhost:8180/realms/returnit}
+      OIDC_DISCOVERY_URL: ${OIDC_DISCOVERY_URL:-http://keycloak:8080/realms/returnit}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-returnit-api}
+      CLAMAV_ADDR: clamav:3310
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_started }
+      clamav: { condition: service_healthy }
+      keycloak: { condition: service_healthy, required: false }
+      migrate: { condition: service_completed_successfully }
+  # Catches all outgoing e-mail in development: web UI http://localhost:8025, SMTP localhost:1025.
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports: ["1025:1025", "8025:8025"]
+  # Dev identity provider with a ready-made realm (users alice/bob). Issuer for local runs:
+  # http://localhost:8180/realms/returnit  (works for the app in Docker and for `go run ./cmd/web` on the host).
+  keycloak:
+    profiles: ["auth"]
+    image: quay.io/keycloak/keycloak:26.0
+    command: ["start-dev", "--import-realm"]
+    ports: ["8180:8080"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: "8080"
+      KC_HOSTNAME: http://localhost:8180
+      KC_HEALTH_ENABLED: "true"
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true" # containers get internal URLs, browsers/phones get localhost
+    volumes: ["./deploy/keycloak/returnit-realm.json:/opt/keycloak/data/import/returnit-realm.json:ro"]
+    healthcheck:
+      # The image has no curl; talk HTTP through bash's /dev/tcp to the management port.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+  migrate:
+    image: migrate/migrate:v4.18.1
+    depends_on:
+      postgres: { condition: service_healthy }
+    volumes: ["./db/migrations:/migrations:ro"]
+    command: ["-path=/migrations", "-database=postgres://returnit:returnit_dev@postgres:5432/returnit?sslmode=disable", "up"]
+
+volumes:
+  redis-data:
+  minio-data:
+  clamav-db:

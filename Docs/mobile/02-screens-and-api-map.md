@@ -1,0 +1,106 @@
+# Screens and API map
+
+Which API calls each screen of the design needs. Screens are taken from the interactive prototype
+(`04-design/ReturnIt_Interactive_Prototype.html`, open it in a browser); requirement ids (US-xx) are from the SRS
+(`05-requirements/`). Field names and error codes: `03-openapi.yaml` and `01-mobile-app-guide.md`.
+
+Base URL: `https://api.<domain>/api/v1` (local: `http://localhost:8080/api/v1`). Every call needs
+`Authorization: Bearer <access token>` except the login itself.
+
+## Before the main screens
+
+| Screen | What happens |
+|---|---|
+| Login / register | Not a screen of ours: open the system browser to the login server (OIDC + PKCE), receive tokens. "Register" and "Forgot password" live on that page. See guide, sections 0 and 1. |
+| Notification permission | Ask once after login. If granted, get the Firebase token and `POST /devices` (guide, section 4). |
+
+## Main screens
+
+### Home ("Halo, selamat datang")
+| Needs | Call |
+|---|---|
+| "Garansi aktif" count | `GET /purchases?warrantyStatus=active&pageSize=1` and read **`total`** |
+| "Segera berakhir" count | `GET /purchases?warrantyStatus=expiring&pageSize=1` and read `total` |
+| "Total pembelian" count | `GET /purchases?pageSize=1` and read `total` |
+| "Pembelian terbaru" | `GET /purchases?pageSize=5` (newest purchase date first) |
+| Button "Tambah Pembelian" | opens the Add screen |
+
+### Pembelian (list, search, filters)
+| Needs | Call |
+|---|---|
+| List | `GET /purchases?page=1&pageSize=20` (default size 20, maximum 100; response has `items`, `page`, `pageSize`, `total`) |
+| Search box | add `q=<text>` (matches product name and store) |
+| Filter chips | add `warrantyStatus=`: Semua = omit, Aktif = `active`, Segera Berakhir = `expiring` (ends within 30 days), Kedaluwarsa = `expired`, Tidak Diketahui = `none` (no end date) |
+
+### Tambah Pembelian (add)
+| Field in design | API field |
+|---|---|
+| Nama produk * | `productName` (required, max 160) |
+| Toko | `storeName` |
+| Tanggal pembelian * | `purchaseDate` (`YYYY-MM-DD`) |
+| Durasi garansi (3/6/12/24/36 months or unknown) | **The API takes dates, not a duration.** Compute in the app: `warrantyStartDate` = purchase date, `warrantyEndDate` = start + N months. "Tidak diketahui" = send neither. |
+| Harga | `price` (number; `currency` defaults to `IDR`) |
+| Catatan (if you add it) | `notes` |
+| Unggah struk | **Two steps:** `POST /purchases` first, then `POST /purchases/{id}/receipt` (multipart field `file`). If the upload fails, the purchase still exists: show it and offer "try again" from the detail screen. |
+
+Create answers `201` with the purchase.
+
+### Detail Pembelian
+| Needs | Call |
+|---|---|
+| Show product, dates, price, receipt info | `GET /purchases/{id}` |
+| Warranty status and days left | **Compute in the app** from `warrantyEndDate` (the response has no status field) |
+| View receipt | `GET /purchases/{id}/receipt` returns a signed `url` valid about 5 minutes: open or download it immediately, never store it |
+| Add or replace receipt | `POST /purchases/{id}/receipt` (a new upload replaces the old file) |
+| Remove receipt | `DELETE /purchases/{id}/receipt` |
+| Edit | `PATCH /purchases/{id}`: **send the complete object** (same fields as create); fields you leave out are cleared, not kept |
+| Delete | `DELETE /purchases/{id}` (the receipt file is deleted too) |
+
+### Pengingat (notifications)
+| Needs | Call |
+|---|---|
+| List of reminders ("Garansi yang perlu diperhatikan") | `GET /notifications` (`?unreadOnly=true`, `?limit=`) |
+| Mark as read | `POST /notifications/{id}/read` |
+| Reminder switches (30 / 14 / 7 / 3 / 1 days before) | `GET /reminder-preferences`, `PUT /reminder-preferences` (replaces everything: send `enabled`, `daysBefore` and `channel` every time) |
+
+Allowed `daysBefore` values: 1, 3, 7, 14, 30. Channel: `push` (default), `email` or `in_app`. Optional quiet hours
+(`quietHoursStart`, `quietHoursEnd`, `HH:MM`) and `timezone` (default `Asia/Jakarta`). Reminders fire at 09:00 in that timezone.
+A tapped push carries `data.notificationId`.
+
+### Pengaturan (settings)
+| Item in design | Call |
+|---|---|
+| Preferensi pengingat | the reminder preferences above |
+| Privasi & keamanan | static text; see `06-data-and-privacy/` for what to tell users |
+| Ekspor data | `GET /account/export` returns **JSON** (the prototype shows CSV: convert in the app if you want CSV). Receipt files are not inside it; each purchase has a `downloadPath`. |
+| Account / profile | `GET /account` |
+| Hapus akun | `DELETE /account`; needs a **fresh login** (`401 reauthentication_required` -> log in again with `prompt=login`, then retry). Answer `202` with the erasure date. |
+| Batalkan penghapusan | `POST /account/deletion/cancel` (until the date) |
+| Keluar (sign out) | `DELETE /devices/{id}` first, then forget the tokens |
+| "Reset data demo" | prototype only, not for the real app |
+
+## Requirements to API (from the SRS)
+
+| Story | Where it is covered |
+|---|---|
+| US-01 Add purchase | `POST /purchases` |
+| US-02 Upload receipt | `POST /purchases/{id}/receipt` |
+| US-03 View detail | `GET /purchases/{id}`, `GET .../receipt` |
+| US-04 Warranty calculation | app computes from `warrantyEndDate`; server filter `warrantyStatus` |
+| US-05 Search | `GET /purchases?q=` |
+| US-06 Reminders | `/reminder-preferences`, `/notifications`, push via `/devices` |
+| US-07 Edit | `PATCH /purchases/{id}` |
+| US-08 Delete | `DELETE /purchases/{id}` |
+| US-09 Data privacy | private receipt storage, signed links, `GET /account/export`, `DELETE /account` |
+
+## Things that will surprise you
+
+* **Edit replaces everything** (see Detail). Re-send all fields.
+* **Status values depend on the server's date.** `expiring`, `expired` and the counts use the database's calendar
+  date (UTC). Between 00:00 and 07:00 WIB the server is still on the previous day, so an item can look one day
+  "later" than on the phone. For the displayed "days left", calculate on the phone; use the server filters for lists.
+* **Dates are plain dates** (`YYYY-MM-DD`), not timestamps. Do not convert them through time zones.
+* **Money:** `price` is a number in the purchase's `currency` (default IDR, whole rupiah in practice).
+* **The access token lasts about 5 minutes.** Refresh it silently; do not make the user log in again.
+* **Receipt limits:** PDF, JPEG or PNG, 10 MiB.
+* **Rate limits:** about 60 calls per minute per user, 10 uploads per minute. A `429` has `Retry-After`.

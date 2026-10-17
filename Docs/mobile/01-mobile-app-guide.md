@@ -1,0 +1,144 @@
+# ReturnIt: guide for the mobile app developer
+
+> Part of the mobile developer folder. Start at `README.md` in this folder; `02-screens-and-api-map.md` lists the API calls per screen.
+
+The backend is a JSON API under `/api/v1`. The exact request and response shapes are in
+`03-openapi.yaml` (in this folder); this guide explains how the pieces fit together and the rules the app must follow.
+
+## 0. Getting started
+
+### What you need from the backend owner
+Ask for these values (they differ per environment):
+
+| Value | Dev (local) | Real server |
+|---|---|---|
+| Issuer (login server) | `http://localhost:8180/realms/returnit` | `https://auth.<domain>/realms/returnit` |
+| API base URL | `http://localhost:8080/api/v1` | `https://api.<domain>/api/v1` |
+| Client id | `returnit-app` | `returnit-app` |
+| Audience | `returnit-api` | `returnit-api` |
+| Redirect URI | `com.returnit.app:/oauth2redirect` | whatever you and the backend owner agreed (it must match on both sides) |
+
+The redirect URI uses your app's own URL scheme; register that scheme in the app (Android intent filter /
+iOS URL type). Tell the backend owner if you change it.
+
+### Easiest: develop against a staging server
+Ask the backend owner to deploy a staging server (the backend team follows `deploy/README.md` in the backend repository; plan a few hours the first time). It has real HTTPS, so
+the app needs no special settings and works on real phones. This is the recommended way.
+
+### Alternative: run the backend on your own computer
+This needs the full backend repository and Docker; the paths below are inside that repository. If you only have this folder, use a staging server.
+
+```
+docker compose --profile auth up -d --wait postgres redis minio clamav mailpit keycloak
+docker compose run --rm migrate
+# PowerShell, in two windows:  . .\scripts\dev-env.ps1   then   go run ./cmd/web    /    go run ./cmd/worker
+```
+Test users: `alice` / `alice-dev-pass` and `bob` / `bob-dev-pass`. E-mails the backend sends can be read at
+http://localhost:8025.
+
+* The login server insists on the address `http://localhost:8180`, so the app must reach it as `localhost`.
+  * **iOS simulator:** works as is.
+  * **Android emulator or phone over USB:** run `adb reverse tcp:8180 tcp:8180` and `adb reverse tcp:8080 tcp:8080`
+    so `localhost` on the device means your computer. Do not use `10.0.2.2`: the issuer in the token would not match.
+* These dev addresses are plain `http`. Android blocks that by default, so allow cleartext for `localhost` in a
+  **debug-only** network security config; iOS needs an App Transport Security exception for `localhost`. Never ship either.
+* The dev server has the password login enabled for automated tests. Do not use it in the app.
+
+### Signing up and logging in
+There is no sign-up API: on a real server the **login page** (Keycloak, shown in the system browser) has
+"Register" (self-registration is switched off in the local dev setup: use the test users there).
+New users enter an e-mail address and password (at least 10 characters), then must click the link in the
+verification e-mail before they can finish. The same page handles "Forgot password". The app only starts
+the login (`prompt=login` when it needs a fresh one) and receives the tokens; it never sees the password.
+
+After the first successful API call the backend creates the user's profile automatically from the token
+(no "create account" call is needed).
+
+If the backend owner enables **Sign in with Google**, the login page simply shows an extra Google button; the app does
+not change (it still only opens the browser login). Tokens look the same.
+
+### Suggested order of work
+1. Login with the browser flow and call `GET /account` (proves tokens, issuer and audience are right).
+2. Purchases list, add, edit, delete.
+3. Receipt upload and viewing.
+4. Reminder settings and the notification inbox.
+5. Push registration (`POST /devices`), then a real test push (the backend owner needs your Firebase project).
+6. Account screen: export, delete (fresh login), cancel.
+
+### Generating a client
+`03-openapi.yaml` is a standard OpenAPI 3 file; tools such as OpenAPI Generator can create typed
+Dart / Kotlin / Swift / TypeScript clients from it. Check the generated code against the rules below
+(token handling, errors, signed URLs) rather than trusting it blindly.
+
+## 1. Login (OIDC + PKCE)
+
+The backend does not handle passwords. Log in with the identity provider (Keycloak) using the standard
+**authorization code flow with PKCE** in the system browser (use an AppAuth library: AppAuth-Android /
+AppAuth-iOS, or `flutter_appauth`, `react-native-app-auth`). Never use the password grant or an embedded web view.
+
+- Scopes: `openid profile email`.
+- Send the **access token** on every API call: `Authorization: Bearer <token>`.
+- The token must have the audience `returnit-api` (the provider is configured to add it).
+- On `401`, refresh the token with the refresh token; if that fails, log in again.
+- Redirect address: a custom scheme or app link of your app (the provider must list it).
+- Dev provider and test users: see section 0.
+
+## 2. Standard behaviour of the API
+
+- **Errors** always look like `{"error":{"code":"...","message":"...","request_id":"..."}}`. Show the user a
+  friendly message and keep `request_id` for support.
+- **`429 Too Many Requests`** has a `Retry-After` header (seconds). Wait, then retry. Do not retry in a tight loop.
+- **`409` with code `identity_conflict`** on any call means the user's e-mail address belongs to an account with a different login identity (for example the login was deleted and re-created). The backend never merges these automatically. Show "please contact support" and do not retry.
+- **Other users' data** looks like it does not exist (`404`), never `403`.
+- Dates are `YYYY-MM-DD`; times are ISO-8601 UTC. Default currency is `IDR`.
+- Reminder times are shown in the user's timezone (default `Asia/Jakarta`, WIB).
+
+## 3. Core screens and the calls behind them
+
+| Screen | Call |
+|---|---|
+| List / search purchases | `GET /purchases` (`?q=` to search, `?warrantyStatus=`, paging with `page` and `pageSize`) |
+| Add purchase | `POST /purchases` (required: `productName`, `purchaseDate`; optional store, price, currency, warranty dates, notes) |
+| Purchase detail / edit / delete | `GET`, `PATCH`, `DELETE /purchases/{id}`. **`PATCH` replaces the whole record**: send every field again (like create); anything you leave out is cleared |
+| Attach receipt (camera or file) | `POST /purchases/{id}/receipt`, multipart form, field name **`file`** |
+| View receipt | `GET /purchases/{id}/receipt` returns a **signed URL valid about 5 minutes**; open it right away, never store or log it |
+| Remove receipt | `DELETE /purchases/{id}/receipt` |
+| Reminder settings | `GET` / `PUT /reminder-preferences` (PUT replaces everything; allowed days before: 1, 3, 7, 14, 30; channel `push`, `email` or `in_app`) |
+| Notification inbox | `GET /notifications` (`?unreadOnly=true`, `?limit=`), `POST /notifications/{id}/read` |
+
+**Receipts:** PDF, JPEG or PNG only, at most 10 MiB. A new upload replaces the old receipt. The server scans files for
+malware: `422` means the file was rejected as infected, `503` means the scanner is temporarily down (ask the user to
+try again later), `413` too large, `415` wrong type. Compress photos before upload.
+
+## 4. Push notifications
+
+1. Ask the user for notification permission (Android 13+ and iOS require it).
+2. Get the Firebase (FCM) token (`firebase_messaging` or the native SDK).
+3. Send it: `POST /devices` with `{"platform":"android"|"ios","pushToken":"..."}`. Do this **after every login, at every
+   app start, and whenever the token refreshes**. Keep the returned `id`.
+4. On **sign-out**, call `DELETE /devices/{id}` (otherwise the next person using that phone could receive these reminders).
+5. Create an Android notification channel with the id **`reminders`**.
+6. The push carries `data.notificationId`; when the user taps it, open that item from `GET /notifications`.
+7. Reminders always also appear in the inbox, so the inbox is the source of truth if a push is missed.
+
+Reminders are sent at 09:00 in the user's timezone, at the chosen days before the warranty ends. Users who set quiet
+hours get them afterwards.
+
+## 5. Account screen (required by the app stores)
+
+- `GET /account`: profile; `deletionScheduledFor` is not null while deletion is pending.
+- **Delete account:** `DELETE /account`. The server requires a **fresh login**: if it answers
+  `401` with code `reauthentication_required`, send the user through the login page again with `prompt=login`
+  (and `max_age=0`), then repeat the call with the new token. Refreshing a token does not count.
+  The answer `202` includes the erasure date (7 days later). Tell the user clearly that it is permanent after that date.
+- **Cancel deletion:** `POST /account/deletion/cancel` (until the date; afterwards `409`).
+- **Download my data:** `GET /account/export` returns a JSON file; save or share it with the system share sheet.
+  It does not contain the receipt files (each purchase has a `downloadPath` to fetch its file).
+- The user also receives e-mails when deletion is requested, 24 hours before, and after erasure.
+
+## 6. Good practice
+
+- Store tokens only in the platform secure storage (Keychain / Android Keystore).
+- Never log tokens, signed receipt URLs or push tokens.
+- Treat the server as the source of truth; refresh lists when the app returns to the foreground.
+- Support Indonesian and English text; amounts in Rupiah are whole numbers shown with thousand separators.

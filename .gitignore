@@ -1,0 +1,16 @@
+# Local
+.env
+*.exe
+/bin/
+
+# Production deployment
+deploy/.env.prod
+deploy/backups/
+deploy/secrets/
+
+# Internal documents stay on this computer. Only the mobile developer folder and the API contract are published.
+/Docs/*
+!/Docs/mobile/
+!/Docs/api/
+/Docs/api/*
+!/Docs/api/openapi.yaml

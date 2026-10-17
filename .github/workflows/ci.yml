@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Format, vet, unit tests, vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then echo "Not gofmt-ed:"; echo "$unformatted"; exit 1; fi
+      - name: go mod tidy is clean
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+      - run: go vet ./...
+      - run: go test -race -count=1 ./...
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+
+  integration:
+    name: Integration tests (Postgres, Redis, MinIO, ClamAV)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: returnit
+          POSTGRES_PASSWORD: returnit_dev
+          POSTGRES_DB: returnit
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U returnit" --health-interval 3s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 3s --health-timeout 3s --health-retries 20
+      clamav:
+        image: clamav/clamav:1.4
+        ports: ["3310:3310"]
+        options: >-
+          --health-cmd "clamdcheck.sh" --health-interval 10s --health-timeout 5s --health-retries 60
+    env:
+      DATABASE_URL: postgres://returnit:returnit_dev@localhost:5432/returnit?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # MinIO needs a command, which service containers cannot pass, so start it by hand.
+      # Official minio/minio images are no longer published; Chainguard builds MinIO from source.
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=returnit -e MINIO_ROOT_PASSWORD=returnit_dev_secret \
+            cgr.dev/chainguard/minio:latest server /data
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:9000/minio/health/live && exit 0
+            sleep 2
+          done
+          echo "MinIO did not become healthy"; docker logs minio; exit 1
+
+      - name: Migrations apply, roll back and re-apply
+        run: |
+          migrate() { docker run --rm --network host -v "$PWD/db/migrations:/migrations:ro" \
+            migrate/migrate:v4.18.1 -path=/migrations -database "$DATABASE_URL" "$@"; }
+          migrate up
+          migrate down -all
+          migrate up
+
+      - name: Wait for ClamAV (first start downloads virus signatures)
+        run: |
+          for _ in $(seq 1 60); do
+            s=$(docker inspect -f '{{.State.Health.Status}}' "$(docker ps -q --filter ancestor=clamav/clamav:1.4)")
+            [ "$s" = healthy ] && exit 0
+            sleep 10
+          done
+          echo "ClamAV not healthy"; exit 1
+
+      - name: Integration tests
+        env:
+          TEST_DATABASE_URL: ${{ env.DATABASE_URL }}
+          TEST_S3_ENDPOINT: localhost:9000
+          TEST_S3_ACCESS_KEY: returnit
+          TEST_S3_SECRET_KEY: returnit_dev_secret
+          TEST_CLAMAV_ADDR: localhost:3310
+          TEST_REDIS_ADDR: localhost:6379
+        # -p 1: packages share one database.
+        run: go test -tags integration -p 1 -count=1 ./internal/...
+
+  image:
+    name: Docker image builds and starts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: docker build -t returnit:ci .
+      - name: Both programs are present and refuse to start without configuration
+        run: |
+          for bin in /web /worker; do
+            out=$(docker run --rm returnit:ci "$bin" 2>&1 || true)
+            echo "$bin -> $out"
+            echo "$out" | grep -q "config: DATABASE_URL is required" || { echo "unexpected output from $bin"; exit 1; }
+          done

@@ -1,0 +1,544 @@
+openapi: 3.0.3
+info:
+  title: ReturnIt API
+  version: 1.0.0
+  description: >
+    Draft API contract for ReturnIt, an application to manage purchase receipts,
+    product warranties, and reminder preferences. Authentication and storage
+    integrations must be implemented before production use.
+servers:
+  - url: https://api.example.com/api/v1
+    description: Placeholder production base URL
+security:
+  - bearerAuth: []
+# Every operation can also answer 429 (see components.responses.TooManyRequests).
+tags:
+  - name: Purchases
+  - name: Reminders
+  - name: Account
+  - name: Devices
+paths:
+  /purchases:
+    get:
+      tags: [Purchases]
+      summary: List purchases owned by the authenticated user
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string, maxLength: 120 }
+          description: Search by product/store name
+        - in: query
+          name: warrantyStatus
+          schema: { type: string, enum: [active, expiring, expired, none] }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Purchase list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page, pageSize, total]
+                properties:
+                  items:
+                    type: array
+                    items: {$ref: '#/components/schemas/Purchase'}
+                  page: {type: integer}
+                  pageSize: {type: integer}
+                  total: {type: integer}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      tags: [Purchases]
+      summary: Create a purchase record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PurchaseCreate'}
+      responses:
+        '201':
+          description: Purchase created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Purchase'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /purchases/{purchaseId}:
+    parameters:
+      - $ref: '#/components/parameters/PurchaseId'
+    get:
+      tags: [Purchases]
+      summary: Get a purchase owned by the authenticated user
+      responses:
+        '200':
+          description: Purchase detail
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Purchase'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [Purchases]
+      summary: Update a purchase (full replacement)
+      description: >
+        Replaces all editable fields. Send the complete object, as for create; optional fields that are
+        left out are cleared, not kept.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PurchaseUpdate'}
+      responses:
+        '200':
+          description: Updated purchase
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Purchase'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      tags: [Purchases]
+      summary: Delete a purchase and its associated receipt metadata
+      responses:
+        '204': {description: Deleted}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /purchases/{purchaseId}/receipt:
+    parameters:
+      - $ref: '#/components/parameters/PurchaseId'
+    post:
+      tags: [Purchases]
+      summary: Upload a receipt file
+      description: Use a private object-storage bucket; validate MIME type, extension, size, and malware scan status.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Receipt uploaded (replaces any existing receipt for the purchase)
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Receipt'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '413': {description: File too large (default limit 10 MiB)}
+        '415': {description: "Unsupported media type; content is sniffed, only PDF/JPEG/PNG accepted"}
+    get:
+      tags: [Purchases]
+      summary: Get a short-lived signed download URL for the receipt
+      responses:
+        '200':
+          description: Signed URL (valid ~5 minutes; never log or persist it)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url, expiresAt, fileName, contentType, sizeBytes]
+                properties:
+                  url: {type: string, format: uri}
+                  expiresAt: {type: string, format: date-time}
+                  fileName: {type: string}
+                  contentType: {type: string}
+                  sizeBytes: {type: integer}
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      tags: [Purchases]
+      summary: Delete the receipt file and metadata
+      responses:
+        '204': {description: Deleted}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /reminder-preferences:
+    get:
+      tags: [Reminders]
+      summary: Get reminder preferences
+      description: Returns defaults (enabled, [30,14,7,3,1], push) if the user never saved any.
+      responses:
+        '200':
+          description: Preferences
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReminderPreferences'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    put:
+      tags: [Reminders]
+      summary: Replace reminder preferences
+      description: >
+        Full replacement. All of enabled, daysBefore and channel are required. daysBefore is
+        returned sorted descending; may be empty only when enabled is false. Quiet hours must
+        be set together and may span midnight. Timezone defaults to Asia/Jakarta (WIB).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ReminderPreferencesUpdate'}
+      responses:
+        '200':
+          description: Saved preferences
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReminderPreferences'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /notifications:
+    get:
+      tags: [Reminders]
+      summary: List delivered notifications for the authenticated user (newest first)
+      description: >
+        Only delivered (in-app) notifications are returned. Reminders are created by a background
+        scheduler at 09:00 in the user's timezone (default Asia/Jakarta) on each configured
+        offset before the warranty end date. createdAt is the delivery time.
+      parameters:
+        - in: query
+          name: unreadOnly
+          schema: {type: boolean, default: false}
+        - in: query
+          name: limit
+          schema: {type: integer, minimum: 1, maximum: 100, default: 50}
+      responses:
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '200':
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Notification'}
+  /notifications/{notificationId}/read:
+    parameters:
+      - in: path
+        name: notificationId
+        required: true
+        schema: {type: string, format: uuid}
+    post:
+      tags: [Reminders]
+      summary: Mark notification as read (idempotent)
+      responses:
+        '204': {description: Marked as read}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /devices:
+    post:
+      tags: [Devices]
+      summary: Register this phone for push notifications (idempotent)
+      description: >
+        Call at every app start and whenever the push token changes. Registering a token that already
+        exists refreshes it; if another user had registered the same token (shared phone) it moves to
+        the caller. At most 10 phones per user (the least recently seen are dropped). The push token is
+        never returned.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platform, pushToken]
+              properties:
+                platform: {type: string, enum: [android, ios]}
+                pushToken: {type: string, minLength: 20, maxLength: 4096}
+      responses:
+        '200':
+          description: Registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: {type: string, format: uuid}
+                  platform: {type: string, enum: [android, ios]}
+                  createdAt: {type: string, format: date-time}
+                  lastSeenAt: {type: string, format: date-time}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /devices/{deviceId}:
+    delete:
+      tags: [Devices]
+      summary: Unregister a phone (call on sign-out)
+      parameters:
+        - in: path
+          name: deviceId
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '204': {description: Removed}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /account:
+    get:
+      tags: [Account]
+      summary: Get current account profile
+      description: deletionScheduledFor is non-null while the account is in its deletion grace period.
+      responses:
+        '409': {$ref: '#/components/responses/IdentityConflict'}
+        '200':
+          description: Account profile
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Account'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    delete:
+      tags: [Account]
+      summary: Request account deletion (erased after a grace period)
+      description: >
+        Requires a fresh login (see 401). Nothing is deleted yet. The account is scheduled for permanent erasure after a grace
+        period (default 7 days, ACCOUNT_DELETION_GRACE) and can be restored with
+        POST /account/deletion/cancel until then. While scheduled, reminders stop but the rest
+        of the API keeps working. Repeating the request is safe and keeps the original date.
+        At erasure the worker deletes the account, purchases, reminder preferences, notifications
+        and receipt files; only an internal UUID and timestamps are kept in a deletion log. The
+        login identity at the identity provider is deleted too once the account is erased (Keycloak only; see KEYCLOAK_* settings). The user is e-mailed when the deletion is requested, 24 hours before erasure and after erasure (SMTP must be configured on the worker).
+      responses:
+        '202':
+          description: Deletion scheduled
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, deletionScheduledFor]
+                properties:
+                  status: {type: string, enum: [deletion_scheduled]}
+                  deletionScheduledFor: {type: string, format: date-time}
+        '401':
+          description: >
+            Not logged in, or the login is too old (error code `reauthentication_required`):
+            the token's auth_time must be within FRESH_LOGIN_MAX_AGE (default 5 minutes). Refreshing
+            a token does not help; send the user through the login page again (prompt=login).
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+  /account/export:
+    get:
+      tags: [Account]
+      summary: Download all of the caller's data as JSON (FR-16)
+      description: >
+        Streams one JSON document (Content-Disposition: attachment, Cache-Control: no-store)
+        containing the profile, reminder preferences (null if never saved), all purchases with
+        receipt metadata, and delivered notifications. Receipt files are not embedded: each
+        purchase's receipt has a downloadPath to fetch it (GET, authenticated). Internal
+        identifiers (storage keys, identity-provider subject) are never included. Limited to
+        3 requests per hour per user. If a failure happens after streaming has begun, the
+        document is left unterminated, so always check that it parses as complete JSON.
+      responses:
+        '200':
+          description: Export document (format returnit-export/1)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [format, exportedAt, account, reminderPreferences, purchases, notifications, devices]
+                properties:
+                  format: {type: string, example: returnit-export/1}
+                  exportedAt: {type: string, format: date-time}
+                  account: {$ref: '#/components/schemas/Account'}
+                  reminderPreferences:
+                    nullable: true
+                    allOf: [{$ref: '#/components/schemas/ReminderPreferences'}]
+                  purchases:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/Purchase'
+                        - type: object
+                          properties:
+                            receipt:
+                              type: object
+                              nullable: true
+                              properties:
+                                fileName: {type: string}
+                                contentType: {type: string}
+                                sizeBytes: {type: integer}
+                                uploadedAt: {type: string, format: date-time}
+                                downloadPath: {type: string}
+                  notifications:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: {type: string, format: uuid}
+                        purchaseId: {type: string, format: uuid, nullable: true}
+                        title: {type: string}
+                        body: {type: string}
+                        sentAt: {type: string, format: date-time}
+                        read: {type: boolean}
+                  devices:
+                    type: array
+                    description: Registered phones (platform and dates only; push tokens are not included).
+                    items:
+                      type: object
+                      properties:
+                        platform: {type: string, enum: [android, ios]}
+                        registeredAt: {type: string, format: date-time}
+                        lastSeenAt: {type: string, format: date-time}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
+  /account/deletion/cancel:
+    post:
+      tags: [Account]
+      summary: Cancel a pending account deletion
+      description: Idempotent. Restores normal operation; reminders missed during the grace period are not re-sent.
+      responses:
+        '204': {description: Deletion cancelled, or nothing was pending}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '409':
+          description: The grace period has ended; the account can no longer be restored
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    PurchaseId:
+      in: path
+      name: purchaseId
+      required: true
+      schema: {type: string, format: uuid}
+  headers:
+    RetryAfter:
+      description: Seconds to wait before retrying
+      schema: {type: integer, minimum: 1}
+  responses:
+    TooManyRequests:
+      description: >
+        Rate limit exceeded. Limits (per minute unless noted): 60 per user for all calls, 10 for
+        receipt uploads, 3 per hour for DELETE /account, and 30 per client IP for requests that fail
+        authentication. Successful calls carry X-RateLimit-Limit and X-RateLimit-Remaining.
+      headers:
+        Retry-After: {$ref: '#/components/headers/RetryAfter'}
+        X-RateLimit-Limit: {schema: {type: integer}}
+        X-RateLimit-Remaining: {schema: {type: integer}}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Unauthorized:
+      description: Missing or invalid authentication
+    IdentityConflict:
+      description: >
+        Any authenticated endpoint can answer 409 with error code `identity_conflict`: the token's e-mail
+        address already belongs to a user with a different login identity. Accounts are never merged by
+        e-mail; the user must contact support.
+    BadRequest:
+      description: Invalid request data
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    NotFound:
+      description: Resource not found or not accessible
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+  schemas:
+    Purchase:
+      type: object
+      required: [id, productName, purchaseDate, createdAt, updatedAt]
+      properties:
+        id: {type: string, format: uuid}
+        productName: {type: string, maxLength: 160}
+        storeName: {type: string, maxLength: 160, nullable: true}
+        purchaseDate: {type: string, format: date}
+        price: {type: number, minimum: 0, nullable: true}
+        currency: {type: string, minLength: 3, maxLength: 3, default: IDR}
+        warrantyStartDate: {type: string, format: date, nullable: true}
+        warrantyEndDate: {type: string, format: date, nullable: true}
+        notes: {type: string, maxLength: 2000, nullable: true}
+        receipt:
+          type: object
+          nullable: true
+          properties:
+            fileName: {type: string}
+            contentType: {type: string}
+            sizeBytes: {type: integer}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    Receipt:
+      type: object
+      required: [fileName, contentType, sizeBytes, uploadedAt]
+      properties:
+        fileName: {type: string, maxLength: 255}
+        contentType: {type: string, enum: [application/pdf, image/jpeg, image/png]}
+        sizeBytes: {type: integer}
+        uploadedAt: {type: string, format: date-time}
+    PurchaseCreate:
+      type: object
+      required: [productName, purchaseDate]
+      properties:
+        productName: {type: string, minLength: 1, maxLength: 160}
+        storeName: {type: string, maxLength: 160}
+        purchaseDate: {type: string, format: date}
+        price: {type: number, minimum: 0}
+        currency: {type: string, minLength: 3, maxLength: 3, default: IDR}
+        warrantyStartDate: {type: string, format: date}
+        warrantyEndDate: {type: string, format: date}
+        notes: {type: string, maxLength: 2000}
+    PurchaseUpdate:
+      allOf:
+        - $ref: '#/components/schemas/PurchaseCreate'
+    ReminderPreferences:
+      type: object
+      required: [enabled, daysBefore, channel]
+      properties:
+        enabled: {type: boolean}
+        daysBefore:
+          type: array
+          items: {type: integer, enum: [1, 3, 7, 14, 30]}
+          uniqueItems: true
+        channel:
+          type: string
+          enum: [push, email, in_app]
+        quietHoursStart: {type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$', nullable: true}
+        quietHoursEnd: {type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$', nullable: true}
+        timezone:
+          type: string
+          maxLength: 64
+          default: Asia/Jakarta
+          description: >
+            IANA timezone used to interpret quiet hours and to time reminders. Defaults to
+            Asia/Jakarta (WIB) when omitted; Asia/Makassar (WITA) and Asia/Jayapura (WIT) are
+            also valid. Never inferred from the server locale.
+    ReminderPreferencesUpdate:
+      allOf:
+        - $ref: '#/components/schemas/ReminderPreferences'
+    Notification:
+      type: object
+      required: [id, title, body, createdAt, read]
+      properties:
+        id: {type: string, format: uuid}
+        purchaseId: {type: string, format: uuid, nullable: true}
+        title: {type: string, maxLength: 160}
+        body: {type: string, maxLength: 1000}
+        createdAt: {type: string, format: date-time}
+        read: {type: boolean}
+    Account:
+      type: object
+      required: [id, email, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        email: {type: string, format: email}
+        displayName: {type: string, maxLength: 100, nullable: true}
+        createdAt: {type: string, format: date-time}
+        deletionScheduledFor: {type: string, format: date-time, nullable: true}
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: {type: string}
+            message: {type: string}
+            request_id: {type: string}

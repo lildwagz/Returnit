@@ -1,0 +1,34 @@
+# Caddy terminates HTTPS (certificates from Let's Encrypt, renewed automatically) and forwards to the
+# private services. DOMAIN and ACME_EMAIL come from .env.prod.
+{
+	email {$ACME_EMAIL}
+}
+
+(secure) {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+}
+
+# The mobile app talks to this.
+api.{$DOMAIN} {
+	import secure
+	# Receipts are limited to 10 MiB by the API; this stops oversized bodies earlier.
+	request_body {
+		max_size 11MB
+	}
+	reverse_proxy web:8080
+}
+
+# Login server. Only the realm's public endpoints are reachable; the admin console and the master
+# realm are not (use the SSH tunnel for administration).
+auth.{$DOMAIN} {
+	import secure
+	@private path /admin /admin/* /realms/master /realms/master/* /metrics /metrics/* /health /health/*
+	respond @private 404
+	reverse_proxy keycloak:8080
+}
