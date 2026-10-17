@@ -31,8 +31,23 @@ func Stats(cfg Config) ([]QueueStat, error) {
 	}
 	sort.Strings(names)
 
+	// Ask which queues exist instead of interpreting the "queue does not exist" error, whose type
+	// the library does not expose reliably. A queue appears with its first job.
+	existing, err := in.Queues()
+	if err != nil {
+		return nil, fmt.Errorf("queue: list queues: %w", err)
+	}
+	have := make(map[string]bool, len(existing))
+	for _, q := range existing {
+		have[q] = true
+	}
+
 	out := make([]QueueStat, 0, len(names))
 	for _, q := range names {
+		if !have[q] {
+			out = append(out, QueueStat{Queue: q})
+			continue
+		}
 		info, err := in.GetQueueInfo(q)
 		if err != nil {
 			if errors.Is(err, asynq.ErrQueueNotFound) {
