@@ -59,6 +59,11 @@ services:
       KEYCLOAK_REALM: returnit
       KEYCLOAK_ADMIN_CLIENT_ID: returnit-worker
       KEYCLOAK_ADMIN_CLIENT_SECRET: dev-worker-secret
+      # Push to a real phone: set FCM_PROJECT_ID and FCM_KEY_FILE in .env (see README). Unset = no push.
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+      FCM_CREDENTIALS_FILE: ${FCM_PROJECT_ID:+/run/secrets/fcm.json}
+    volumes:
+      - ${FCM_KEY_FILE:-/dev/null}:/run/secrets/fcm.json:ro
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }

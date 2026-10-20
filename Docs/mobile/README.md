@@ -11,6 +11,7 @@ Everything you need to build the mobile app, in reading order. You do not need t
 | 4 | `04-design/ReturnIt_Interactive_Prototype.html` | Clickable prototype with demo data. Open in a browser | To see the intended behaviour |
 | 5 | `05-requirements/ReturnIt_SRS_Requirements_UseCases_BPMN.docx` | Requirements, user stories with acceptance criteria, use cases | To check what "done" means |
 | 6 | `06-data-and-privacy/data-retention-policy.md` | What the backend keeps and deletes, and when (useful for privacy texts and store forms) | Before writing privacy screens |
+| 7 | `07-qa/qa-test-plan.md` (English), `07-qa/qa-test-plan.id.md` (Indonesian) | Manual test plan: environments, test accounts, smoke test, about 100 cases (login, purchases, receipts, push, account deletion, errors), bug template, release checklist | Before every release |
 
 The design and requirement documents are in **Indonesian**; the guide, the map and the API file are in English.
 
@@ -43,6 +44,6 @@ The design and requirement documents are in **Indonesian**; the guide, the map a
 `03-openapi.yaml`, the design/requirement files and the retention policy are **copies**. The originals stay where the
 backend team edits them (`Docs/api/openapi.yaml`, `Docs/*.docx`, `Docs/docs/data-retention-policy.md`). After the
 originals change, refresh the copies with `scripts/sync-mobile-docs.sh` (backend team) before handing the folder over.
-`01-mobile-app-guide.md` and `02-screens-and-api-map.md` live only here: edit them in this folder.
+`01-mobile-app-guide.md`, `02-screens-and-api-map.md` and `07-qa/qa-test-plan.md` (and its Indonesian twin `qa-test-plan.id.md`) live only here: edit them in this folder and keep the two QA files in step.
 
 Not included on purpose (backend internals): architecture, database design, sprint backlog, coding standards, deployment.

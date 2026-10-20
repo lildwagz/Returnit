@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Refreshes the COPIES inside Docs/mobile/ from their originals. Run from anywhere:
 #   bash scripts/sync-mobile-docs.sh
-# Edit the originals, never the copies. (01-mobile-app-guide.md and 02-screens-and-api-map.md have no
+# Edit the originals, never the copies. (01-mobile-app-guide.md, 02-screens-and-api-map.md and 07-qa/qa-test-plan.md have no
 # original: they live only in Docs/mobile/.)
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../Docs"

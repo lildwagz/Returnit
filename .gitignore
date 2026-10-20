@@ -14,3 +14,6 @@ deploy/secrets/
 !/Docs/api/
 /Docs/api/*
 !/Docs/api/openapi.yaml
+
+# Office lock files
+~$*
