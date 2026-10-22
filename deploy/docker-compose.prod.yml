@@ -82,7 +82,10 @@ services:
     <<: *restart
     profiles: ["minio"]
     image: cgr.dev/chainguard/minio:latest # pin by digest once you settle on a version
-    command: server /data
+    # The web console is on a fixed port that is reachable ONLY from this server itself (127.0.0.1); open it
+    # from your computer with an SSH tunnel: ssh -L 9001:localhost:9001 <server>, then http://localhost:9001
+    command: server /data --console-address ":9001"
+    ports: ["127.0.0.1:9001:9001"]
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
