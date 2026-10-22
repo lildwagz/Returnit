@@ -28,7 +28,9 @@ api.{$DOMAIN} {
 # realm are not (use the SSH tunnel for administration).
 auth.{$DOMAIN} {
 	import secure
-	@private path /admin /admin/* /realms/master /realms/master/* /metrics /metrics/* /health /health/*
+	# /realms/returnit/account is Keycloak's web page for users to edit their own profile. The app does not use it, and
+	# a changed e-mail address there would not reach our database, so it stays closed.
+	@private path /admin /admin/* /realms/master /realms/master/* /realms/returnit/account /realms/returnit/account/* /metrics /metrics/* /health /health/*
 	respond @private 404
 	reverse_proxy keycloak:8080
 }
