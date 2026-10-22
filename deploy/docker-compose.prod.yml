@@ -8,6 +8,12 @@ name: returnit-prod
 
 x-restart: &restart
   restart: unless-stopped
+  # Without a limit Docker keeps every log line forever and the disk eventually fills up.
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
 
 x-app-env: &app-env
   DATABASE_URL: postgres://returnit:${POSTGRES_PASSWORD}@postgres:5432/returnit?sslmode=disable
