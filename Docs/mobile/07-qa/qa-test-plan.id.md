@@ -55,7 +55,7 @@ namanya jadi `.jpg`, file kosong (0 byte), file dengan nama sangat panjang.
 | A5 | Lupa password | Pakai "Forgot password" | E-mail reset masuk dan password baru berfungsi |
 | A6 | Token diperbarui diam-diam | Biarkan aplikasi terbuka lebih dari 6 menit (token hidup sekitar 5 menit), lalu buka daftar | Tidak ada permintaan login, data termuat |
 | A7 | Sesi bertahan setelah restart | Hentikan paksa aplikasi, buka lagi | Masih login |
-| A8 | Sesi kedaluwarsa | Hapus sesi pengguna di Keycloak, lalu pakai aplikasi | Aplikasi meminta login ulang, tidak crash atau loading tanpa henti |
+| A8 | Sesi kedaluwarsa | Login di HP. Lalu akhiri sesi pengguna di server: `./kc-user.sh logout <email>` (tim backend; atau konsol Keycloak, Users, Sessions, Sign out). Lanjutkan memakai aplikasi. | Sekitar 5 menit pertama aplikasi masih berjalan (access token yang sudah diterbitkan masih berlaku). Setelah kedaluwarsa, pembaruan token diam-diam ditolak (`invalid_grant`) dan aplikasi harus menampilkan layar login: tidak crash, tidak spinner tanpa akhir, tidak ada pesan error mentah. Setelah login ulang, data pengguna masih ada. Agar tidak menunggu, biarkan aplikasi di latar belakang 6 menit sebelum dipakai lagi. |
 | A9 | Keluar | Pengaturan, keluar | Kembali ke belum login; perangkat dihapus dari server (`DELETE /devices/{id}`); login berikutnya mulai bersih |
 | A10 | Dua pengguna di satu HP | Logout alice, login sebagai bob | Bob tidak melihat data alice (tidak ada daftar yang tertinggal di cache) |
 | A11 | Login berbeda, e-mail sama | Login dengan identitas yang e-mailnya sudah milik akun lain | Aplikasi menampilkan pesan jelas dari `409 identity_conflict` ("hubungi dukungan"), bukan layar kosong |

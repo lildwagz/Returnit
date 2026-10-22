@@ -55,7 +55,7 @@ file renamed to `.jpg`, an empty (0 byte) file, a file with a very long name.
 | A5 | Forgot password | Use "Forgot password" | Reset e-mail arrives and the new password works |
 | A6 | Silent token refresh | Stay in the app for more than 6 minutes (token lives about 5), then open a list | No login prompt, data loads |
 | A7 | Session survives restart | Force-stop the app, reopen | Still logged in |
-| A8 | Expired session | Remove the user's sessions in Keycloak, then use the app | App asks to log in again, no crash or endless loading |
+| A8 | Expired session | Log in on the phone. Then end the user's sessions on the server: `./kc-user.sh logout <email>` (backend team; or Keycloak console, Users, Sessions, Sign out). Keep using the app. | For up to about 5 minutes the app keeps working (the access token already issued is still valid). Once it expires, the silent refresh is refused (`invalid_grant`) and the app must show the login screen: no crash, no endless spinner, no raw error. After logging in again the user's data is there. To skip the wait, leave the app in the background for 6 minutes before using it. |
 | A9 | Sign-out | Settings, sign out | Back to logged-out; the device is removed from the server (`DELETE /devices/{id}`); the next login starts clean |
 | A10 | Two users on one phone | Log out alice, log in as bob | Bob sees none of alice's data (no cached list) |
 | A11 | Different login, same e-mail | Log in with an identity whose e-mail already belongs to another account | App shows a clear message built from `409 identity_conflict` ("contact support"), not a blank screen |
