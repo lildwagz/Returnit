@@ -27,10 +27,17 @@ curl -fsS -m 15 "https://api.$domain/health/ready" 2>/dev/null | grep -q '"ready
 curl -fsS -m 15 "https://auth.$domain/realms/returnit/.well-known/openid-configuration" 2>/dev/null | grep -q '"issuer"' ||
 	add "Login server does not answer: https://auth.$domain/realms/returnit"
 
-# 2. containers
+# 2. containers (needs access to Docker: the user must be in the docker group, and the login must be newer
+# than that change; otherwise say so once instead of reporting every service as missing)
+docker_ok=1
+if ! docker info >/dev/null 2>&1; then
+	docker_ok=0
+	add "Cannot use Docker from this account (log out and in again, or check the docker group); container and job checks skipped"
+fi
 expected="caddy postgres redis keycloak web worker minio"
 [ "$MALWARE_SCAN" = on ] && expected="$expected clamav"
 status="$(dc ps --all --format '{{.Service}}|{{.State}}|{{.Health}}' 2>/dev/null)"
+[ "$docker_ok" = 1 ] || expected=""
 for s in $expected; do
 	line="$(printf '%s\n' "$status" | grep "^$s|" | head -1)"
 	if [ -z "$line" ]; then
@@ -69,7 +76,7 @@ else
 fi
 
 # 6. background jobs that are stuck (rows that should have been handled over an hour ago)
-for t in account_emails identity_deletions object_deletions; do
+for t in $([ "$docker_ok" = 1 ] && echo account_emails identity_deletions object_deletions); do
 	n="$(dc exec -T postgres psql -U returnit -d returnit -Atc "SELECT count(*) FROM $t WHERE next_attempt_at < now() - interval '1 hour'" 2>/dev/null | tr -dc '0-9')"
 	if [ -z "$n" ]; then add "Cannot read table $t"; elif [ "$n" -gt 0 ]; then add "$n item(s) stuck in $t (see worker logs)"; fi
 done
