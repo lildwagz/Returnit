@@ -8,8 +8,18 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Connect(ctx context.Context, url string) (*pgxpool.Pool, error) {
-	pool, err := pgxpool.New(ctx, url)
+// Option customises Connect.
+type Option func(*pgxpool.Config)
+
+func Connect(ctx context.Context, url string, opts ...Option) (*pgxpool.Pool, error) {
+	cfg, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		return nil, fmt.Errorf("database: parse url: %w", err)
+	}
+	for _, o := range opts {
+		o(cfg)
+	}
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("database: create pool: %w", err)
 	}

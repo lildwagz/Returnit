@@ -58,7 +58,12 @@ func run(log *slog.Logger) error {
 	if err := queue.Ping(cfg.Redis); err != nil {
 		return err
 	}
-	pool, err := database.Connect(ctx, cfg.DatabaseURL)
+	var dbOpts []database.Option
+	if cfg.LogSQL {
+		dbOpts = append(dbOpts, database.WithQueryLog(log))
+		log.Warn("LOG_SQL is on: every SQL statement is written to the log (values are not); use it for development or short debugging")
+	}
+	pool, err := database.Connect(ctx, cfg.DatabaseURL, dbOpts...)
 	if err != nil {
 		return err
 	}
@@ -69,6 +74,10 @@ func run(log *slog.Logger) error {
 	}
 
 	jobs := queue.NewClient(cfg.Redis)
+	if cfg.LogRedis {
+		jobs.Log = log
+		log.Warn("LOG_REDIS is on: every job written to Redis and every job run is logged")
+	}
 	defer jobs.Close()
 
 	health := worker.NewHealth(pool, cfg.Redis)
@@ -118,6 +127,7 @@ func run(log *slog.Logger) error {
 		Identities:      identities,
 		Emails:          emails,
 		Health:          health,
+		LogJobs:         cfg.LogRedis,
 		Redis:           cfg.Redis,
 		Concurrency:     cfg.Concurrency,
 		Reminders:       &notifications.Scheduler{Pool: pool, Pushes: jobs, Log: log},

@@ -10,11 +10,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/returnit/returnit/internal/logging"
 )
 
 // Task types.
@@ -49,7 +52,46 @@ func (c Config) RedisOpt() asynq.RedisClientOpt {
 }
 
 // Client enqueues jobs. Safe for concurrent use.
-type Client struct{ c *asynq.Client }
+type Client struct {
+	c *asynq.Client
+	// Log, when set (LOG_REDIS=on), gets one line per enqueue: what was written to Redis for the worker.
+	Log *slog.Logger
+}
+
+// enqueue is the only place that writes a job to Redis, so the optional log line is in one spot.
+func (c *Client) enqueue(ctx context.Context, t *asynq.Task, opts ...asynq.Option) error {
+	start := time.Now()
+	info, err := c.c.EnqueueContext(ctx, t, opts...)
+	if c.Log != nil {
+		logEnqueue(logging.FromContext(ctx), c.Log, t, info, err, time.Since(start))
+	}
+	return err
+}
+
+// logEnqueue writes the enqueue line. Payloads here are ids only (a notification UUID), never personal data.
+func logEnqueue(reqLog, fallback *slog.Logger, t *asynq.Task, info *asynq.TaskInfo, err error, took time.Duration) {
+	l := reqLog
+	if l == slog.Default() {
+		l = fallback
+	}
+	attrs := []any{"type", t.Type(), "duration_ms", float64(took.Microseconds()) / 1000}
+	if p := t.Payload(); len(p) > 0 && json.Valid(p) && len(p) <= 512 {
+		attrs = append(attrs, "payload", json.RawMessage(p))
+	} else if len(p) > 0 {
+		attrs = append(attrs, "payload_bytes", len(p))
+	}
+	if info != nil {
+		attrs = append(attrs, "task_id", info.ID, "queue", info.Queue)
+	}
+	switch {
+	case err == nil:
+		l.Info("queue enqueue", append(attrs, "result", "enqueued")...)
+	case errors.Is(err, asynq.ErrDuplicateTask) || errors.Is(err, asynq.ErrTaskIDConflict):
+		l.Info("queue enqueue", append(attrs, "result", "duplicate")...)
+	default:
+		l.Warn("queue enqueue", append(attrs, "result", "error", "err", err.Error())...)
+	}
+}
 
 func NewClient(cfg Config) *Client { return &Client{c: asynq.NewClient(cfg.RedisOpt())} }
 
@@ -83,7 +125,7 @@ func Ping(cfg Config) error {
 // its next periodic run. Bursts are coalesced. The outbox row already exists in Postgres, so
 // losing this message only delays deletion until the next periodic purge.
 func (c *Client) RequestPurge(ctx context.Context) error {
-	_, err := c.c.EnqueueContext(ctx, asynq.NewTask(TypePurgeObjects, nil),
+	err := c.enqueue(ctx, asynq.NewTask(TypePurgeObjects, nil),
 		asynq.Queue(QueueDefault), asynq.Unique(2*time.Second), asynq.MaxRetry(3), asynq.Timeout(2*time.Minute))
 	if errors.Is(err, asynq.ErrDuplicateTask) {
 		return nil
@@ -103,7 +145,7 @@ func (c *Client) EnqueuePush(ctx context.Context, notificationID uuid.UUID) erro
 	if err != nil {
 		return fmt.Errorf("queue: encode push payload: %w", err)
 	}
-	_, err = c.c.EnqueueContext(ctx, asynq.NewTask(TypeSendPush, body),
+	err = c.enqueue(ctx, asynq.NewTask(TypeSendPush, body),
 		asynq.Queue(QueuePush), asynq.TaskID("push:"+notificationID.String()),
 		asynq.MaxRetry(5), asynq.Timeout(30*time.Second), asynq.Retention(24*time.Hour))
 	if errors.Is(err, asynq.ErrTaskIDConflict) {

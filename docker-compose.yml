@@ -52,6 +52,9 @@ services:
       S3_ENDPOINT: minio:9000
       S3_ACCESS_KEY: returnit
       S3_SECRET_KEY: returnit_dev_secret
+      # Development: log every SQL statement and every Redis job write/run (values of SQL arguments are never logged).
+      LOG_SQL: ${LOG_SQL:-on}
+      LOG_REDIS: ${LOG_REDIS:-on}
       # Receipt links must be reachable from the phone/emulator (adb reverse tcp:9000 tcp:9000).
       S3_PUBLIC_ENDPOINT: localhost:9000
       S3_PUBLIC_USE_SSL: "false"

@@ -63,7 +63,12 @@ func run(log *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	pool, err := database.Connect(ctx, cfg.DatabaseURL)
+	var dbOpts []database.Option
+	if cfg.LogSQL {
+		dbOpts = append(dbOpts, database.WithQueryLog(log))
+		log.Warn("LOG_SQL is on: every SQL statement is written to the log (values are not); use it for development or short debugging")
+	}
+	pool, err := database.Connect(ctx, cfg.DatabaseURL, dbOpts...)
 	if err != nil {
 		return err
 	}
@@ -91,12 +96,19 @@ func run(log *slog.Logger) error {
 		log.Warn("redis unreachable at startup; background nudges will be delayed until it is back", "err", err)
 	}
 	jobs := queue.NewClient(cfg.Redis)
+	if cfg.LogRedis {
+		jobs.Log = log
+		log.Warn("LOG_REDIS is on: every job written to Redis and every Redis command of the rate limiter is logged")
+	}
 	defer jobs.Close()
 
 	// Shared limits live in Redis; if it is unreachable each instance falls back to its own
 	// in-memory limits rather than disabling protection.
 	redisLimiter := ratelimit.NewRedis(cfg.Redis.Addr, cfg.Redis.Password, cfg.Redis.DB)
 	defer redisLimiter.Close()
+	if cfg.LogRedis {
+		redisLimiter.EnableLog(log)
+	}
 	limiter := &ratelimit.Fallback{Primary: redisLimiter, Secondary: ratelimit.NewMemory(), Log: log}
 
 	receiptSvc := receipts.NewService(receipts.NewPGRepo(pool), store, scanner, jobs, cfg.MaxReceiptBytes, log)

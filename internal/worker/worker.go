@@ -29,6 +29,8 @@ type Deps struct {
 	Emails *account.EmailSender
 	// Identities removes erased users at the identity provider; nil when it is not configured.
 	Identities *account.IdentityEraser
+	// LogJobs writes one INFO line per job run (LOG_REDIS=on): type, queue, attempt, duration, result.
+	LogJobs bool
 	// Health, if set, is told about every successful job (its readiness check needs the heartbeats).
 	Health *Health
 	Log    *slog.Logger
@@ -82,6 +84,17 @@ func Run(ctx context.Context, d Deps) error {
 		return asynq.HandlerFunc(func(ctx context.Context, t *asynq.Task) error {
 			start := time.Now()
 			err := next.ProcessTask(ctx, t)
+			if d.LogJobs {
+				taskID, _ := asynq.GetTaskID(ctx)
+				queueName, _ := asynq.GetQueueName(ctx)
+				retried, _ := asynq.GetRetryCount(ctx)
+				result := "ok"
+				if err != nil {
+					result = "failed" // the reason is logged once by the error handler above
+				}
+				d.Log.Info("job", "type", t.Type(), "queue", queueName, "task_id", taskID, "attempt", retried+1,
+					"result", result, "duration_ms", time.Since(start).Milliseconds())
+			}
 			if err == nil {
 				if d.Health != nil {
 					d.Health.Beat(t.Type())

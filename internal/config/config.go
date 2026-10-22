@@ -26,6 +26,21 @@ type Common struct {
 	Redis           queue.Config
 	S3              storage.Config
 	ShutdownTimeout time.Duration
+	// LogSQL (LOG_SQL=on) logs every SQL statement with its duration; LogRedis (LOG_REDIS=on) logs what is
+	// written to Redis for the worker and every job run. Both are off by default: they are very chatty.
+	LogSQL   bool
+	LogRedis bool
+}
+
+// onOff reads an on/off environment switch (unset means off).
+func onOff(name string) (bool, error) {
+	switch os.Getenv(name) {
+	case "", "off":
+		return false, nil
+	case "on":
+		return true, nil
+	}
+	return false, fmt.Errorf("config: %s must be 'on' or 'off'", name)
 }
 
 // Web is the HTTP API process.
@@ -259,6 +274,13 @@ func loadCommon() (Common, error) {
 			PublicEndpoint: os.Getenv("S3_PUBLIC_ENDPOINT"),
 			PublicUseSSL:   os.Getenv("S3_PUBLIC_USE_SSL") != "false", // HTTPS unless told otherwise
 		},
+	}
+	var err error
+	if c.LogSQL, err = onOff("LOG_SQL"); err != nil {
+		return Common{}, err
+	}
+	if c.LogRedis, err = onOff("LOG_REDIS"); err != nil {
+		return Common{}, err
 	}
 	if c.DatabaseURL == "" {
 		return Common{}, errors.New("config: DATABASE_URL is required")

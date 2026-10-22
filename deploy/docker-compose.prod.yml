@@ -29,6 +29,9 @@ x-app-env: &app-env
   S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-files.${DOMAIN}}
   S3_PUBLIC_USE_SSL: ${S3_PUBLIC_USE_SSL:-true}
   LOG_LEVEL: ${LOG_LEVEL:-info}
+  # Very chatty debugging aids; keep "off" in production and switch on only for a short session.
+  LOG_SQL: ${LOG_SQL:-off}
+  LOG_REDIS: ${LOG_REDIS:-off}
 
 services:
   caddy:
