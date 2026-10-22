@@ -142,6 +142,7 @@ dikonfigurasi (lihat `deploy/README.md` / `.env` dev).
 | N15 | Dua pengguna di satu HP | Alice keluar, bob masuk di HP yang sama | Pengingat alice tidak pernah tampil untuk bob; token sekarang milik bob |
 | N16 | Channel Android | Pengaturan sistem, notifikasi aplikasi | Ada channel bernama `reminders` dengan suara/tingkat kepentingan sesuai desain |
 | N17 | Notifikasi diblokir di sistem | Matikan notifikasi untuk aplikasi | Aplikasi tetap menampilkan pengingat di dalamnya; tidak crash |
+| N18 | Ganti channel setelah pengingat tiba | Terima pengingat (kotak masuk), buka sampai berstatus dibaca. Di pengaturan pengingat ganti channel push <-> in_app (dan kembali), tunggu 2 menit, segarkan kotak masuk | Tetap SATU entri untuk pengingat itu, tetap berstatus dibaca. Tidak muncul salinan baru. Pengingat yang belum jatuh tempo dikirim sekali, lewat channel yang dipilih saat jatuh tempo |
 
 ### 3.6 Akun: ekspor, hapus, batalkan penghapusan
 

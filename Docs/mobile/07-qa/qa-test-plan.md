@@ -142,6 +142,7 @@ FCM configured (see `deploy/README.md` / dev `.env`).
 | N15 | Two users, one phone | Alice logs out, bob logs in on the same phone | Alice's reminders never show for bob; the token now belongs to bob |
 | N16 | Android channel | System settings, app notifications | A channel named `reminders` exists with sound/importance as designed |
 | N17 | Notifications blocked in system | Disable notifications for the app | App still lists reminders in-app; no crash |
+| N18 | Switch channel after a reminder arrived | Receive a reminder (inbox), open it so it is read. In reminder settings switch the channel push <-> in_app (and back), wait 2 minutes, refresh the inbox | Still ONE entry for that reminder, still marked read. No new copy appears. A reminder that was not yet due is sent once, through the channel selected when it is due |
 
 ### 3.6 Account: export, delete, cancel deletion
 

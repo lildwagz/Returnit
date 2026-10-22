@@ -105,10 +105,18 @@ func TestPlanKeyIsStableAndDistinct(t *testing.T) {
 		}
 		seen[a[i].Key] = true
 	}
+	// The channel is how a reminder is delivered, not which reminder it is: switching push <-> in_app
+	// must map to the SAME reminder (otherwise the inbox gets a duplicate and the read state is lost).
 	other := DefaultPrefs()
 	other.Channel = "in_app"
-	if c := Plan(cand("2026-11-23", other), now); c[0].Key == a[0].Key {
-		t.Fatal("channel must be part of the key")
+	c := Plan(cand("2026-11-23", other), now)
+	if len(c) != len(a) {
+		t.Fatalf("a channel change must not change which reminders are planned: %d vs %d", len(c), len(a))
+	}
+	for i := range a {
+		if c[i].Key != a[i].Key {
+			t.Fatalf("channel must not be part of the key: %q vs %q", c[i].Key, a[i].Key)
+		}
 	}
 }
 
@@ -128,7 +136,6 @@ func TestDecide(t *testing.T) {
 		"end date changed":      func(d *Due) { e := date("2026-12-15"); d.CurrentEnd = &e },
 		"prefs disabled":        func(d *Due) { d.Prefs.Enabled = false },
 		"offset removed":        func(d *Due) { d.Prefs.DaysBefore = []int{30, 14} },
-		"channel changed":       func(d *Due) { d.Prefs.Channel = "in_app" },
 		"account pending":       func(d *Due) { d.AccountPending = true },
 		"warranty already over": func(d *Due) { e := date("2026-11-20"); d.CurrentEnd, d.PlannedEnd = &e, e },
 	}
@@ -138,6 +145,14 @@ func TestDecide(t *testing.T) {
 		a, reason, _ := Decide(d, now)
 		if a != ActionCancel || reason == "" {
 			t.Errorf("%s: action=%v reason=%q", name, a, reason)
+		}
+	}
+	// A channel change after planning is not a reason to cancel: the reminder is sent through the new channel.
+	for _, ch := range []string{"in_app", "email", "push"} {
+		d := base()
+		d.Prefs.Channel = ch
+		if a, _, _ := Decide(d, now); a != ActionSend {
+			t.Errorf("channel changed to %s: want send, got %v", ch, a)
 		}
 	}
 	// Inside quiet hours at dispatch time -> deferred to the end of the window.

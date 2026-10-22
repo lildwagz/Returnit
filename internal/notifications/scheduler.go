@@ -37,8 +37,8 @@ func (s *Scheduler) now() time.Time {
 const planBatch = 500
 
 // Plan creates notification rows for upcoming reminders. Running it repeatedly (or from several
-// processes) never creates duplicates: rows are keyed by purchase + reminder date + channel +
-// offset with ON CONFLICT DO NOTHING.
+// processes) never creates duplicates: rows are keyed by purchase + reminder date + offset (not the
+// channel) with ON CONFLICT DO NOTHING.
 func (s *Scheduler) Plan(ctx context.Context) (int, error) {
 	now := s.now()
 	created := 0
@@ -197,9 +197,11 @@ FOR UPDATE OF n SKIP LOCKED`, now, dispatchBatch)
 			err = exec(ctx, tx, `UPDATE notifications SET scheduled_at=$2 WHERE id=$1`, r.id, until)
 			st.Deferred++
 		case ActionSend:
-			err = exec(ctx, tx, `UPDATE notifications SET status='sent', sent_at=$2, last_error=NULL WHERE id=$1`, r.id, now)
+			// Deliver through the channel the user has NOW, not the one that was current when it was planned.
+			ch := r.due.Prefs.Channel
+			err = exec(ctx, tx, `UPDATE notifications SET status='sent', sent_at=$2, channel=$3, last_error=NULL WHERE id=$1`, r.id, now, ch)
 			st.Sent++
-			if r.channel != "in_app" {
+			if ch != "in_app" {
 				push = append(push, r.id)
 			}
 		}

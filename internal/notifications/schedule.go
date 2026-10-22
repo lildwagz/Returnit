@@ -111,7 +111,10 @@ type Planned struct {
 }
 
 // Plan returns the notifications to create for a candidate at time now. It is pure and
-// deterministic; idempotency comes from Key (purchase + reminder date + channel + offset).
+// deterministic; idempotency comes from Key (purchase + reminder date + offset). The channel is NOT part of
+// the key: it is only how a reminder is delivered, so switching push <-> in_app must not make a second
+// reminder (a duplicate inbox entry whose read state was lost). A reminder that has not been sent yet is
+// delivered through whichever channel is current when it is due (see Dispatch).
 func Plan(c Candidate, now time.Time) []Planned {
 	if !c.Prefs.Enabled {
 		return nil
@@ -125,7 +128,7 @@ func Plan(c Candidate, now time.Time) []Planned {
 		}
 		reminderDate := c.End.AddDate(0, 0, -d).Format("2006-01-02")
 		out = append(out, Planned{
-			Key:         fmt.Sprintf("%s:%s:%d:%s", c.PurchaseID, reminderDate, d, c.Prefs.Channel),
+			Key:         fmt.Sprintf("%s:%s:%d", c.PurchaseID, reminderDate, d),
 			ScheduledAt: at.UTC(),
 			Channel:     c.Prefs.Channel,
 			OffsetDays:  d,
@@ -178,8 +181,6 @@ func Decide(d Due, now time.Time) (a Action, reason string, until time.Time) {
 		return ActionCancel, "reminders disabled", time.Time{}
 	case !slices.Contains(d.Prefs.DaysBefore, d.OffsetDays):
 		return ActionCancel, "reminder offset removed from preferences", time.Time{}
-	case d.Prefs.Channel != d.Channel:
-		return ActionCancel, "channel changed", time.Time{}
 	}
 	loc := loadLocation(d.Prefs.Timezone)
 	ln := now.In(loc)
