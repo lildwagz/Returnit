@@ -79,6 +79,30 @@ A tapped push carries `data.notificationId`.
 | Keluar (sign out) | `DELETE /devices/{id}` first, then forget the tokens |
 | "Reset data demo" | prototype only, not for the real app |
 
+### Account and Privacy screens (what to put behind the two buttons)
+The prototype only shows "Privasi & keamanan" as an information row (a lock icon, no screen behind it) and has no "Account"
+entry; these two screens are our recommendation, built only from what the backend offers today.
+
+**Account** (needs login; data from `GET /account`)
+| Show / do | Source or call |
+|---|---|
+| E-mail (read only) | `email` from `GET /account`. There is no API to change it. |
+| Name (read only) | `displayName` (may be null: then show nothing or the e-mail) |
+| Member since | `createdAt` |
+| Change password | Not in the app. Sign out and use "Forgot password" on the login page. |
+| Sign out | `DELETE /devices/{id}` (if a push token was registered), then delete the stored tokens |
+| Export my data | `GET /account/export` (JSON; receipt files are not inside, each purchase has a `downloadPath`) |
+| Delete my account | `DELETE /account`; needs a fresh login (`401 reauthentication_required` -> log in again with `prompt=login`, retry). Answer `202` with `deletionScheduledFor`. |
+| Deletion pending | When `deletionScheduledFor` is not null show a banner "account will be erased on <date>" with a "Cancel deletion" button (`POST /account/deletion/cancel`). Reminders are paused meanwhile. |
+
+**Privacy & security** (static text; no API). Suggested content, in plain words:
+1. What we store: your purchases (product, shop, dates, price, notes), receipt files, reminder settings, the push token of your phone, your e-mail address.
+2. Receipts are private: only you can open them, through links that stop working after about 5 minutes. Every file is checked for viruses before it is stored.
+3. Reminders: 30, 14, 7, 3 and 1 day before a warranty ends, at 09:00 in your time zone; you can change or switch them off.
+4. Your control: export your data, delete a receipt or a purchase at any time, delete your account (erased after 7 days; you can cancel until then).
+5. What happens on deletion: purchases, receipts, settings and notifications are erased; only an anonymous record that an account existed is kept so a restored backup cannot bring it back.
+6. A link to the **privacy policy** page (needed by Google Play and the App Store). The policy text is not written yet; the product owner must provide it. The factual basis is `06-data-and-privacy/data-retention-policy.md`.
+
 ## Requirements to API (from the SRS)
 
 | Story | Where it is covered |
