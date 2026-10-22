@@ -6,6 +6,7 @@
 #   ./kc-user.sh resend-verify <email>    send the "verify your e-mail" message again
 #   ./kc-user.sh reset-password <email>   send a "set a new password" e-mail to the user
 #   ./kc-user.sh verify <email>           mark the e-mail as verified (when the user cannot receive mail)
+#   ./kc-user.sh logout <email>           end all login sessions of the user (the app must then ask for a new login)
 #   ./kc-user.sh disable <email>          block login      |   ./kc-user.sh enable <email>   allow it again
 #   ./kc-user.sh create <email> [first last]   new verified user; asks for a password
 #                                              (non-interactive: KC_NEW_PASSWORD=... ./kc-user.sh create ...)
@@ -18,7 +19,7 @@ set -euo pipefail
 export KC_URL="${KC_ADMIN_URL:-http://localhost:8180}"
 cmd="${1:-help}"
 case "$cmd" in
-help | -h | --help) sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+help | -h | --help) sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
 create)
 	if [ -z "${KC_NEW_PASSWORD:-}" ]; then
 		read -r -s -p "Password for the new user (min. 10 characters): " KC_NEW_PASSWORD
@@ -116,6 +117,10 @@ elif cmd == 'verify':
     u = find(need(1, 'e-mail'))
     call('PUT', '%s/users/%s' % (base, u['id']), t, body={'emailVerified': True, 'requiredActions': [a for a in u.get('requiredActions', []) if a != 'VERIFY_EMAIL']})
     print('e-mail marked as verified:', u['email'])
+elif cmd == 'logout':
+    u = find(need(1, 'e-mail'))
+    call('POST', '%s/users/%s/logout' % (base, u['id']), t)
+    print('all sessions ended for', u['email'], '(access tokens already issued stay valid until they expire, about 5 minutes)')
 elif cmd in ('disable', 'enable'):
     u = find(need(1, 'e-mail'))
     call('PUT', '%s/users/%s' % (base, u['id']), t, body={'enabled': cmd == 'enable'})
