@@ -55,7 +55,18 @@ After the first successful API call the backend creates the user's profile autom
 (no "create account" call is needed).
 
 If the backend owner enables **Sign in with Google**, the login page simply shows an extra Google button; the app does
-not change (it still only opens the browser login). Tokens look the same.
+not change (it still only opens the browser login). Tokens look the same. A first Google login creates the account
+(e-mail already verified); if the same e-mail already has a password account, the login page asks the person to link them.
+
+Rules for the app when Google is on:
+* Open the login in the **system browser / Chrome Custom Tabs** (what `expo-auth-session` and `expo-web-browser` do), never in an
+  embedded WebView: Google refuses to sign in inside a WebView (`disallowed_useragent`).
+* Optional "Continue with Google" button in the app that skips the Keycloak page: add the authorization parameter
+  `kc_idp_hint=google` (in expo-auth-session: `extraParams: { kc_idp_hint: 'google' }`). The flow is otherwise identical
+  (same redirect URI, PKCE, tokens). Without the parameter the Keycloak login page is shown, with the Google button.
+* While the Google consent screen is in "Testing", only the listed test users can sign in and Google shows an
+  "unverified app" warning. Both go away after the screen is published (needs a real domain and a privacy-policy link).
+* On iPhone, Apple's rules may require "Sign in with Apple" next to other social logins: check before submitting.
 
 ### Suggested order of work
 1. Login with the browser flow and call `GET /account` (proves tokens, issuer and audience are right).
