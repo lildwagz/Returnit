@@ -32,3 +32,12 @@ auth.{$DOMAIN} {
 	respond @private 404
 	reverse_proxy keycloak:8080
 }
+
+# Receipt downloads. The app opens short-lived signed links here; the bucket itself stays private, so a
+# request without a valid signature is refused by the storage server. Only reading is allowed.
+files.{$DOMAIN} {
+	import secure
+	@notread not method GET HEAD
+	respond @notread 405
+	reverse_proxy minio:9000
+}

@@ -236,6 +236,9 @@ func loadCommon() (Common, error) {
 			Bucket:    getenv("S3_BUCKET", "returnit-receipts"),
 			Region:    getenv("S3_REGION", "us-east-1"),
 			UseSSL:    os.Getenv("S3_USE_SSL") == "true",
+
+			PublicEndpoint: os.Getenv("S3_PUBLIC_ENDPOINT"),
+			PublicUseSSL:   os.Getenv("S3_PUBLIC_USE_SSL") != "false", // HTTPS unless told otherwise
 		},
 	}
 	if c.DatabaseURL == "" {

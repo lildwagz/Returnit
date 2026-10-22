@@ -3,6 +3,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -29,22 +30,41 @@ type Config struct {
 	Bucket    string
 	Region    string
 	UseSSL    bool
+	// PublicEndpoint (host[:port], no scheme) is the address the phone uses to download a receipt. Signed
+	// links are built for this host, because the signature covers it; Endpoint is often a private name such
+	// as "minio:9000" that a phone cannot reach. Empty means "same as Endpoint".
+	PublicEndpoint string
+	PublicUseSSL   bool
 }
 
 type S3 struct {
 	c      *minio.Client
+	signer *minio.Client // builds download links; never contacts the server (region is fixed)
 	bucket string
+}
+
+func newClient(endpoint string, secure bool, cfg Config) (*minio.Client, error) {
+	return minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
+		Secure: secure,
+		Region: cfg.Region,
+	})
 }
 
 // NewS3 connects and makes sure the (private) bucket exists.
 func NewS3(ctx context.Context, cfg Config) (*S3, error) {
-	c, err := minio.New(cfg.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
-		Secure: cfg.UseSSL,
-		Region: cfg.Region,
-	})
+	c, err := newClient(cfg.Endpoint, cfg.UseSSL, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("storage: client: %w", err)
+	}
+	signer := c
+	if cfg.PublicEndpoint != "" {
+		if cfg.Region == "" {
+			return nil, errors.New("storage: S3_REGION is required with a public endpoint")
+		}
+		if signer, err = newClient(cfg.PublicEndpoint, cfg.PublicUseSSL, cfg); err != nil {
+			return nil, fmt.Errorf("storage: public client: %w", err)
+		}
 	}
 	ok, err := c.BucketExists(ctx, cfg.Bucket)
 	if err != nil {
@@ -55,7 +75,7 @@ func NewS3(ctx context.Context, cfg Config) (*S3, error) {
 			return nil, fmt.Errorf("storage: make bucket: %w", err)
 		}
 	}
-	return &S3{c: c, bucket: cfg.Bucket}, nil
+	return &S3{c: c, signer: signer, bucket: cfg.Bucket}, nil
 }
 
 func (s *S3) Put(ctx context.Context, key string, r io.Reader, size int64, contentType string) error {
@@ -76,7 +96,7 @@ func (s *S3) Delete(ctx context.Context, key string) error {
 func (s *S3) SignedGetURL(ctx context.Context, key, downloadName string, ttl time.Duration) (string, error) {
 	q := url.Values{}
 	q.Set("response-content-disposition", mimeAttachment(downloadName))
-	u, err := s.c.PresignedGetObject(ctx, s.bucket, key, ttl, q)
+	u, err := s.signer.PresignedGetObject(ctx, s.bucket, key, ttl, q)
 	if err != nil {
 		return "", fmt.Errorf("storage: presign: %w", err)
 	}

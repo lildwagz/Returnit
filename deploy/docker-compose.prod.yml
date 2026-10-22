@@ -19,6 +19,9 @@ x-app-env: &app-env
   S3_BUCKET: ${S3_BUCKET:-returnit-receipts}
   S3_REGION: ${S3_REGION:-us-east-1}
   S3_USE_SSL: ${S3_USE_SSL:-false}
+  # Address of the signed receipt links, as the phone sees it (Caddy serves it, see Caddyfile).
+  S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-files.${DOMAIN}}
+  S3_PUBLIC_USE_SSL: ${S3_PUBLIC_USE_SSL:-true}
   LOG_LEVEL: ${LOG_LEVEL:-info}
 
 services:
