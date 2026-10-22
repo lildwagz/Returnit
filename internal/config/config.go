@@ -46,7 +46,11 @@ type Web struct {
 	AccountDeletionGrace time.Duration
 	// FreshLoginMaxAge: how recent the login must be to request account deletion.
 	FreshLoginMaxAge time.Duration
-	RateLimits       ratelimit.Limits
+	// LogRequestBody turns on logging of JSON request bodies (LOG_REQUEST_BODY=on); off by default because
+	// bodies hold personal data. LogRequestBodyMax is the longest body text kept per line.
+	LogRequestBody    bool
+	LogRequestBodyMax int
+	RateLimits        ratelimit.Limits
 	// TrustedProxies lists reverse-proxy IPs/CIDRs whose X-Forwarded-For is believed (default: none).
 	TrustedProxies []string
 }
@@ -122,6 +126,21 @@ func LoadWeb() (Web, error) {
 			return Web{}, errors.New("config: ACCOUNT_DELETION_GRACE must be a duration between 1h and 2160h (90 days)")
 		}
 		w.AccountDeletionGrace = d
+	}
+	switch os.Getenv("LOG_REQUEST_BODY") {
+	case "", "off":
+	case "on":
+		w.LogRequestBody = true
+	default:
+		return Web{}, errors.New("config: LOG_REQUEST_BODY must be 'on' or 'off'")
+	}
+	w.LogRequestBodyMax = 2048
+	if v := os.Getenv("LOG_REQUEST_BODY_MAX"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 64 || n > 65536 {
+			return Web{}, errors.New("config: LOG_REQUEST_BODY_MAX must be between 64 and 65536")
+		}
+		w.LogRequestBodyMax = n
 	}
 	if v := os.Getenv("FRESH_LOGIN_MAX_AGE"); v != "" {
 		d, err := time.ParseDuration(v)

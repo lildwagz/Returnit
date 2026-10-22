@@ -20,9 +20,13 @@ var redactedKeys = map[string]bool{
 	"token": true, "access_token": true, "refresh_token": true, "id_token": true,
 	"password": true, "secret": true, "secret_key": true, "access_key": true, "api_key": true,
 	"signed_url": true, "url": true, "email": true, "file_name": true, "filename": true,
+	"pushtoken": true, "push_token": true,
 }
 
 const redacted = "[REDACTED]"
+
+// IsSensitiveKey reports whether a field of this name (any case) must never be logged with its value.
+func IsSensitiveKey(k string) bool { return redactedKeys[strings.ToLower(k)] }
 
 // New returns a JSON logger writing to w. Every record carries the service name.
 func New(w io.Writer, service string, level slog.Level) *slog.Logger {

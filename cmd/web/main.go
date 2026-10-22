@@ -116,10 +116,14 @@ func run(log *slog.Logger) error {
 		TrustedProxies:   cfg.TrustedProxies,
 		RequestTimeout:   cfg.RequestTimeout,
 		FreshLoginMaxAge: cfg.FreshLoginMaxAge,
+		LogBodies:        httpapi.BodyLog{Enabled: cfg.LogRequestBody, MaxBytes: cfg.LogRequestBodyMax},
 	})
 	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: router, ReadHeaderTimeout: 5 * time.Second}
 	errCh := make(chan error, 1)
 	go func() {
+		if cfg.LogRequestBody {
+			log.Warn("LOG_REQUEST_BODY is on: request bodies (personal data) are written to the log; use it only for development or short debugging")
+		}
 		log.Info("web listening", "addr", cfg.HTTPAddr)
 		errCh <- srv.ListenAndServe()
 	}()

@@ -39,14 +39,21 @@ func requestID() gin.HandlerFunc {
 // request-scoped logger (carrying request_id) on the gin and standard contexts so lower layers
 // log with the same ID.
 //
-// Deliberately NOT logged: query strings, raw paths (only the route pattern), headers, bodies,
-// client IP, e-mail, filenames. The caller is identified by internal user UUID only.
-func requestLogger(base *slog.Logger) gin.HandlerFunc {
+// Deliberately NOT logged: query strings, headers, client IP, e-mail, filenames. The caller is
+// identified by internal user UUID only. Bodies and the raw path are logged ONLY when bl.Enabled
+// (LOG_REQUEST_BODY=on): JSON bodies, secrets replaced, cut to bl.MaxBytes; never uploads.
+func requestLogger(base *slog.Logger, bl BodyLog) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		l := base.With("request_id", c.GetString(ctxRequestID))
 		c.Set(ctxLogger, l)
 		c.Request = c.Request.WithContext(logging.WithContext(c.Request.Context(), l))
+
+		var captured []byte
+		capturing := bl.wants(c.Request, c.FullPath())
+		if capturing {
+			captured = capture(c)
+		}
 
 		c.Next()
 
@@ -64,6 +71,13 @@ func requestLogger(base *slog.Logger) gin.HandlerFunc {
 		}
 		if uid, ok := c.Get(ctxUserID); ok {
 			attrs = append(attrs, "user_id", uid)
+		}
+		if bl.Enabled && route != "unmatched" {
+			path, _ := truncate(c.Request.URL.Path, 200)
+			attrs = append(attrs, "path", path)
+		}
+		if capturing {
+			attrs = append(attrs, bl.attrs(captured)...)
 		}
 		if last := c.Errors.Last(); last != nil {
 			attrs = append(attrs, "err", last.Err.Error())

@@ -45,6 +45,8 @@ type Deps struct {
 	RequestTimeout time.Duration
 	// FreshLoginMaxAge is how recent the login must be to request account deletion; 0 means 5 minutes.
 	FreshLoginMaxAge time.Duration
+	// LogBodies turns on request-body logging (off by default; see BodyLog).
+	LogBodies BodyLog
 }
 
 const requestIDHeader = "X-Request-ID"
@@ -67,7 +69,7 @@ func NewRouter(d Deps) *gin.Engine {
 	}
 	// Order matters: the request logger wraps recovery, so a panic is logged both with its stack
 	// and as a 500 request line.
-	r.Use(requestID(), requestLogger(log), recovery(), timeout(d.RequestTimeout))
+	r.Use(requestID(), requestLogger(log, d.LogBodies), recovery(), timeout(d.RequestTimeout))
 
 	r.GET("/health/live", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"status": "ok"}) })
 	r.GET("/health/ready", func(c *gin.Context) {

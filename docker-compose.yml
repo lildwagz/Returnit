@@ -90,6 +90,8 @@ services:
       OIDC_ISSUER: ${OIDC_ISSUER:-http://localhost:8180/realms/returnit}
       OIDC_DISCOVERY_URL: ${OIDC_DISCOVERY_URL:-http://keycloak:8080/realms/returnit}
       OIDC_AUDIENCE: ${OIDC_AUDIENCE:-returnit-api}
+      # Development: log JSON request bodies to see what the app sends. Never "on" in production.
+      LOG_REQUEST_BODY: ${LOG_REQUEST_BODY:-on}
       CLAMAV_ADDR: clamav:3310
     depends_on:
       postgres: { condition: service_healthy }
