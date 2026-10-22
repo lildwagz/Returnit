@@ -152,7 +152,7 @@ services:
       OIDC_ISSUER: https://auth.${DOMAIN}/realms/returnit
       OIDC_DISCOVERY_URL: http://keycloak:8080/realms/returnit
       OIDC_AUDIENCE: returnit-api
-      # Log JSON request bodies (personal data!). Keep "off" in production; "on" only for short debugging.
+      # Log JSON request and response bodies (personal data!). Keep "off" in production; "on" only for short debugging.
       LOG_REQUEST_BODY: ${LOG_REQUEST_BODY:-off}
       MALWARE_SCAN: ${MALWARE_SCAN:-on}
       CLAMAV_ADDR: clamav:3310

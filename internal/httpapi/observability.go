@@ -40,8 +40,8 @@ func requestID() gin.HandlerFunc {
 // log with the same ID.
 //
 // Deliberately NOT logged: query strings, headers, client IP, e-mail, filenames. The caller is
-// identified by internal user UUID only. Bodies and the raw path are logged ONLY when bl.Enabled
-// (LOG_REQUEST_BODY=on): JSON bodies, secrets replaced, cut to bl.MaxBytes; never uploads.
+// identified by internal user UUID only. Request/response bodies and the raw path are logged ONLY when
+// bl.Enabled (LOG_REQUEST_BODY=on): JSON only, secrets replaced, cut to bl.MaxBytes; never uploads or the data export.
 func requestLogger(base *slog.Logger, bl BodyLog) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
@@ -53,6 +53,11 @@ func requestLogger(base *slog.Logger, bl BodyLog) gin.HandlerFunc {
 		capturing := bl.wants(c.Request, c.FullPath())
 		if capturing {
 			captured = capture(c)
+		}
+		var cw *captureWriter
+		if bl.wantsResponse(c.FullPath()) {
+			cw = &captureWriter{ResponseWriter: c.Writer}
+			c.Writer = cw
 		}
 
 		c.Next()
@@ -77,7 +82,10 @@ func requestLogger(base *slog.Logger, bl BodyLog) gin.HandlerFunc {
 			attrs = append(attrs, "path", path)
 		}
 		if capturing {
-			attrs = append(attrs, bl.attrs(captured)...)
+			attrs = append(attrs, bl.attrs("request_body", captured)...)
+		}
+		if cw != nil {
+			attrs = append(attrs, bl.responseAttrs(cw)...)
 		}
 		if last := c.Errors.Last(); last != nil {
 			attrs = append(attrs, "err", last.Err.Error())

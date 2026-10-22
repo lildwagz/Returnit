@@ -122,7 +122,7 @@ func run(log *slog.Logger) error {
 	errCh := make(chan error, 1)
 	go func() {
 		if cfg.LogRequestBody {
-			log.Warn("LOG_REQUEST_BODY is on: request bodies (personal data) are written to the log; use it only for development or short debugging")
+			log.Warn("LOG_REQUEST_BODY is on: request and response bodies (personal data) are written to the log; use it only for development or short debugging")
 		}
 		log.Info("web listening", "addr", cfg.HTTPAddr)
 		errCh <- srv.ListenAndServe()

@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"bytes"
+	"encoding/json"
 	"log/slog"
 	"mime/multipart"
 	"net/http"
@@ -22,7 +23,7 @@ func TestBodiesAreNotLoggedByDefault(t *testing.T) {
 	h, buf := routerWithLog(slog.LevelInfo, nil)
 	do(h, "POST", "/api/v1/purchases", "token-alice", `{"productName":"Passport Laptop","purchaseDate":"2026-01-31"}`)
 	m := requestLine(t, logLines(t, buf))
-	if _, ok := m["body"]; ok {
+	if _, ok := m["request_body"]; ok {
 		t.Fatalf("body logged while the switch is off: %v", m)
 	}
 	if _, ok := m["path"]; ok {
@@ -37,9 +38,9 @@ func TestBodyIsLoggedAsJSONAndHandlerStillGetsIt(t *testing.T) {
 		t.Fatalf("handler no longer works with body logging on: %d %s", w.Code, w.Body)
 	}
 	m := requestLine(t, logLines(t, buf))
-	body, ok := m["body"].(map[string]any)
+	body, ok := m["request_body"].(map[string]any)
 	if !ok {
-		t.Fatalf("body is not nested JSON: %T %v", m["body"], m["body"])
+		t.Fatalf("body is not nested JSON: %T %v", m["request_body"], m["request_body"])
 	}
 	if body["productName"] != "Passport Laptop" || body["price"] != float64(1500000) {
 		t.Errorf("body = %v", body)
@@ -64,7 +65,7 @@ func TestSecretsInBodiesAreReplaced(t *testing.T) {
 		}
 	}
 	m := requestLine(t, logLines(t, buf))
-	body := m["body"].(map[string]any)
+	body := m["request_body"].(map[string]any)
 	if body["platform"] != "android" || body["pushToken"] != "[REDACTED]" {
 		t.Errorf("body = %v", body)
 	}
@@ -75,15 +76,15 @@ func TestLongAndInvalidBodiesAreCut(t *testing.T) {
 	long := `{"productName":"` + strings.Repeat("x", 500) + `","purchaseDate":"2026-01-31"}`
 	do(h, "POST", "/api/v1/purchases", "token-alice", long)
 	m := requestLine(t, logLines(t, buf))
-	s, _ := m["body"].(string)
-	if len(s) == 0 || len(s) > 80 || m["body_truncated"] != true {
-		t.Errorf("long body not cut: len=%d %v", len(s), m["body_truncated"])
+	s, _ := m["request_body"].(string)
+	if len(s) == 0 || len(s) > 80 || m["request_body_truncated"] != true {
+		t.Errorf("long body not cut: len=%d %v", len(s), m["request_body_truncated"])
 	}
 
 	buf.Reset()
 	do(h, "POST", "/api/v1/purchases", "token-alice", `{not json`)
 	m = requestLine(t, logLines(t, buf))
-	if m["body"] != "{not json" || m["body_invalid_json"] != true {
+	if m["request_body"] != "{not json" || m["request_body_invalid_json"] != true {
 		t.Errorf("invalid body: %v", m)
 	}
 }
@@ -96,7 +97,7 @@ func TestOversizeBodyIsStillRefusedByTheHandler(t *testing.T) {
 		t.Fatalf("oversize body accepted: %d", w.Code)
 	}
 	m := requestLine(t, logLines(t, buf))
-	if m["body_omitted"] == nil || m["body"] != nil {
+	if m["request_body_omitted"] == nil || m["request_body"] != nil {
 		t.Errorf("oversize body should be omitted from the log: %v", m)
 	}
 }
@@ -120,8 +121,60 @@ func TestUploadsAndGetsAreNeverCaptured(t *testing.T) {
 		t.Errorf("upload leaked: %s", out)
 	}
 	for _, m := range logLines(t, buf) {
-		if m["msg"] == "request" && m["body"] != nil {
+		if m["msg"] == "request" && m["request_body"] != nil {
 			t.Errorf("body captured for %v %v", m["method"], m["route"])
 		}
+	}
+}
+
+func TestResponseBodyIsLoggedAsJSON(t *testing.T) {
+	h, buf := routerWithLog(slog.LevelInfo, withBodies(0))
+	w := do(h, "POST", "/api/v1/purchases", "token-alice", `{"productName":"Passport Laptop","purchaseDate":"2026-01-31","price":1500000}`)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("status %d", w.Code)
+	}
+	before := w.Body.String()
+	m := requestLine(t, logLines(t, buf))
+	resp, ok := m["response_body"].(map[string]any)
+	if !ok {
+		t.Fatalf("response_body is not nested JSON: %T %v", m["response_body"], m["response_body"])
+	}
+	if resp["productName"] != "Passport Laptop" || resp["id"] == nil {
+		t.Errorf("response_body = %v", resp)
+	}
+	if before == "" || !strings.Contains(before, "Passport Laptop") {
+		t.Errorf("client response changed: %q", before)
+	}
+
+	buf.Reset()
+	do(h, "GET", "/api/v1/purchases", "", "")
+	m = requestLine(t, logLines(t, buf))
+	errBody, _ := m["response_body"].(map[string]any)
+	if m["status"] != float64(401) || errBody == nil || errBody["error"] == nil {
+		t.Errorf("error response not logged: %v", m)
+	}
+}
+
+func TestResponseIsNotLoggedWhenSwitchIsOff(t *testing.T) {
+	h, buf := routerWithLog(slog.LevelInfo, nil)
+	do(h, "POST", "/api/v1/purchases", "token-alice", `{"productName":"Passport Laptop","purchaseDate":"2026-01-31"}`)
+	if m := requestLine(t, logLines(t, buf)); m["response_body"] != nil {
+		t.Errorf("response logged while the switch is off: %v", m)
+	}
+}
+
+func TestResponseRulesAndRedaction(t *testing.T) {
+	on := BodyLog{Enabled: true}
+	if on.wantsResponse("/api/v1/account/export") || on.wantsResponse("/health/ready") || !on.wantsResponse("/api/v1/purchases") {
+		t.Error("wantsResponse: export and health must be skipped, normal routes kept")
+	}
+	if (BodyLog{}).wantsResponse("/api/v1/purchases") {
+		t.Error("nothing is captured while the switch is off")
+	}
+	// the signed receipt link and file names never reach a log
+	out := on.attrs("response_body", []byte(`{"url":"https://files.example/x?X-Amz-Signature=abc","fileName":"struk.png","sizeBytes":69}`))
+	got := string(out[1].(json.RawMessage))
+	if strings.Contains(got, "X-Amz-Signature") || strings.Contains(got, "struk.png") || !strings.Contains(got, "69") {
+		t.Errorf("receipt response not redacted properly: %s", got)
 	}
 }
