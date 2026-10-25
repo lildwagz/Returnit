@@ -35,6 +35,25 @@ auth.{$DOMAIN} {
 	reverse_proxy keycloak:8080
 }
 
+# The Android app (APK) and its download page. Only the page, the APK files and their checksums are served; latest.json
+# (what the API tells the app) stays private. The files are put here by ./publish-apk.sh.
+dl.{$DOMAIN} {
+	import secure
+	@notread not method GET HEAD
+	respond @notread 405
+	@public path / /index.html /returnit-*.apk /returnit-*.apk.sha256
+	handle @public {
+		root * /srv/updates
+		@apk path *.apk
+		header @apk Content-Disposition attachment
+		header @apk Content-Type application/vnd.android.package-archive
+		file_server
+	}
+	handle {
+		respond 404
+	}
+}
+
 # Receipt downloads. The app opens short-lived signed links here; the bucket itself stays private, so a
 # request without a valid signature is refused by the storage server. Only reading is allowed.
 files.{$DOMAIN} {

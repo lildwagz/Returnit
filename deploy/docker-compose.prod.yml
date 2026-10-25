@@ -43,6 +43,8 @@ services:
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env.prod}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # The APK download page and files written by ./publish-apk.sh (served at dl.<DOMAIN>).
+      - ./updates:/srv/updates:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on: [web, keycloak]
@@ -164,6 +166,10 @@ services:
       CLAMAV_ADDR: clamav:3310
       # Caddy's address on the private network: only it may tell us the real client IP.
       TRUSTED_PROXIES: 172.30.0.0/24
+      # Minimum app version, download address and maintenance switch (written by ./publish-apk.sh, read live).
+      APP_CONFIG_FILE: /updates/latest.json
+    volumes:
+      - ./updates:/updates:ro
     healthcheck:
       test: ["CMD", "/web", "-healthcheck"]
       interval: 15s

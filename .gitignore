@@ -17,3 +17,7 @@ deploy/secrets/
 
 # Office lock files
 ~$*
+
+# Published app builds and the app-version settings (written by deploy/publish-apk.sh on the server)
+deploy/updates/*
+!deploy/updates/.gitkeep

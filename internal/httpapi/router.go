@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/returnit/returnit/internal/appconfig"
 	"github.com/returnit/returnit/internal/auth"
 	"github.com/returnit/returnit/internal/ratelimit"
 )
@@ -47,6 +48,8 @@ type Deps struct {
 	FreshLoginMaxAge time.Duration
 	// LogBodies turns on request-body logging (off by default; see BodyLog).
 	LogBodies BodyLog
+	// AppConfig supplies the minimum app version and the download address (force update); nil means no limits.
+	AppConfig appconfig.Provider
 }
 
 const requestIDHeader = "X-Request-ID"
@@ -82,7 +85,9 @@ func NewRouter(d Deps) *gin.Engine {
 		c.JSON(http.StatusOK, gin.H{"status": "ready"})
 	})
 
+	registerAppConfig(r, d.AppConfig, limiter, limits.UnauthPerMinutePerIP)
 	v1 := r.Group("/api/v1",
+		appVersionGate(d.AppConfig),
 		authRequired(d.Verifier, d.Users, authFailureLimit(limiter, limits.UnauthPerMinutePerIP)),
 		userLimit(limiter, "api", limits.UserPerMinute, time.Minute, true))
 	registerPurchases(v1, d.Purchases)

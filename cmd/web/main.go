@@ -16,6 +16,7 @@ import (
 	_ "time/tzdata" // embed zone data so Asia/Jakarta (WIB) resolves regardless of the runtime image
 
 	"github.com/returnit/returnit/internal/account"
+	"github.com/returnit/returnit/internal/appconfig"
 	"github.com/returnit/returnit/internal/auth"
 	"github.com/returnit/returnit/internal/config"
 	"github.com/returnit/returnit/internal/database"
@@ -129,6 +130,7 @@ func run(log *slog.Logger) error {
 		RequestTimeout:   cfg.RequestTimeout,
 		FreshLoginMaxAge: cfg.FreshLoginMaxAge,
 		LogBodies:        httpapi.BodyLog{Enabled: cfg.LogRequestBody, MaxBytes: cfg.LogRequestBodyMax},
+		AppConfig:        appconfig.NewFileSource(cfg.AppConfigFile, 30*time.Second, log),
 	})
 	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: router, ReadHeaderTimeout: 5 * time.Second}
 	errCh := make(chan error, 1)

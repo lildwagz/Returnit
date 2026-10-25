@@ -68,6 +68,9 @@ type Web struct {
 	RateLimits        ratelimit.Limits
 	// TrustedProxies lists reverse-proxy IPs/CIDRs whose X-Forwarded-For is believed (default: none).
 	TrustedProxies []string
+	// AppConfigFile is the JSON file with the minimum app version and the download address (APP_CONFIG_FILE);
+	// empty means the app is never forced to update.
+	AppConfigFile string
 }
 
 // Worker is the background-job process (reminders, retention, push delivery).
@@ -115,6 +118,7 @@ func LoadWeb() (Web, error) {
 		AccountDeletionGrace: 7 * 24 * time.Hour,
 		FreshLoginMaxAge:     5 * time.Minute,
 		RateLimits:           ratelimit.DefaultLimits(),
+		AppConfigFile:        os.Getenv("APP_CONFIG_FILE"),
 	}
 	if w.OIDCIssuer == "" || w.OIDCAudience == "" {
 		return Web{}, errors.New("config: OIDC_ISSUER and OIDC_AUDIENCE are required")
