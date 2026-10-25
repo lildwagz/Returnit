@@ -673,6 +673,10 @@ components:
         body: {type: string, maxLength: 1000}
         createdAt: {type: string, format: date-time}
         read: {type: boolean}
+        snoozeUntil:
+          type: array
+          items: {type: string, enum: [tomorrow, in_3_days, next_week]}
+          description: "The remind-me-again choices that still fall on or before the date the reminder is about. Empty when none is left (offer no snooze button)."
     Account:
       type: object
       required: [id, email, createdAt]

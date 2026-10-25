@@ -33,6 +33,30 @@ func SnoozeTarget(choice string, now time.Time, loc *time.Location, qs, qe *stri
 	return AdjustForQuietHours(t, loc, qs, qe), nil
 }
 
+// snoozeOrder is the order the choices are offered in.
+var snoozeOrder = []string{"tomorrow", "in_3_days", "next_week"}
+
+// beforeEnd reports whether a reminder at target still falls on or before the end date it is about.
+func beforeEnd(target time.Time, loc *time.Location, end time.Time) bool {
+	lt := target.In(loc)
+	return !time.Date(lt.Year(), lt.Month(), lt.Day(), 0, 0, 0, 0, time.UTC).After(end)
+}
+
+// SnoozeOptions are the choices that make sense for a reminder about end: the ones whose time is not after that date
+// (a warranty that ends tomorrow cannot be reminded again in a week). Empty when none is left.
+func SnoozeOptions(now time.Time, loc *time.Location, qs, qe *string, end *time.Time) []string {
+	out := []string{}
+	if end == nil {
+		return out
+	}
+	for _, c := range snoozeOrder {
+		if t, err := SnoozeTarget(c, now, loc, qs, qe); err == nil && beforeEnd(t, loc, *end) {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 // Snooze repeats a delivered reminder later ("remind me again tomorrow"): the original is marked read and a copy is
 // scheduled, which goes through the same checks as every reminder right before it is sent (a changed date or
 // switched-off reminders cancel it). Snoozing the same reminder again, while the copy is still waiting, moves it.
@@ -83,8 +107,7 @@ FOR UPDATE OF n`, id, userID).Scan(&purchaseID, &kind, &channel, &title, &body, 
 	if err != nil {
 		return time.Time{}, err
 	}
-	lt := target.In(loc)
-	if time.Date(lt.Year(), lt.Month(), lt.Day(), 0, 0, 0, 0, time.UTC).After(*currentEnd) {
+	if !beforeEnd(target, loc, *currentEnd) {
 		return time.Time{}, ErrSnoozeNotPossible // it would fire after the date it is about
 	}
 

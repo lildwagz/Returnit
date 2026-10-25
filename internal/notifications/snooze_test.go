@@ -37,3 +37,31 @@ func TestSnoozeTarget(t *testing.T) {
 		}
 	}
 }
+
+func TestSnoozeOptions(t *testing.T) {
+	now := time.Date(2026, 11, 28, 14, 30, 0, 0, wib)
+	day := func(m time.Month, d int) *time.Time { x := time.Date(2026, m, d, 0, 0, 0, 0, time.UTC); return &x }
+	for _, c := range []struct {
+		name string
+		end  *time.Time
+		want []string
+	}{
+		{"ends tomorrow: only tomorrow", day(11, 29), []string{"tomorrow"}},
+		{"ends in 3 days: tomorrow and in 3 days", day(12, 1), []string{"tomorrow", "in_3_days"}},
+		{"ends in a week: all", day(12, 5), []string{"tomorrow", "in_3_days", "next_week"}},
+		{"ends today: none", day(11, 28), []string{}},
+		{"already ended: none", day(11, 1), []string{}},
+		{"no date: none", nil, []string{}},
+	} {
+		got := SnoozeOptions(now, wib, nil, nil, c.end)
+		if len(got) != len(c.want) {
+			t.Errorf("%s: got %v, want %v", c.name, got, c.want)
+			continue
+		}
+		for i := range got {
+			if got[i] != c.want[i] {
+				t.Errorf("%s: got %v, want %v", c.name, got, c.want)
+			}
+		}
+	}
+}
