@@ -21,13 +21,19 @@ const (
 type Notification struct {
 	ID         uuid.UUID  `json:"id"`
 	PurchaseID *uuid.UUID `json:"purchaseId"`
-	Title      string     `json:"title"`
-	Body       string     `json:"body"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	Read       bool       `json:"read"`
+	// Kind is "warranty" (the end of the warranty) or "return" (the end of the return period).
+	Kind      string    `json:"kind"`
+	Title     string    `json:"title"`
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"createdAt"`
+	Read      bool      `json:"read"`
 }
 
-type Service struct{ pool *pgxpool.Pool }
+type Service struct {
+	pool *pgxpool.Pool
+	// Now is the clock (tests set it); nil means time.Now.
+	Now func() time.Time
+}
 
 func NewService(p *pgxpool.Pool) *Service { return &Service{pool: p} }
 
@@ -39,7 +45,7 @@ func (s *Service) List(ctx context.Context, userID uuid.UUID, unreadOnly bool, l
 	}
 	limit = min(limit, MaxLimit)
 	rows, err := s.pool.Query(ctx, `
-SELECT id, purchase_id, title, body, sent_at, read_at IS NOT NULL
+SELECT id, purchase_id, kind, title, body, sent_at, read_at IS NOT NULL
 FROM notifications
 WHERE user_id = $1 AND status = 'sent' AND (NOT $2 OR read_at IS NULL)
 ORDER BY sent_at DESC, id LIMIT $3`, userID, unreadOnly, limit)
@@ -50,7 +56,7 @@ ORDER BY sent_at DESC, id LIMIT $3`, userID, unreadOnly, limit)
 	out := []Notification{}
 	for rows.Next() {
 		var n Notification
-		if err := rows.Scan(&n.ID, &n.PurchaseID, &n.Title, &n.Body, &n.CreatedAt, &n.Read); err != nil {
+		if err := rows.Scan(&n.ID, &n.PurchaseID, &n.Kind, &n.Title, &n.Body, &n.CreatedAt, &n.Read); err != nil {
 			return nil, fmt.Errorf("notifications: scan: %w", err)
 		}
 		out = append(out, n)

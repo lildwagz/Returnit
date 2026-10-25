@@ -17,7 +17,7 @@ type PGRepo struct{ pool *pgxpool.Pool }
 func NewPGRepo(p *pgxpool.Pool) *PGRepo { return &PGRepo{pool: p} }
 
 const cols = `p.id, p.product_name, p.store_name, p.purchase_date, p.price::float8, p.currency,
- p.warranty_start_date, p.warranty_end_date, p.notes, p.created_at, p.updated_at,
+ p.warranty_start_date, p.warranty_end_date, p.return_deadline, p.notes, p.created_at, p.updated_at,
  r.file_name, r.content_type, r.size_bytes`
 
 const from = ` FROM purchases p LEFT JOIN receipts r ON r.purchase_id = p.id`
@@ -25,11 +25,11 @@ const from = ` FROM purchases p LEFT JOIN receipts r ON r.purchase_id = p.id`
 func scan(row pgx.Row) (Purchase, error) {
 	var p Purchase
 	var pd time.Time
-	var ws, we *time.Time
+	var ws, we, rd *time.Time
 	var rf, rc *string
 	var rs *int64
 	if err := row.Scan(&p.ID, &p.ProductName, &p.StoreName, &pd, &p.Price, &p.Currency,
-		&ws, &we, &p.Notes, &p.CreatedAt, &p.UpdatedAt, &rf, &rc, &rs); err != nil {
+		&ws, &we, &rd, &p.Notes, &p.CreatedAt, &p.UpdatedAt, &rf, &rc, &rs); err != nil {
 		return Purchase{}, err
 	}
 	if rf != nil && rc != nil && rs != nil {
@@ -41,6 +41,9 @@ func scan(row pgx.Row) (Purchase, error) {
 	}
 	if we != nil {
 		p.WarrantyEndDate = &Date{*we}
+	}
+	if rd != nil {
+		p.ReturnDeadline = &Date{*rd}
 	}
 	return p, nil
 }
@@ -59,10 +62,10 @@ func (r *PGRepo) Create(ctx context.Context, userID uuid.UUID, in Input) (Purcha
 	var id uuid.UUID
 	err := r.pool.QueryRow(ctx, `
 INSERT INTO purchases (user_id, product_name, store_name, purchase_date, price, currency,
-  warranty_start_date, warranty_end_date, notes)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+  warranty_start_date, warranty_end_date, return_deadline, notes)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
 		userID, in.ProductName, in.StoreName, in.PurchaseDate, in.Price, in.Currency,
-		in.WarrantyStartDate, in.WarrantyEndDate, in.Notes).Scan(&id)
+		in.WarrantyStartDate, in.WarrantyEndDate, in.ReturnDeadline, in.Notes).Scan(&id)
 	if err != nil {
 		return Purchase{}, mapErr(err)
 	}
@@ -78,10 +81,10 @@ func (r *PGRepo) Get(ctx context.Context, userID, id uuid.UUID) (Purchase, error
 func (r *PGRepo) Update(ctx context.Context, userID, id uuid.UUID, in Input) (Purchase, error) {
 	tag, err := r.pool.Exec(ctx, `
 UPDATE purchases SET product_name=$3, store_name=$4, purchase_date=$5, price=$6, currency=$7,
-  warranty_start_date=$8, warranty_end_date=$9, notes=$10, updated_at=now()
+  warranty_start_date=$8, warranty_end_date=$9, return_deadline=$10, notes=$11, updated_at=now()
 WHERE id=$1 AND user_id=$2`,
 		id, userID, in.ProductName, in.StoreName, in.PurchaseDate, in.Price, in.Currency,
-		in.WarrantyStartDate, in.WarrantyEndDate, in.Notes)
+		in.WarrantyStartDate, in.WarrantyEndDate, in.ReturnDeadline, in.Notes)
 	if err != nil {
 		return Purchase{}, mapErr(err)
 	}
@@ -140,4 +143,62 @@ func (r *PGRepo) List(ctx context.Context, userID uuid.UUID, f ListFilter) ([]Pu
 		items = append(items, p)
 	}
 	return items, total, mapErr(rows.Err())
+}
+
+func (r *PGRepo) Summary(ctx context.Context, userID uuid.UUID) (Summary, error) {
+	var s Summary
+	s.CoveredValue = []CurrencyAmount{}
+	// Same boundaries as listWhere: expired before today, expiring within 30 days (today included), otherwise active.
+	if err := r.pool.QueryRow(ctx, `
+SELECT count(*) FILTER (WHERE warranty_end_date > CURRENT_DATE + 30),
+       count(*) FILTER (WHERE warranty_end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 30),
+       count(*) FILTER (WHERE warranty_end_date < CURRENT_DATE),
+       count(*) FILTER (WHERE warranty_end_date IS NULL),
+       count(*)
+FROM purchases WHERE user_id = $1`, userID).
+		Scan(&s.Counts.Active, &s.Counts.Expiring, &s.Counts.Expired, &s.Counts.Unknown, &s.Counts.Total); err != nil {
+		return Summary{}, mapErr(err)
+	}
+
+	rows, err := r.pool.Query(ctx, `
+SELECT currency, sum(price)::float8 FROM purchases
+WHERE user_id = $1 AND price IS NOT NULL AND warranty_end_date >= CURRENT_DATE
+GROUP BY currency ORDER BY currency`, userID)
+	if err != nil {
+		return Summary{}, mapErr(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var a CurrencyAmount
+		if err := rows.Scan(&a.Currency, &a.Amount); err != nil {
+			return Summary{}, mapErr(err)
+		}
+		s.CoveredValue = append(s.CoveredValue, a)
+	}
+	if err := rows.Err(); err != nil {
+		return Summary{}, mapErr(err)
+	}
+
+	next := func(column string) (*SummaryItem, error) {
+		var it SummaryItem
+		var d time.Time
+		err := r.pool.QueryRow(ctx, `SELECT id, product_name, `+column+` FROM purchases
+WHERE user_id = $1 AND `+column+` >= CURRENT_DATE ORDER BY `+column+`, id LIMIT 1`, userID).Scan(&it.ID, &it.ProductName, &d)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		if err != nil {
+			return nil, mapErr(err)
+		}
+		it.Date = Date{d}
+		return &it, nil
+	}
+	var err2 error
+	if s.NextExpiring, err2 = next("warranty_end_date"); err2 != nil {
+		return Summary{}, err2
+	}
+	if s.NextReturn, err2 = next("return_deadline"); err2 != nil {
+		return Summary{}, err2
+	}
+	return s, nil
 }

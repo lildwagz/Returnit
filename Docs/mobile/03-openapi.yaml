@@ -257,6 +257,64 @@ paths:
         '204': {description: Marked as read}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
+  /notifications/{notificationId}/snooze:
+    parameters:
+      - in: path
+        name: notificationId
+        required: true
+        schema: {type: string, format: uuid}
+    post:
+      tags: [Reminders]
+      summary: Remind me again later
+      description: >
+        Marks the delivered reminder read and schedules a copy at 09:00 in the user's time zone (after quiet hours)
+        tomorrow, in 3 days or next week. The copy goes through the same checks as every reminder right before it is sent,
+        so a moved date or switched-off reminders cancel it. Snoozing the same reminder again while the copy still waits
+        moves it. Refused (422 snooze_not_possible) when the new time would fall after the warranty end or return
+        deadline it is about, when that date has changed or the purchase is gone, or when the reminder was already
+        snoozed and its copy has been delivered.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [until]
+              properties:
+                until: {type: string, enum: [tomorrow, in_3_days, next_week]}
+      responses:
+        '200':
+          description: Scheduled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scheduledAt: {type: string, format: date-time}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422':
+          description: snooze_not_possible
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+  /summary:
+    get:
+      tags: [Purchases]
+      summary: Home overview in one call
+      description: >
+        Counts of the user's purchases by warranty state, the total price still covered per currency (warranty not yet
+        ended: active, expiring, or ending today), and the next warranty end and next return deadline (today or later).
+        The states use the same boundaries and calendar day (UTC) as the list filter, so the numbers agree with the
+        lists. This replaces separate count requests on the Home screen.
+      responses:
+        '200':
+          description: Overview
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Summary'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
   /devices:
     post:
       tags: [Devices]
@@ -517,6 +575,7 @@ components:
         currency: {type: string, minLength: 3, maxLength: 3, default: IDR}
         warrantyStartDate: {type: string, format: date, nullable: true}
         warrantyEndDate: {type: string, format: date, nullable: true}
+        returnDeadline: {type: string, format: date, nullable: true, description: "The last day the shop takes the product back. Reminders 3 and 1 day before it, like the warranty reminders (same on/off switch, channel and quiet hours)."}
         notes: {type: string, maxLength: 2000, nullable: true}
         receipt:
           type: object
@@ -546,6 +605,7 @@ components:
         currency: {type: string, minLength: 3, maxLength: 3, default: IDR}
         warrantyStartDate: {type: string, format: date}
         warrantyEndDate: {type: string, format: date}
+        returnDeadline: {type: string, format: date, description: "Optional; on or after purchaseDate. Not sending it clears it (PATCH replaces everything)."}
         notes: {type: string, maxLength: 2000}
     PurchaseUpdate:
       allOf:
@@ -575,12 +635,40 @@ components:
     ReminderPreferencesUpdate:
       allOf:
         - $ref: '#/components/schemas/ReminderPreferences'
+    Summary:
+      type: object
+      required: [counts, coveredValue, nextExpiring, nextReturn]
+      properties:
+        counts:
+          type: object
+          properties:
+            active: {type: integer}
+            expiring: {type: integer, description: "Warranty ends within 30 days (today included)"}
+            expired: {type: integer}
+            unknown: {type: integer, description: "No warranty end date"}
+            total: {type: integer}
+        coveredValue:
+          type: array
+          items:
+            type: object
+            properties:
+              currency: {type: string}
+              amount: {type: number}
+        nextExpiring: {allOf: [{$ref: '#/components/schemas/SummaryItem'}], nullable: true}
+        nextReturn: {allOf: [{$ref: '#/components/schemas/SummaryItem'}], nullable: true}
+    SummaryItem:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        productName: {type: string}
+        date: {type: string, format: date}
     Notification:
       type: object
       required: [id, title, body, createdAt, read]
       properties:
         id: {type: string, format: uuid}
         purchaseId: {type: string, format: uuid, nullable: true}
+        kind: {type: string, enum: [warranty, return], description: "What the reminder is about: the end of the warranty or of the return period."}
         title: {type: string, maxLength: 160}
         body: {type: string, maxLength: 1000}
         createdAt: {type: string, format: date-time}

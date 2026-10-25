@@ -18,12 +18,15 @@ type PurchaseService interface {
 	List(ctx context.Context, userID uuid.UUID, f purchases.ListFilter) ([]purchases.Purchase, int, error)
 	Update(ctx context.Context, userID, id uuid.UUID, raw purchases.RawInput) (purchases.Purchase, error)
 	Delete(ctx context.Context, userID, id uuid.UUID) error
+	Summary(ctx context.Context, userID uuid.UUID) (purchases.Summary, error)
 }
 
 const maxBodyBytes = 64 << 10
 
 func registerPurchases(g *gin.RouterGroup, svc PurchaseService) {
 	h := purchaseHandler{svc}
+	// Not under /purchases/: that path takes an id, and a summary must never be mistaken for one.
+	g.GET("/summary", h.summary)
 	g.GET("/purchases", h.list)
 	g.POST("/purchases", h.create)
 	g.GET("/purchases/:id", h.get)
@@ -86,6 +89,15 @@ func (h purchaseHandler) delete(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+func (h purchaseHandler) summary(c *gin.Context) {
+	s, err := h.svc.Summary(c.Request.Context(), userID(c))
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, s)
 }
 
 func (h purchaseHandler) list(c *gin.Context) {

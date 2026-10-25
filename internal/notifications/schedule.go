@@ -18,6 +18,16 @@ const (
 	CatchUp = 24 * time.Hour
 )
 
+// Kinds of reminder.
+const (
+	KindWarranty = "warranty" // the end of the warranty
+	KindReturn   = "return"   // the end of the return period
+)
+
+// ReturnOffsets are the days before the return deadline at which a reminder is sent. They are fixed (a return
+// period is short), switched on and off together with the other reminders and sent through the same channel.
+var ReturnOffsets = []int{3, 1}
+
 // Prefs is the reminder configuration relevant to scheduling.
 type Prefs struct {
 	Enabled    bool
@@ -96,12 +106,15 @@ type Candidate struct {
 	PurchaseID  string
 	UserID      string
 	ProductName string
-	End         time.Time // date only
+	End         time.Time // warranty end, date only; the zero value means the purchase has no warranty end date
+	ReturnEnd   time.Time // return deadline, date only; the zero value means none
 	Prefs       Prefs
 }
 
 // Planned is a notification the planner wants to exist.
 type Planned struct {
+	Kind        string
+	Date        time.Time // the warranty end or return deadline it was planned for
 	Key         string
 	ScheduledAt time.Time
 	Channel     string
@@ -121,22 +134,46 @@ func Plan(c Candidate, now time.Time) []Planned {
 	}
 	loc := loadLocation(c.Prefs.Timezone)
 	var out []Planned
-	for _, d := range c.Prefs.DaysBefore {
-		at := ReminderTime(c.End, d, loc, c.Prefs.QuietStart, c.Prefs.QuietEnd)
+	add := func(kind string, end time.Time, offset int, title, body string) {
+		at := ReminderTime(end, offset, loc, c.Prefs.QuietStart, c.Prefs.QuietEnd)
 		if at.Before(now.Add(-CatchUp)) || at.After(now.Add(PlanAhead)) {
-			continue
+			return
 		}
-		reminderDate := c.End.AddDate(0, 0, -d).Format("2006-01-02")
+		reminderDate := end.AddDate(0, 0, -offset).Format("2006-01-02")
+		key := fmt.Sprintf("%s:%s:%d", c.PurchaseID, reminderDate, offset)
+		if kind == KindReturn {
+			key = "return:" + key // the same date must not collide with a warranty reminder
+		}
 		out = append(out, Planned{
-			Key:         fmt.Sprintf("%s:%s:%d", c.PurchaseID, reminderDate, d),
+			Kind:        kind,
+			Date:        end,
+			Key:         key,
 			ScheduledAt: at.UTC(),
 			Channel:     c.Prefs.Channel,
-			OffsetDays:  d,
-			Title:       "Garansi segera berakhir",
-			Body:        reminderBody(c.ProductName, d, c.End),
+			OffsetDays:  offset,
+			Title:       title,
+			Body:        body,
 		})
 	}
+	if !c.End.IsZero() {
+		for _, d := range c.Prefs.DaysBefore {
+			add(KindWarranty, c.End, d, "Garansi segera berakhir", reminderBody(c.ProductName, d, c.End))
+		}
+	}
+	if !c.ReturnEnd.IsZero() {
+		for _, d := range ReturnOffsets {
+			add(KindReturn, c.ReturnEnd, d, "Batas pengembalian segera berakhir", returnBody(c.ProductName, d, c.ReturnEnd))
+		}
+	}
 	return out
+}
+
+func returnBody(product string, days int, end time.Time) string {
+	when := fmt.Sprintf("dalam %d hari", days)
+	if days == 1 {
+		when = "besok"
+	}
+	return fmt.Sprintf("Batas pengembalian %s berakhir %s (%s).", product, when, end.Format("2006-01-02"))
 }
 
 func reminderBody(product string, days int, end time.Time) string {
@@ -158,10 +195,11 @@ const (
 
 // Due is a scheduled notification joined with the current state of its purchase and prefs.
 type Due struct {
+	Kind       string // KindWarranty (also when empty) or KindReturn
 	Channel    string
 	OffsetDays int
-	PlannedEnd time.Time  // warranty end date when planned
-	CurrentEnd *time.Time // nil if the purchase is gone or the date was cleared
+	PlannedEnd time.Time  // the warranty end or return deadline when planned
+	CurrentEnd *time.Time // that same date today; nil if the purchase is gone or the date was cleared
 	// AccountPending is true when the owner has requested account deletion (grace period).
 	AccountPending bool
 	Prefs          Prefs
@@ -174,19 +212,21 @@ func Decide(d Due, now time.Time) (a Action, reason string, until time.Time) {
 	case d.AccountPending:
 		return ActionCancel, "account pending deletion", time.Time{}
 	case d.CurrentEnd == nil:
-		return ActionCancel, "purchase removed or warranty date cleared", time.Time{}
+		return ActionCancel, "purchase removed or date cleared", time.Time{}
 	case !d.CurrentEnd.Equal(d.PlannedEnd):
-		return ActionCancel, "warranty end date changed", time.Time{}
+		return ActionCancel, "date changed", time.Time{}
 	case !d.Prefs.Enabled:
 		return ActionCancel, "reminders disabled", time.Time{}
-	case !slices.Contains(d.Prefs.DaysBefore, d.OffsetDays):
+	case d.Kind == KindReturn && !slices.Contains(ReturnOffsets, d.OffsetDays):
+		return ActionCancel, "return reminder offset no longer used", time.Time{}
+	case d.Kind != KindReturn && !slices.Contains(d.Prefs.DaysBefore, d.OffsetDays):
 		return ActionCancel, "reminder offset removed from preferences", time.Time{}
 	}
 	loc := loadLocation(d.Prefs.Timezone)
 	ln := now.In(loc)
 	today := time.Date(ln.Year(), ln.Month(), ln.Day(), 0, 0, 0, 0, time.UTC)
 	if today.After(*d.CurrentEnd) {
-		return ActionCancel, "warranty already ended", time.Time{}
+		return ActionCancel, "date already passed", time.Time{}
 	}
 	if adj := AdjustForQuietHours(now, loc, d.Prefs.QuietStart, d.Prefs.QuietEnd); adj.After(now) {
 		return ActionDefer, "", adj.UTC()

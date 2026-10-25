@@ -45,7 +45,7 @@ func (s *Scheduler) Plan(ctx context.Context) (int, error) {
 	last := uuid.Nil
 	for {
 		rows, err := s.Pool.Query(ctx, `
-SELECT p.id, p.user_id, p.product_name, p.warranty_end_date,
+SELECT p.id, p.user_id, p.product_name, p.warranty_end_date, p.return_deadline,
        COALESCE(rp.enabled, true),
        COALESCE(rp.days_before, '[30,14,7,3,1]'::jsonb),
        COALESCE(rp.channel, 'push'),
@@ -54,8 +54,8 @@ SELECT p.id, p.user_id, p.product_name, p.warranty_end_date,
 FROM purchases p
 JOIN users u ON u.id = p.user_id AND u.deletion_scheduled_at IS NULL
 LEFT JOIN reminder_preferences rp ON rp.user_id = p.user_id
-WHERE p.warranty_end_date IS NOT NULL
-  AND p.warranty_end_date BETWEEN ($1::date - 3) AND ($1::date + 35)
+WHERE (p.warranty_end_date BETWEEN ($1::date - 3) AND ($1::date + 35)
+       OR p.return_deadline BETWEEN ($1::date - 3) AND ($1::date + 35))
   AND p.id > $2
 ORDER BY p.id LIMIT $3`, now, last, planBatch)
 		if err != nil {
@@ -66,12 +66,19 @@ ORDER BY p.id LIMIT $3`, now, last, planBatch)
 			var c Candidate
 			var pid, uid uuid.UUID
 			var raw []byte
-			if err := rows.Scan(&pid, &uid, &c.ProductName, &c.End, &c.Prefs.Enabled, &raw,
+			var we, rd *time.Time
+			if err := rows.Scan(&pid, &uid, &c.ProductName, &we, &rd, &c.Prefs.Enabled, &raw,
 				&c.Prefs.Channel, &c.Prefs.QuietStart, &c.Prefs.QuietEnd, &c.Prefs.Timezone); err != nil {
 				rows.Close()
 				return created, fmt.Errorf("notifications: plan scan: %w", err)
 			}
 			last = pid // advance the keyset even if this row is skipped below
+			if we != nil {
+				c.End = *we
+			}
+			if rd != nil {
+				c.ReturnEnd = *rd
+			}
 			if err := json.Unmarshal(raw, &c.Prefs.DaysBefore); err != nil {
 				s.Log.Error("skipping purchase with invalid days_before", "purchase_id", pid)
 				continue
@@ -88,10 +95,10 @@ ORDER BY p.id LIMIT $3`, now, last, planBatch)
 			for _, p := range Plan(b.c, now) {
 				tag, err := s.Pool.Exec(ctx, `
 INSERT INTO notifications (user_id, purchase_id, title, body, scheduled_at, status,
-                           idempotency_key, channel, offset_days, warranty_end_date)
-VALUES ($1,$2,$3,$4,$5,'scheduled',$6,$7,$8,$9)
+                           idempotency_key, channel, offset_days, warranty_end_date, kind)
+VALUES ($1,$2,$3,$4,$5,'scheduled',$6,$7,$8,$9,$10)
 ON CONFLICT (idempotency_key) DO NOTHING`,
-					b.uid, b.pid, p.Title, p.Body, p.ScheduledAt, p.Key, p.Channel, p.OffsetDays, b.c.End)
+					b.uid, b.pid, p.Title, p.Body, p.ScheduledAt, p.Key, p.Channel, p.OffsetDays, p.Date, p.Kind)
 				if err != nil {
 					return created, fmt.Errorf("notifications: plan insert: %w", err)
 				}
@@ -139,8 +146,8 @@ func (s *Scheduler) Dispatch(ctx context.Context) (DispatchStats, error) {
 	defer tx.Rollback(ctx)
 
 	rows, err := tx.Query(ctx, `
-SELECT n.id, n.channel, n.offset_days, n.warranty_end_date,
-       p.warranty_end_date,
+SELECT n.id, n.kind, n.channel, n.offset_days, n.warranty_end_date,
+       CASE WHEN n.kind = 'return' THEN p.return_deadline ELSE p.warranty_end_date END,
        COALESCE(rp.enabled, true),
        COALESCE(rp.days_before, '[30,14,7,3,1]'::jsonb),
        COALESCE(rp.channel, 'push'),
@@ -165,7 +172,7 @@ FOR UPDATE OF n SKIP LOCKED`, now, dispatchBatch)
 		var channel *string
 		var offset *int
 		var plannedEnd *time.Time
-		if err := rows.Scan(&r.id, &channel, &offset, &plannedEnd,
+		if err := rows.Scan(&r.id, &r.due.Kind, &channel, &offset, &plannedEnd,
 			&r.due.CurrentEnd, &r.due.Prefs.Enabled, &raw, &r.due.Prefs.Channel,
 			&r.due.Prefs.QuietStart, &r.due.Prefs.QuietEnd, &r.due.Prefs.Timezone, &r.due.AccountPending); err != nil {
 			rows.Close()

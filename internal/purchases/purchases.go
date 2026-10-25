@@ -23,18 +23,20 @@ const (
 )
 
 type Purchase struct {
-	ID                uuid.UUID    `json:"id"`
-	ProductName       string       `json:"productName"`
-	StoreName         *string      `json:"storeName"`
-	PurchaseDate      Date         `json:"purchaseDate"`
-	Price             *float64     `json:"price"`
-	Currency          string       `json:"currency"`
-	WarrantyStartDate *Date        `json:"warrantyStartDate"`
-	WarrantyEndDate   *Date        `json:"warrantyEndDate"`
-	Notes             *string      `json:"notes"`
-	Receipt           *ReceiptInfo `json:"receipt"`
-	CreatedAt         time.Time    `json:"createdAt"`
-	UpdatedAt         time.Time    `json:"updatedAt"`
+	ID                uuid.UUID `json:"id"`
+	ProductName       string    `json:"productName"`
+	StoreName         *string   `json:"storeName"`
+	PurchaseDate      Date      `json:"purchaseDate"`
+	Price             *float64  `json:"price"`
+	Currency          string    `json:"currency"`
+	WarrantyStartDate *Date     `json:"warrantyStartDate"`
+	WarrantyEndDate   *Date     `json:"warrantyEndDate"`
+	// ReturnDeadline is the last day the shop takes the product back (optional).
+	ReturnDeadline *Date        `json:"returnDeadline"`
+	Notes          *string      `json:"notes"`
+	Receipt        *ReceiptInfo `json:"receipt"`
+	CreatedAt      time.Time    `json:"createdAt"`
+	UpdatedAt      time.Time    `json:"updatedAt"`
 }
 
 // ReceiptInfo is the receipt metadata embedded in purchase responses.
@@ -53,6 +55,7 @@ type Input struct {
 	Currency          string
 	WarrantyStartDate *time.Time
 	WarrantyEndDate   *time.Time
+	ReturnDeadline    *time.Time
 	Notes             *string
 }
 
@@ -65,6 +68,7 @@ type RawInput struct {
 	Currency          string   `json:"currency"`
 	WarrantyStartDate *string  `json:"warrantyStartDate"`
 	WarrantyEndDate   *string  `json:"warrantyEndDate"`
+	ReturnDeadline    *string  `json:"returnDeadline"`
 	Notes             *string  `json:"notes"`
 }
 
@@ -82,6 +86,8 @@ type Repository interface {
 	Update(ctx context.Context, userID, id uuid.UUID, in Input) (Purchase, error)
 	// Delete removes the purchase and returns the receipt storage key, if it had one.
 	Delete(ctx context.Context, userID, id uuid.UUID) (receiptKey *string, err error)
+	// Summary counts the user's purchases by warranty state and finds the next dates (see Summary).
+	Summary(ctx context.Context, userID uuid.UUID) (Summary, error)
 }
 
 // ObjectPurger asks the worker to delete receipt files after their purchase is deleted.
@@ -185,13 +191,21 @@ func Validate(r RawInput) (Input, error) {
 	if ws != nil && we != nil && we.Before(*ws) {
 		return Input{}, verr("warrantyEndDate must be >= warrantyStartDate")
 	}
+	rd, err := optDate(r.ReturnDeadline, "returnDeadline")
+	if err != nil {
+		return Input{}, err
+	}
+	if rd != nil && rd.Before(pd) {
+		return Input{}, verr("returnDeadline must be >= purchaseDate")
+	}
 	if r.StoreName != nil && utf8.RuneCountInString(*r.StoreName) > 160 {
 		return Input{}, verr("storeName too long")
 	}
 	if r.Notes != nil && utf8.RuneCountInString(*r.Notes) > 2000 {
 		return Input{}, verr("notes too long")
 	}
-	return Input{name, r.StoreName, pd, r.Price, cur, ws, we, r.Notes}, nil
+	return Input{ProductName: name, StoreName: r.StoreName, PurchaseDate: pd, Price: r.Price, Currency: cur,
+		WarrantyStartDate: ws, WarrantyEndDate: we, ReturnDeadline: rd, Notes: r.Notes}, nil
 }
 
 func optDate(s *string, field string) (*time.Time, error) {

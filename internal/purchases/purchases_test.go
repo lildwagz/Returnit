@@ -26,6 +26,11 @@ func TestValidate(t *testing.T) {
 		{"end before start", RawInput{ProductName: "A", PurchaseDate: "2024-01-01", WarrantyStartDate: s("2024-03-01"), WarrantyEndDate: s("2024-02-01")}, false},
 		{"end equals start", RawInput{ProductName: "A", PurchaseDate: "2024-01-01", WarrantyStartDate: s("2024-03-01"), WarrantyEndDate: s("2024-03-01")}, true},
 		{"bad warranty date", RawInput{ProductName: "A", PurchaseDate: "2024-01-01", WarrantyEndDate: s("nope")}, false},
+		{"return deadline after purchase", RawInput{ProductName: "A", PurchaseDate: "2024-01-01", ReturnDeadline: s("2024-01-15")}, true},
+		{"return deadline same day", RawInput{ProductName: "A", PurchaseDate: "2024-01-01", ReturnDeadline: s("2024-01-01")}, true},
+		{"return deadline before purchase", RawInput{ProductName: "A", PurchaseDate: "2024-01-01", ReturnDeadline: s("2023-12-31")}, false},
+		{"bad return deadline", RawInput{ProductName: "A", PurchaseDate: "2024-01-01", ReturnDeadline: s("soon")}, false},
+		{"empty return deadline means none", RawInput{ProductName: "A", PurchaseDate: "2024-01-01", ReturnDeadline: s("")}, true},
 		{"notes too long", RawInput{ProductName: "A", PurchaseDate: "2024-01-01", Notes: s(strings.Repeat("n", 2001))}, false},
 	}
 	for _, c := range cases {
@@ -38,6 +43,12 @@ func TestValidate(t *testing.T) {
 		}
 		if err == nil && c.name == "minimal" && in.Currency != "IDR" {
 			t.Errorf("default currency = %q", in.Currency)
+		}
+		if err == nil && c.name == "return deadline after purchase" && (in.ReturnDeadline == nil || in.ReturnDeadline.Format("2006-01-02") != "2024-01-15") {
+			t.Errorf("return deadline = %v", in.ReturnDeadline)
+		}
+		if err == nil && c.name == "empty return deadline means none" && in.ReturnDeadline != nil {
+			t.Errorf("empty return deadline must be nil, got %v", in.ReturnDeadline)
 		}
 	}
 }

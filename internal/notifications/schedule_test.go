@@ -172,3 +172,94 @@ func TestDecide(t *testing.T) {
 		t.Fatalf("day after end should cancel, got %v", a)
 	}
 }
+
+func TestPlanReturnDeadline(t *testing.T) {
+	// Return deadline 2026-11-30: reminders 3 and 1 days before, at 09:00 WIB, kind "return", own keys.
+	c := Candidate{PurchaseID: "p1", UserID: "u1", ProductName: "Headphone", ReturnEnd: date("2026-11-30"), Prefs: DefaultPrefs()}
+	now := time.Date(2026, 11, 28, 8, 0, 0, 0, wib) // the 3-day reminder was 23 h ago (still caught up), the 1-day one is 25 h ahead
+	got := Plan(c, now)
+	if len(got) != 2 {
+		t.Fatalf("planned %d, want 2: %+v", len(got), got)
+	}
+	for _, p := range got {
+		if p.Kind != KindReturn || !p.Date.Equal(date("2026-11-30")) {
+			t.Fatalf("kind/date: %+v", p)
+		}
+		if p.Title != "Batas pengembalian segera berakhir" {
+			t.Fatalf("title: %q", p.Title)
+		}
+	}
+	if !got[0].ScheduledAt.Equal(time.Date(2026, 11, 27, 9, 0, 0, 0, wib)) {
+		t.Fatalf("first at %v", got[0].ScheduledAt)
+	}
+	if got[0].Key != "return:p1:2026-11-27:3" || got[1].Key != "return:p1:2026-11-29:1" {
+		t.Fatalf("keys: %q %q", got[0].Key, got[1].Key)
+	}
+}
+
+func TestPlanReturnAndWarrantyDoNotClash(t *testing.T) {
+	// Warranty ends on the same day as the return deadline: the 1-day reminder of each must be separate rows.
+	c := Candidate{PurchaseID: "p1", UserID: "u1", ProductName: "X", End: date("2026-11-30"), ReturnEnd: date("2026-11-30"), Prefs: DefaultPrefs()}
+	now := time.Date(2026, 11, 29, 6, 0, 0, 0, wib)
+	keys := map[string]string{}
+	for _, p := range Plan(c, now) {
+		if prev, dup := keys[p.Key]; dup {
+			t.Fatalf("key %q used by both %s and %s", p.Key, prev, p.Kind)
+		}
+		keys[p.Key] = p.Kind
+	}
+	if keys["p1:2026-11-29:1"] != KindWarranty || keys["return:p1:2026-11-29:1"] != KindReturn {
+		t.Fatalf("keys: %v", keys)
+	}
+}
+
+func TestPlanReturnOnlyPurchaseWithoutWarranty(t *testing.T) {
+	// A purchase with no warranty end date but a return deadline still gets return reminders (and no warranty ones).
+	c := Candidate{PurchaseID: "p1", UserID: "u1", ProductName: "X", ReturnEnd: date("2026-11-30"), Prefs: DefaultPrefs()}
+	for _, p := range Plan(c, time.Date(2026, 11, 28, 6, 0, 0, 0, wib)) {
+		if p.Kind != KindReturn {
+			t.Fatalf("unexpected %s reminder", p.Kind)
+		}
+	}
+	// reminders switched off: nothing, for either kind
+	c.Prefs.Enabled = false
+	if got := Plan(c, time.Date(2026, 11, 28, 6, 0, 0, 0, wib)); len(got) != 0 {
+		t.Fatalf("disabled: %d planned", len(got))
+	}
+}
+
+func TestDecideReturn(t *testing.T) {
+	end := date("2026-11-30")
+	now := time.Date(2026, 11, 27, 9, 0, 0, 0, wib)
+	base := func() Due {
+		cur := end
+		p := DefaultPrefs()
+		p.DaysBefore = []int{30} // the warranty offsets must not matter for a return reminder
+		return Due{Kind: KindReturn, Channel: "push", OffsetDays: 3, PlannedEnd: end, CurrentEnd: &cur, Prefs: p}
+	}
+	if a, _, _ := Decide(base(), now); a != ActionSend {
+		t.Fatalf("a return reminder must not depend on the warranty offsets, got %v", a)
+	}
+	mods := map[string]func(*Due){
+		"deadline removed":         func(d *Due) { d.CurrentEnd = nil },
+		"deadline changed":         func(d *Due) { e := date("2026-12-10"); d.CurrentEnd = &e },
+		"reminders disabled":       func(d *Due) { d.Prefs.Enabled = false },
+		"offset no longer used":    func(d *Due) { d.OffsetDays = 5 },
+		"deadline already passed":  func(d *Due) { e := date("2026-11-20"); d.CurrentEnd, d.PlannedEnd = &e, e },
+		"account pending deletion": func(d *Due) { d.AccountPending = true },
+	}
+	for name, mod := range mods {
+		d := base()
+		mod(&d)
+		if a, reason, _ := Decide(d, now); a != ActionCancel || reason == "" {
+			t.Errorf("%s: action=%v reason=%q", name, a, reason)
+		}
+	}
+	// a warranty reminder (kind empty, as for old rows) still follows the warranty offsets
+	d := base()
+	d.Kind = ""
+	d.OffsetDays = 7
+	if a, _, _ := Decide(d, now); a != ActionCancel {
+		t.Fatalf("warranty reminder with a removed offset must cancel, got %v", a)
+	}
+}
