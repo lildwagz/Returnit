@@ -41,7 +41,7 @@ dl.{$DOMAIN} {
 	import secure
 	@notread not method GET HEAD
 	respond @notread 405
-	@public path / /index.html /returnit-*.apk /returnit-*.apk.sha256
+	@public path / /index.html /returnit-*.apk /returnit-*.apk.sha256 /assets/*
 	handle @public {
 		root * /srv/updates
 		@apk path *.apk

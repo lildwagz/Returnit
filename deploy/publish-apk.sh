@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Publishes the Android app from this server and controls the "force update" (see Docs: SRS change FR-CR-04).
 #
-#   ./publish-apk.sh publish <version> <apk url or file> [--min <version>] [--message "text"]
+#   ./publish-apk.sh publish <version> <apk url or file> [--min <version>] [--message "text"] [--note "text"]...
 #        Downloads (or copies) the APK, checks it, stores it as returnit-<version>.apk, makes returnit-latest.apk point
 #        to it and updates the download page and latest.json. --min also raises the minimum version.
 #   ./publish-apk.sh min <version>            Only raises (or lowers) the minimum version: older apps are locked until they update.
 #   ./publish-apk.sh maintenance on|off ["message"]   Maintenance switch: every app call is refused (503) while it is on.
-#   ./publish-apk.sh status                   Shows what the app is being told right now.
+#   ./publish-apk.sh page [--note "text"]...   Rebuilds the download page (--note replaces its "What's new" list).
+#   ./publish-apk.sh status                 Shows what the app is being told right now.
 #
 # The files live in ./updates (served at https://dl.<DOMAIN>/ by Caddy; the API reads latest.json, no restart needed).
 # The version must be written the way the app reports it (the "version" in app.json, for example 1.4.0).
@@ -19,7 +20,7 @@ JSON="$DIR/latest.json"
 KEEP=10
 mkdir -p "$DIR"
 
-usage() { sed -n '2,13p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 valid_version() { [[ "$1" =~ ^[0-9]+(\.[0-9]+){1,3}$ ]]; }
 die() { echo "error: $*" >&2; exit 1; }
 
@@ -51,6 +52,9 @@ if op == 'publish':
         android['minVersion'] = os.environ['MIN']
     if os.environ.get('MESSAGE'):
         cfg['message'] = os.environ['MESSAGE']
+    android['releaseNotes'] = [n for n in os.environ.get('NOTES', '').split(chr(10)) if n.strip()]
+elif op == 'notes':
+    android['releaseNotes'] = [n for n in os.environ.get('NOTES', '').split(chr(10)) if n.strip()]
 elif op == 'min':
     android['minVersion'] = os.environ['MIN']
 elif op == 'maintenance':
@@ -67,31 +71,36 @@ os.chmod(path, 0o644)
 PY
 }
 
-# The download page: plain HTML, no scripts.
+# The download page: plain HTML and CSS, no scripts. The look lives in download-page/index.template.html (with its
+# logo and fonts in download-page/assets); this fills in the version, size, date, fingerprint and release notes.
 write_page() {
-	python3 - <<'PY'
+	local here
+	here="$(dirname "${BASH_SOURCE[0]}")/download-page"
+	[ -f "$here/index.template.html" ] || die "download-page/index.template.html is missing"
+	rm -rf "$DIR/assets"
+	cp -r "$here/assets" "$DIR/assets"
+	chmod -R a+rX "$DIR/assets"
+	TEMPLATE="$here/index.template.html" python3 - <<'PY'
 import html, json, os
 cfg = json.load(open(os.environ['JSON']))
 a = cfg['android']
 size = a.get('sizeBytes', 0) / 1048576
-page = f"""<!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Unduh ReturnIt</title>
-<style>body{{font-family:system-ui,sans-serif;max-width:520px;margin:32px auto;padding:0 16px;color:#17324D;line-height:1.5}}
-.btn{{display:inline-block;background:#2563EB;color:#fff;padding:14px 22px;border-radius:12px;text-decoration:none;font-weight:700}}
-code{{word-break:break-all;font-size:12px}}</style></head><body>
-<h1>ReturnIt</h1>
-<p>Versi <strong>{html.escape(a.get('latestVersion', '-'))}</strong> &middot; {size:.1f} MB &middot; Android &middot; diterbitkan {html.escape(a.get('publishedAt', '-'))}</p>
-<p><a class="btn" href="returnit-latest.apk">Unduh APK</a></p>
-<ol>
-<li>Buka berkas yang diunduh. Android akan meminta izin <em>Instal dari sumber ini</em>; izinkan hanya untuk browser yang kamu pakai.</li>
-<li>Jika Google Play Protect memberi peringatan, aplikasi ini belum ada di Play Store; pilih <em>Tetap instal</em> bila kamu mempercayai sumbernya.</li>
-<li>Periksa sidik jari berkas (SHA-256) bila perlu: <code>{html.escape(a.get('sha256', '-'))}</code></li>
-</ol>
-</body></html>
-"""
+notes = [n for n in a.get('releaseNotes', []) if n.strip()]
+notes_html = ''
+if notes:
+    items = ''.join(f'<li>{html.escape(n)}</li>' for n in notes)
+    notes_html = f'<section><div class="notes"><h2>What\'s new in {html.escape(a.get("latestVersion", "-"))}</h2><ul>{items}</ul></div></section>'
+page = open(os.environ['TEMPLATE'], encoding='utf-8').read()
+for key, value in {
+    '{{VERSION}}': html.escape(a.get('latestVersion', '-')),
+    '{{SIZE}}': f'{size:.0f}',
+    '{{DATE}}': html.escape(a.get('publishedAt', '-')),
+    '{{SHA}}': html.escape(a.get('sha256', '-')),
+    '{{NOTES}}': notes_html,
+}.items():
+    page = page.replace(key, value)
 tmp = os.path.join(os.environ['DIR'], 'index.html.tmp')
-open(tmp, 'w').write(page)
+open(tmp, 'w', encoding='utf-8').write(page)
 os.replace(tmp, os.path.join(os.environ['DIR'], 'index.html'))
 os.chmod(os.path.join(os.environ['DIR'], 'index.html'), 0o644)
 PY
@@ -125,6 +134,22 @@ PY
 	echo "Minimum version is now $v. Apps older than that are locked until they update."
 	;;
 
+page)
+	# Rebuilds the download page from latest.json (after changing the template), optionally replacing the release notes.
+	[ -f "$JSON" ] || die "nothing published yet"
+	shift
+	notes="" set_notes=""
+	while [ $# -gt 0 ]; do
+		case "$1" in
+		--note) notes+="${2:-}"$'\n'; set_notes=1; shift 2 ;;
+		*) die "unknown option $1" ;;
+		esac
+	done
+	[ -z "$set_notes" ] || JSON="$JSON" OP=notes NOTES="$notes" edit_json
+	JSON="$JSON" DIR="$DIR" write_page
+	echo "Download page rebuilt: https://dl.${DOMAIN}/"
+	;;
+
 maintenance)
 	state="${2:-}"
 	[ "$state" = on ] || [ "$state" = off ] || die "use: ./publish-apk.sh maintenance on|off [\"message\"]"
@@ -138,11 +163,12 @@ publish)
 	valid_version "$version" || die "version looks wrong (use digits and dots, e.g. 1.4.0)"
 	[ -n "$source" ] || die "give the APK address or file"
 	shift 3
-	min="" message=""
+	min="" message="" notes=""
 	while [ $# -gt 0 ]; do
 		case "$1" in
 		--min) valid_version "${2:-}" || die "--min needs a version"; min="$2"; shift 2 ;;
 		--message) message="${2:-}"; shift 2 ;;
+		--note) notes+="${2:-}"$'\n'; shift 2 ;;
 		*) die "unknown option $1" ;;
 		esac
 	done
@@ -179,7 +205,7 @@ PY
 	ln -sfn "$target" "$DIR/returnit-latest.apk"
 
 	JSON="$JSON" OP=publish VERSION="$version" URL="https://dl.${DOMAIN}/returnit-latest.apk" SHA="$sha" SIZE="$size" \
-		NOW="$(date -u +%Y-%m-%d)" MIN="$min" MESSAGE="$message" edit_json
+		NOW="$(date -u +%Y-%m-%d)" MIN="$min" MESSAGE="$message" NOTES="$notes" edit_json
 	JSON="$JSON" DIR="$DIR" write_page
 
 	# keep the newest $KEEP builds
