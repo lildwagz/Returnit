@@ -52,3 +52,43 @@ func TestEnsureBySubject(t *testing.T) {
 		t.Errorf("a conflicting login must not create or merge users: %d rows", n)
 	}
 }
+
+func TestEnsureBySubjectFollowsName(t *testing.T) {
+	dbURL := os.Getenv("TEST_DATABASE_URL")
+	if dbURL == "" {
+		t.Skip("integration env not set")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(pool.Close)
+	s := users.NewStore(pool)
+	sfx := strings.ReplaceAll(uuid.NewString(), "-", "")[:10]
+	email := "n-" + sfx + "@example.com"
+	t.Cleanup(func() { pool.Exec(context.Background(), `DELETE FROM users WHERE email = $1`, email) })
+	name := func(id uuid.UUID) string {
+		var n *string
+		if err := pool.QueryRow(ctx, `SELECT display_name FROM users WHERE id = $1`, id).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n == nil {
+			return ""
+		}
+		return *n
+	}
+
+	id, _ := s.EnsureBySubject(ctx, "sub-n-"+sfx, email, "Azzam Rabbaney")
+	if got := name(id); got != "Azzam Rabbaney" {
+		t.Fatalf("first name: %q", got)
+	}
+	s.EnsureBySubject(ctx, "sub-n-"+sfx, email, "Azzam R.")
+	if got := name(id); got != "Azzam R." {
+		t.Fatalf("a changed name must follow the token: %q", got)
+	}
+	s.EnsureBySubject(ctx, "sub-n-"+sfx, email, "")
+	if got := name(id); got != "Azzam R." {
+		t.Fatalf("a token without a name must keep the old one: %q", got)
+	}
+}

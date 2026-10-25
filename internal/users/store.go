@@ -22,14 +22,16 @@ type Store struct{ pool *pgxpool.Pool }
 
 func NewStore(p *pgxpool.Pool) *Store { return &Store{pool: p} }
 
-// EnsureBySubject returns the local user ID for an identity subject, creating the row on first sight.
+// EnsureBySubject returns the local user ID for an identity subject, creating the row on first sight. The name follows
+// the login token on every call (a changed name at Keycloak or Google shows up); a token without a name keeps the old one.
 func (s *Store) EnsureBySubject(ctx context.Context, sub, email, name string) (uuid.UUID, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	var id uuid.UUID
 	err := s.pool.QueryRow(ctx, `
 INSERT INTO users (identity_subject, email, display_name)
 VALUES ($1, $2, NULLIF($3, ''))
-ON CONFLICT (identity_subject) DO UPDATE SET updated_at = now()
+ON CONFLICT (identity_subject) DO UPDATE SET updated_at = now(),
+  display_name = COALESCE(NULLIF($3, ''), users.display_name)
 RETURNING id`, sub, email, name).Scan(&id)
 	var pg *pgconn.PgError
 	if errors.As(err, &pg) && pg.Code == "23505" && pg.ConstraintName == "users_email_key" {
