@@ -178,7 +178,7 @@ FCM configured (see `deploy/README.md` / dev `.env`).
 | E4 | Server down | Stop the backend | Friendly error, not a stack trace or raw JSON |
 | E5 | Rate limit | Trigger many requests quickly (about 60 per minute) | `429` is handled with a wait and retry, not an error loop |
 | E6 | Server error 500 | (Backend team simulates) | Generic message; the `requestId` is available for support |
-| E7 | Tokens not in logs | Check device logs (`adb logcat`) during a session | No tokens or passwords printed |
+| E7 | Tokens not in logs | Check device logs (`adb logcat`) during a session | No tokens or passwords printed. Lines starting with `[returnit]` are the app's own request log (method, path, status, time) and are expected (see V1 to V3) |
 | E8 | Tokens stored safely | Inspect app storage | Tokens only in secure storage (Keystore), not plain preferences |
 | E9 | Screenshots/recents | Open the app switcher on a receipt screen | Matches the design decision (blur or not); at least no crash |
 | E10 | HTTPS only (staging) | Check network traffic | Everything over HTTPS; no HTTP calls |
@@ -195,13 +195,122 @@ FCM configured (see `deploy/README.md` / dev `.env`).
 
 | ID | Case | Steps | Expected |
 |---|---|---|---|
-| L1 | Indonesian and English | Switch the phone language | Texts follow the language (or Indonesian is consistently used as designed); no cut-off labels |
+| L1 | Indonesian, English, Arabic | Switch the app language (see LN1 to LN10) and the phone language | Texts follow the chosen language; no cut-off labels |
 | L2 | Large font | System font scale to maximum | Screens remain usable, buttons reachable |
 | L3 | Dark mode | Switch the system theme | Matches the design or at least stays readable |
 | L4 | Screen reader | TalkBack on | Buttons and fields have meaningful labels |
 | L5 | Small screen | 5-inch phone | No overlapping or hidden buttons |
 | L6 | Dates and money | Check formats | Dates readable (e.g. 21 Okt 2026), prices as Rupiah with thousands separators |
 | L7 | Back button | Use the Android back button on every screen | Goes back logically, never exits mid-form without a warning |
+
+### 3.9 Features added in versions 1.3.x
+
+Run these on build 1.3.2 or newer, against a backend with migration 11 or newer.
+
+**Return deadline**
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| T1 | Add with a return period | In the form choose "14 hari" | Detail shows the banner "Batas pengembalian" with the date (purchase date + 14 days) and the days left |
+| T2 | The choices | Open the form | "Tidak ada", 7, 14 and 30 days; "Tetap" appears only when editing a record whose date matches none of them |
+| T3 | Return reminders | Set a deadline 3 days ahead and wait for the 09:00 run (or ask the backend team to move the clock) | A reminder about the **return deadline** (not the warranty) arrives 3 days and 1 day before |
+| T4 | Both kinds together | A purchase whose warranty end and return deadline are close | Both reminders arrive; neither replaces the other |
+| T5 | Deadline without warranty | Return period set, warranty "Tidak diketahui" | Return reminders still arrive; the warranty shows unknown |
+| T6 | Change or remove | Edit the deadline, then remove it | The old reminder does not fire; the new date is used; no reminder after removal |
+| T7 | List card | Deadline within 14 days | Card shows "Batas pengembalian: N hari lagi" (amber at 3 days or less) and "hari ini" on the day; nothing when it is further away or has passed |
+| T8 | Validation | API: `returnDeadline` before the purchase date | `400 validation_error` |
+
+**Home summary**
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| H1 | Counters | Open Home and compare with the list filters | Active, ending soon and total match (they come from `GET /summary`) |
+| H2 | Value under warranty | Two active purchases with prices (one in another currency) | The sum is shown per currency, separated by "·"; expired purchases are not counted |
+| H3 | Next dates | Look at "Garansi berakhir berikutnya" and "Batas pengembalian terdekat" | The right purchase and date; tapping opens it |
+| H4 | Empty account | New account | No highlights card, empty state as before |
+
+**Remind me again (snooze)**
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| Z1 | Only sensible choices | A delivered reminder whose date is tomorrow / in 3 days / in 7+ days / today or past | "Ingatkan lagi" offers: Besok / Besok and 3 hari lagi / all three / **no button** |
+| Z2 | Snooze | Pick "Besok pukul 09.00" | Toast with the date and time; the original is marked read; a copy arrives next day at 09:00 (after quiet hours if they apply) |
+| Z3 | Snooze again | Snooze the same reminder again while the copy is waiting | The time moves; no duplicate |
+| Z4 | Date changed meanwhile | Snooze, then edit the end date | The snoozed copy is not sent |
+| Z5 | Refused by the server | Postman: a choice that falls after the end date | `422 snooze_not_possible`; the app shows a clear message if it ever happens |
+| Z6 | Someone else's reminder | Another user's notification id | `404` |
+
+**Calendar**
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| K1 | Warranty end | Detail, "Tambahkan akhir garansi ke kalender" | The phone's own new-event screen opens with an all-day event on that date; saving adds it |
+| K2 | Return deadline | Same for the return deadline | Same, with the return title |
+| K3 | No permission | Check the app's permissions | No calendar permission is requested or listed |
+| K4 | Cancel | Back out of the calendar screen | Nothing saved, no error |
+
+**Languages (Indonesian, English, Arabic)**
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| LN1 | Default | Phone set to Indonesian, English, Arabic, then another language | App follows Indonesian, English, Arabic; any other language gives English |
+| LN2 | Choose a language | Settings, "Bahasa", pick each | Tabs, lists, forms, alerts, errors, month names change; amounts use "." as thousands separator in Indonesian and "," in English and Arabic |
+| LN3 | Kept | Close and reopen | The choice stays; "Ikuti bahasa HP" goes back to the phone's language |
+| LN4 | From the login screen | Before signing in, tap "Bahasa" | Works; the sign-in page opens in the same language |
+| LN5 | Indonesian and English | Switch between them | Changes at once, no restart |
+| LN6 | Arabic | Choose Arabic | A notice asks to reopen the app; afterwards the layout runs right to left, arrows are mirrored, Arabic font, Western digits |
+| LN7 | Back to English | After LN6 choose English, close and reopen | Layout is left to right again (fixed in 1.3.1) |
+| LN8 | Plural forms | Check "days left" for 1, 2, 3, 11 days in Arabic and 1 vs 2 in English | Correct form each time |
+| LN9 | Errors and forms | Trigger validation and server errors | Messages in the chosen language |
+| LN10 | Known gap | Reminder and e-mail texts that come from the server | Still Indonesian (backend language is planned) |
+| LN11 | Arabic wording | Ask a native speaker to read the app and the sign-in page | Written without a native reviewer: list corrections |
+
+**Reminders tab and settings**
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| M1 | Layout | Open the Pengingat tab | Title with a gear icon, filters "Semua / Belum dibaca", then the history; no settings form, no list of warranties |
+| M2 | Gear | Tap the gear | The reminder settings screen opens (same as Settings, "Preferensi pengingat") |
+| M3 | Status in Settings | Look at the row "Preferensi pengingat" | Shows e.g. "Aktif · 7, 1 hari sebelumnya · Notifikasi HP" or "Mati"; updates after saving |
+| M4 | Unread badge | Have 2 unread reminders | Badge "2" on the tab; opening one lowers it; hidden at 0 ("50+" at the cap) |
+| M5 | Filter | "Belum dibaca" | Only unread items |
+| M6 | Notification warning | Channel Notifikasi HP, notifications blocked in system settings | Notice at the top with "Izinkan notifikasi" or "Buka pengaturan aplikasi"; not shown when allowed, when the channel is e-mail or in-app, or when reminders are off |
+| M7 | Empty when off | Switch reminders off | "Pengingat dimatikan" with a button "Aktifkan pengingat" to the settings |
+| M8 | Settings save | Change days, channel and quiet hours, save, reopen | Kept; messages when no day is chosen or the time is not HH:MM |
+
+**Name and greeting**
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| U1 | Greeting | Sign in | Home says "Halo, <first name> 👋"; without a name the generic greeting |
+| U2 | Name follows login | Change the name at the login server, sign in again | Account and greeting show the new name |
+| U3 | Google | Register with a Google account | The name is the one on the Google profile |
+
+**Sign-in pages (Keycloak theme)**
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| KC1 | Look | Open sign-in, register and forgot password | ReturnIt logo, brand colours, rounded card; dark mode follows the phone |
+| KC2 | Language | Choose each language in the app, then sign in | The page opens in that language; Arabic runs right to left |
+| KC3 | Register | Look for the way to register | Link "Belum punya akun? Daftar" on the sign-in page (the app has no register button) |
+| KC4 | Messages | Wrong password, e-mail that already exists | Messages in the chosen language |
+
+**App log**
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| V1 | Requests are logged | `adb logcat` filtered on `returnit` while using the app | One line per request: method, path, status, time in ms; events for sign-in and sign-out |
+| V2 | Secrets never logged | Read the lines | No access token, password, push token or receipt link; no request or response bodies in a release build |
+| V3 | Bodies (debug builds only) | Build with `EXPO_PUBLIC_LOG_BODY=true` or a development build | JSON bodies appear with secrets replaced by `[hidden]`, cut at 2000 characters |
+
+**Download page**
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| W1 | Page | Open `https://dl.<domain>/` on a phone and a computer | English page; version, size and date match `latest.json`; "What's new", features, install steps, FAQ; light and dark |
+| W2 | File | Tap "Download APK" | The APK downloads; its SHA-256 equals the one on the page; installing over the old version keeps the data |
+| W3 | Assets | Look at the page | Logo and font load (no broken image, no flash of a different font) |
+| W4 | After a release | Run `./publish-apk.sh publish ...` | The page shows the new version and notes at once |
 
 ## 4. Server behaviour to know while testing
 
@@ -210,6 +319,8 @@ FCM configured (see `deploy/README.md` / dev `.env`).
 * **Reminder timing:** 09:00 in the user's timezone (default WIB), at 30/14/7/3/1 days before the end date. A reminder is planned
   up to 48 hours ahead and a missed one is still sent if it is less than 24 hours late. Each reminder is sent once.
 * **Receipts:** PDF, JPEG or PNG up to 10 MiB. The server checks the real file content, not the extension.
+* **Return deadline:** reminders 3 days and 1 day before the deadline, 09:00 in the user's timezone (they do not follow the "days before" chosen for warranties). A reminder about the warranty and one about the return are separate.
+* **Snooze:** the choices are tomorrow, in 3 days and next week at 09:00 (after quiet hours if they apply); a choice that would fall after the date the reminder is about is not offered, and the server answers 422 if it is asked for anyway.
 * **Account erasure** happens 7 days after the request and needs a login from the last 5 minutes.
 * Server-side reasons for a failed call are in `docker compose logs web worker` (local) or the server logs (staging).
 
@@ -231,9 +342,12 @@ Severity:     blocker (cannot use app) / major (feature broken) / minor / cosmet
 ## 6. Release checklist
 
 - [ ] Smoke test passes on a real phone
-- [ ] All cases in sections 3.1 to 3.7 pass or have an accepted, documented exception
+- [ ] All cases in sections 3.1 to 3.9 pass or have an accepted, documented exception
 - [ ] Push reminder (N4) verified on a real device against staging
 - [ ] Account deletion with a throwaway account verified end to end (C3, C4, C7, C9)
 - [ ] No tokens in logs (E7), HTTPS only (E10)
 - [ ] Privacy texts and store forms match `06-data-and-privacy/data-retention-policy.md`
-- [ ] Version number and changelog updated
+- [ ] Arabic texts (app and sign-in page) read by a native speaker (LN11)
+- [ ] Going from Arabic back to English leaves the layout left to right (LN7)
+- [ ] No request or response bodies in a published build (V2)
+- [ ] Version number and changelog updated, and the download page shows the new version (W1)

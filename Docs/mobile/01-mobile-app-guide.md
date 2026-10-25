@@ -114,8 +114,11 @@ AppAuth-iOS, or `flutter_appauth`, `react-native-app-auth`). Never use the passw
 | Attach receipt (camera or file) | `POST /purchases/{id}/receipt`, multipart form, field name **`file`** |
 | View receipt | `GET /purchases/{id}/receipt` returns a **signed URL valid about 5 minutes**; open it right away, never store or log it |
 | Remove receipt | `DELETE /purchases/{id}/receipt` |
+| Home summary | `GET /summary`: `counts` (`active`, `expiring`, `expired`, `unknown`, `total`), `coveredValue` per currency, `nextExpiring` and `nextReturn` (the nearest warranty end and return deadline, each with the purchase id; null when there is none) |
+| Return deadline | Optional field `returnDeadline` (`YYYY-MM-DD`, on or after `purchaseDate`) on create and `PATCH`; it has its own reminders 3 days and 1 day before (notifications of kind `return`) |
 | Reminder settings | `GET` / `PUT /reminder-preferences` (PUT replaces everything; allowed days before: 1, 3, 7, 14, 30; channel `push`, `email` or `in_app`) |
-| Notification inbox | `GET /notifications` (`?unreadOnly=true`, `?limit=`), `POST /notifications/{id}/read` |
+| Notification inbox | `GET /notifications` (`?unreadOnly=true`, `?limit=`), `POST /notifications/{id}/read`. Each item has `kind` (`warranty` or `return`) and `snoozeUntil` |
+| Remind me again | `POST /notifications/{id}/snooze` with `{"until":"tomorrow"|"in_3_days"|"next_week"}` returns `{scheduledAt}`. Offer **only** the choices listed in the item's `snoozeUntil` (those that still fall on or before the date the reminder is about); show no button when the list is empty. `422 snooze_not_possible` if the server refuses anyway |
 
 **Receipts:** PDF, JPEG or PNG only, at most 10 MiB. A new upload replaces the old receipt. The server scans files for
 malware: `422` means the file was rejected as infected, `503` means the scanner is temporarily down (ask the user to
@@ -165,9 +168,20 @@ decide this itself: it sends its version and obeys the answer.
 - Implemented in the app: `src/lib/app-gate.ts`, `src/lib/app-config.ts`, `src/components/update-gate.tsx` (lock screen) and
   `src/components/update-banner.tsx` (invitation on Home). Contract: `03-openapi.yaml`.
 
-## 7. Good practice
+## 7. Languages and right to left
+
+The app is in Indonesian (default), English and Arabic. Texts live in `src/i18n/dict/*.ts`, one entry per key with the three languages (`t('key')`; `tn('key', n)` for words that depend on a count, with the six Arabic plural forms in `dict/plurals.ts`). The choice is stored on the phone (`rt_lang`; "system" follows the phone, any language other than Indonesian or Arabic shows English).
+
+- Arabic runs right to left. The system applies the direction when the app starts, so changing between a left-to-right and a right-to-left language shows "reopen the app". The saved direction must follow every choice (including going back to English), or the layout stays right to left after a restart.
+- Use start and end instead of left and right in styles (`paddingStart`, `borderStartWidth`) and a translated text for arrows and chevrons.
+- Do not keep translated strings in module-level constants: they are fixed at load and will not follow a language change. Use a function.
+- Pass `ui_locales` to the login page (the app does) so Keycloak opens in the same language. The sign-in theme has Indonesian, English and Arabic texts.
+- Texts that come from the server (reminders, e-mails) are Indonesian until the backend stores a language per user.
+
+## 8. Good practice
 
 - Store tokens only in the platform secure storage (Keychain / Android Keystore).
 - Never log tokens, signed receipt URLs or push tokens.
 - Treat the server as the source of truth; refresh lists when the app returns to the foreground.
-- Support Indonesian and English text; amounts in Rupiah are whole numbers shown with thousand separators.
+- Support Indonesian, English and Arabic text; amounts in Rupiah are whole numbers shown with thousand separators.
+- The app log (`src/lib/log.ts`) writes method, path, status and time of every request and never tokens, passwords, push tokens or receipt links. Request and response bodies are written only in a development build or one made with `EXPO_PUBLIC_LOG_BODY=true`.

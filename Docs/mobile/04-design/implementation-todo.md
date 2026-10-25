@@ -17,7 +17,10 @@ Status: done / todo / decision (needs the product owner) / skip (on purpose).
 | Pembelian (list) | `src/app/(tabs)/purchases.tsx` | `status-badge.tsx`, `app-text-input.tsx` |
 | Tambah Pembelian | `src/app/purchase/new.tsx` | `components/purchase-form.tsx`, `lib/receipt.ts` |
 | Detail / Edit | `src/app/purchase/[id].tsx` | `purchase-form.tsx`, `receipt-section.tsx`, `lib/warranty.ts` |
-| Pengingat | `src/app/(tabs)/reminders.tsx` | `lib/push.ts` |
+| Pengingat (history) | `src/app/(tabs)/reminders.tsx` | `snooze-sheet.tsx`, `lib/push.ts`, badge in `app-tabs.tsx` |
+| Reminder settings | `src/app/reminder-settings.tsx` | `components/reminder-prefs.tsx` (also the notification warning and the status line) |
+| Language | picker `components/language-sheet.tsx` (Settings and login screen) | `src/i18n/*` (texts in `src/i18n/dict`) |
+| Calendar, app log, CSV export | `lib/calendar.ts`, `lib/log.ts`, `lib/export.ts` | |
 | Pengaturan / Akun | `src/app/(tabs)/explore.tsx` | |
 | Tab bar | `src/components/app-tabs.tsx` | |
 | Tokens, fonts, buttons | `constants/theme.ts`, `themed-text.tsx`, `app-button.tsx` | see `theme-tokens.md` |
@@ -31,6 +34,15 @@ Status: done / todo / decision (needs the product owner) / skip (on purpose).
 | D-03 | Tab bar and purchase screens exist only after login |
 | D-04 | Receipt picker in the Add form (two steps; a failed upload opens the new purchase) |
 | D-06 | App lock (fingerprint, face or phone PIN): switch in Settings, asked at start and after 30 s away, lock screen with "Keluar dari akun"; QA A13-A21 |
+| D-07 | Return deadline: form choice, banner, card line, reminders 3 and 1 days before (backend migration 11) |
+| D-08 | Home from `GET /summary`: counters, value under warranty, next warranty end, nearest return deadline |
+| D-09 | Add to calendar (system event screen, no permission) |
+| D-10 | Snooze ("Ingatkan lagi") with only the choices before the end date (`snoozeUntil`) |
+| D-11 | Three languages (Indonesian, English, Arabic with right to left), picker in Settings and on the login screen; Arabic wording not reviewed by a native speaker |
+| D-12 | Pengingat tab as history (filters, unread badge, notification warning, gear), reminder settings on their own screen with a status line in Settings; the "attention" list was removed because Home and the list filter already show it |
+| D-13 | App log (one line per request, no secrets, bodies only in debug builds) |
+| D-14 | Home greets by first name; the name follows the login at every sign-in; the register button was removed from the login screen (registering stays on the sign-in page) |
+| D-15 | Sign-in pages in the app's look (Keycloak theme `returnit`), Indonesian and Arabic texts; English download page for the APK |
 | D-05 | "Lanjutkan dengan Google" on the login screen (`kc_idp_hint=google`, also registers new people); login errors show the server message; closing the browser is not an error |
 
 ## To do (differences from the prototype)
@@ -40,7 +52,7 @@ Status: done / todo / decision (needs the product owner) / skip (on purpose).
 | U-01 | Detail | Coloured banner by status: "Garansi masih aktif" / "segera berakhir" / "Masa garansi telah berakhir" / "Tanggal garansi belum diketahui" + "Tanggal akhir: <date>" (tints in `theme-tokens.md`) | S | done |
 | U-02 | Detail | Rows: Tanggal pembelian, Durasi garansi, Harga, Tanggal akhir garansi in a 2-column grid; receipt as a card with "Lihat" / "Tambah" | M | done |
 | U-03 | All | Dates as `15 Okt 2025`, money as `Rp14.999.000` (`lib/warranty.ts`: `formatDate`, `formatIDR`) | S | done |
-| U-04 | Pengaturan | Rows: "Preferensi pengingat" (button "Atur" opens the Pengingat tab), "Privasi & keamanan" (lock icon, opens a text screen), "Ekspor data" (the export row comes with U-14; the privacy text expands in place instead of a separate screen) | M | done (without the export row) |
+| U-04 | Pengaturan | Rows: "Preferensi pengingat" (button "Atur" opens the reminder settings screen, which also shows the current state), "Privasi & keamanan" (lock icon, opens a text screen), "Ekspor data" (the export row comes with U-14; the privacy text expands in place instead of a separate screen) | M | done (without the export row) |
 | U-05 | Pengaturan | Remove the "Server: ..." line (debug text) | XS | done |
 | U-06 | Home | Subtitle "Semua bukti pembelian dan garansi dalam satu tempat."; add button beside the heading; "Lihat semua" small button beside "Pembelian terbaru"; green / amber tinted stat cards | S | done |
 | U-07 | Pembelian | Heading "Pembelian Saya" + subtitle "Cari produk dan cek status garansinya."; "Tambah" button at the top | S | done |
@@ -63,6 +75,9 @@ Status: done / todo / decision (needs the product owner) / skip (on purpose).
 | X-01 | Product photo (poster shows one on the list and the form; the prototype uses emoji). The API has one receipt per purchase and no product photo. Options: emoji / category icon, or a backend change (count, formats, thumbnails). |
 | X-02 | Poster extras not in the prototype or the API doc: bell icon on Home, avatar on Settings, "Help & Support", "About ReturnIt". Keep or drop? |
 | X-03 | Export format: JSON as the API gives, or CSV as the prototype shows. | Decided 2026-10-25: CSV, converted in the app from the JSON export (U-14).
+| X-05 | A "Tenggat" (deadlines) tab: upcoming warranty ends and return deadlines grouped as this week, this month, later, passed, with history behind a bell icon. Suggested by the UX review of 25 October 2026; needs a small `GET /deadlines` endpoint or a computation from the list. Not decided. |
+| X-06 | Several receipt files per purchase (up to 5 files of 10 MB, mixed PDF and images, per-file delete). Preferred over combining photos into one PDF; needs migration, endpoints, OpenAPI and a gallery on the detail screen. Waiting for the go-ahead. |
+| X-07 | iPhone version: needs an Apple Developer account (US$99 a year), a bundle identifier, an APNs key, TestFlight or ad-hoc installation. |
 | X-04 | Recent purchases on Home: prototype shows 3, the API doc says 5 (the app uses 5). |
 
 ## On purpose different (skip)

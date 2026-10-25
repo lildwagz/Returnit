@@ -132,13 +132,17 @@ cd ~/returnit/deploy
 ./publish-apk.sh publish 1.4.0 <apk> --min 1.2.0 --message "Perbarui aplikasi."   # also lock older apps
 ./publish-apk.sh min 1.2.0                 # only change the minimum (older apps are locked until they update)
 ./publish-apk.sh maintenance on "Kembali pukul 10.00"    # every app call answers 503; "off" ends it
+./publish-apk.sh publish 1.4.0 <apk> --note "New reminders tab" --note "Faster lists"   # "What's new" on the page (English)
+./publish-apk.sh page [--note "..."]       # rebuild the download page without publishing (after editing the template)
 ./publish-apk.sh status
 ```
+
+The page is English and comes from `download-page/index.template.html` (logo and fonts in `download-page/assets`, served at `/assets/`). If you change the `Caddyfile`, recreate Caddy (`./up.sh up -d --force-recreate caddy`): after a `git pull` its container can still read the old file.
 
 The script refuses: an APK that is not an APK, a published version whose content would change, and a minimum above the
 newest published build (nobody could update). It keeps the newest 10 builds. After raising the minimum, check
 `curl https://api.<DOMAIN>/api/v1/app-config?platform=android&version=<an old version>` (it should say `update_required`).
-Only the page, `returnit-*.apk` and `returnit-*.apk.sha256` are public; `latest.json` is not. Builds made before this feature
+Only the page, its `assets/`, `returnit-*.apk` and `returnit-*.apk.sha256` are public; `latest.json` is not. Builds made before this feature
 do not send their version, so they cannot be locked: ask those users to install the new build by hand.
 
 ## 8. Backups (do this on day one)

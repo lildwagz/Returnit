@@ -4,6 +4,7 @@ Everything you need to build the mobile app, in reading order. You do not need t
 
 | # | File | What it is | Read it when |
 |---|---|---|---|
+| 0 | `00-current-state.md` | Where the app stands: features, versions shipped, how it is built and released, tests, known limits | To get the whole picture quickly |
 | 1 | `01-mobile-app-guide.md` | How to get a backend to develop against, how login works (OIDC + PKCE), the rules the app must follow, push notifications, account deletion | **First** |
 | 2 | `02-screens-and-api-map.md` | Every screen of the design and the API calls behind it, plus the surprises | While building each screen |
 | 3 | `03-openapi.yaml` | The exact API: every endpoint, field, status code. Import it into Postman/Bruno or a code generator | Always at hand |
@@ -23,7 +24,7 @@ The design and requirement documents are in **Indonesian**; the guide, the map a
 * **Push:** Firebase Cloud Messaging. The app registers its token with `POST /devices` and creates an Android
   notification channel named `reminders`.
 * **Receipts:** PDF, JPEG or PNG up to 10 MiB, uploaded as multipart (`file`), viewed through short-lived signed links.
-* **Reminders:** 30/14/7/3/1 days before the warranty ends, 09:00 in the user's time zone (default WIB).
+* **Reminders:** 30/14/7/3/1 days before the warranty ends, and 3 and 1 days before a return deadline, 09:00 in the user's time zone (default WIB). "Remind me again" repeats one later (`POST /notifications/{id}/snooze`).
 * **Account deletion:** required in-app; erasure happens 7 days after the request and needs a fresh login.
 
 ## What the backend owner must give you

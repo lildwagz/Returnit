@@ -178,7 +178,7 @@ dikonfigurasi (lihat `deploy/README.md` / `.env` dev).
 | E4 | Server mati | Hentikan backend | Error ramah, bukan stack trace atau JSON mentah |
 | E5 | Batas laju | Picu banyak permintaan cepat (sekitar 60 per menit) | `429` ditangani dengan menunggu dan mencoba lagi, bukan perulangan error |
 | E6 | Error server 500 | (Tim backend mensimulasikan) | Pesan umum; `requestId` tersedia untuk dukungan |
-| E7 | Token tidak ada di log | Periksa log perangkat (`adb logcat`) selama sesi | Tidak ada token atau password yang tercetak |
+| E7 | Token tidak ada di log | Periksa log perangkat (`adb logcat`) selama sesi | Tidak ada token atau password yang tercetak. Baris berawalan `[returnit]` adalah log permintaan milik app sendiri (metode, path, status, waktu) dan memang ada (lihat V1 sampai V3) |
 | E8 | Token disimpan aman | Periksa penyimpanan aplikasi | Token hanya di penyimpanan aman (Keystore), bukan preferensi biasa |
 | E9 | Tangkapan layar/aplikasi terakhir | Buka pengalih aplikasi di layar struk | Sesuai keputusan desain (diburamkan atau tidak); minimal tidak crash |
 | E10 | Hanya HTTPS (staging) | Periksa lalu lintas jaringan | Semua lewat HTTPS; tidak ada panggilan HTTP |
@@ -195,13 +195,122 @@ dikonfigurasi (lihat `deploy/README.md` / `.env` dev).
 
 | ID | Kasus | Langkah | Hasil yang diharapkan |
 |---|---|---|---|
-| L1 | Indonesia dan Inggris | Ganti bahasa HP | Teks mengikuti bahasa (atau konsisten Indonesia sesuai desain); tidak ada label terpotong |
+| L1 | Indonesia, Inggris, Arab | Ganti bahasa di app (lihat LN1 sampai LN10) dan bahasa HP | Teks mengikuti bahasa yang dipilih; tidak ada label terpotong |
 | L2 | Huruf besar | Skala font sistem ke maksimum | Layar tetap bisa dipakai, tombol terjangkau |
 | L3 | Mode gelap | Ganti tema sistem | Sesuai desain atau setidaknya tetap terbaca |
 | L4 | Pembaca layar | TalkBack aktif | Tombol dan kolom punya label yang bermakna |
 | L5 | Layar kecil | HP 5 inci | Tidak ada elemen bertumpuk atau tombol tersembunyi |
 | L6 | Tanggal dan uang | Periksa format | Tanggal mudah dibaca (mis. 21 Okt 2026), harga dalam Rupiah dengan pemisah ribuan |
 | L7 | Tombol kembali | Pakai tombol kembali Android di setiap layar | Kembali dengan logis, tidak keluar di tengah formulir tanpa peringatan |
+
+### 3.9 Fitur yang ditambahkan di versi 1.3.x
+
+Jalankan di build 1.3.2 atau lebih baru, terhadap backend dengan migrasi 11 atau lebih baru.
+
+**Batas pengembalian**
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| T1 | Tambah dengan masa pengembalian | Di formulir pilih "14 hari" | Detail menampilkan banner "Batas pengembalian" dengan tanggalnya (tanggal beli + 14 hari) dan sisa harinya |
+| T2 | Pilihan | Buka formulir | "Tidak ada", 7, 14, dan 30 hari; "Tetap" hanya muncul saat mengedit catatan yang tanggalnya tidak cocok dengan pilihan mana pun |
+| T3 | Pengingat pengembalian | Atur batas 3 hari lagi dan tunggu proses pukul 09.00 (atau minta tim backend memajukan jam) | Pengingat tentang **batas pengembalian** (bukan garansi) datang 3 hari dan 1 hari sebelumnya |
+| T4 | Dua jenis sekaligus | Pembelian dengan akhir garansi dan batas pengembalian yang berdekatan | Kedua pengingat datang; tidak saling menggantikan |
+| T5 | Batas tanpa garansi | Masa pengembalian diisi, garansi "Tidak diketahui" | Pengingat pengembalian tetap datang; garansi tampil tidak diketahui |
+| T6 | Ubah atau hapus | Ubah batasnya, lalu hapus | Pengingat lama tidak terkirim; tanggal baru dipakai; tidak ada pengingat setelah dihapus |
+| T7 | Kartu di daftar | Batas dalam 14 hari | Kartu menampilkan "Batas pengembalian: N hari lagi" (kuning bila 3 hari atau kurang) dan "hari ini" pada harinya; tidak tampil bila masih jauh atau sudah lewat |
+| T8 | Validasi | API: `returnDeadline` sebelum tanggal beli | `400 validation_error` |
+
+**Ringkasan di Home**
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| H1 | Penghitung | Buka Home dan bandingkan dengan filter di daftar | Aktif, segera berakhir, dan total sama (datanya dari `GET /summary`) |
+| H2 | Nilai yang masih bergaransi | Dua pembelian aktif dengan harga (satu mata uang lain) | Jumlah tampil per mata uang, dipisah "·"; pembelian kedaluwarsa tidak dihitung |
+| H3 | Tanggal berikutnya | Lihat "Garansi berakhir berikutnya" dan "Batas pengembalian terdekat" | Pembelian dan tanggal yang tepat; diketuk membuka pembeliannya |
+| H4 | Akun kosong | Akun baru | Tidak ada kartu sorotan, keadaan kosong seperti biasa |
+
+**Ingatkan lagi (snooze)**
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| Z1 | Hanya pilihan yang masuk akal | Pengingat terkirim yang tanggalnya besok / 3 hari lagi / 7+ hari lagi / hari ini atau lewat | "Ingatkan lagi" menawarkan: Besok / Besok dan 3 hari lagi / ketiganya / **tanpa tombol** |
+| Z2 | Tunda | Pilih "Besok pukul 09.00" | Toast dengan tanggal dan jam; yang asli ditandai dibaca; salinannya datang besok pukul 09.00 (setelah jam tenang bila berlaku) |
+| Z3 | Tunda lagi | Tunda pengingat yang sama saat salinannya masih menunggu | Waktunya bergeser; tidak ada duplikat |
+| Z4 | Tanggal berubah | Tunda, lalu ubah tanggal akhir | Salinan yang ditunda tidak dikirim |
+| Z5 | Ditolak server | Postman: pilihan yang jatuh setelah tanggal akhir | `422 snooze_not_possible`; app menampilkan pesan jelas bila ini terjadi |
+| Z6 | Pengingat orang lain | Id notifikasi pengguna lain | `404` |
+
+**Kalender**
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| K1 | Akhir garansi | Detail, "Tambahkan akhir garansi ke kalender" | Layar acara baru bawaan HP terbuka dengan acara seharian di tanggal itu; disimpan menambahkannya |
+| K2 | Batas pengembalian | Sama untuk batas pengembalian | Sama, dengan judul pengembalian |
+| K3 | Tanpa izin | Periksa izin aplikasi | Tidak ada izin kalender yang diminta atau tercantum |
+| K4 | Batal | Keluar dari layar kalender | Tidak ada yang tersimpan, tidak ada error |
+
+**Bahasa (Indonesia, Inggris, Arab)**
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| LN1 | Bawaan | HP diatur ke Indonesia, Inggris, Arab, lalu bahasa lain | App mengikuti Indonesia, Inggris, Arab; bahasa lain menjadi Inggris |
+| LN2 | Pilih bahasa | Pengaturan, "Bahasa", pilih satu per satu | Tab, daftar, formulir, peringatan, error, nama bulan berubah; angka memakai "." sebagai pemisah ribuan di Indonesia dan "," di Inggris dan Arab |
+| LN3 | Tersimpan | Tutup dan buka lagi | Pilihan tetap; "Ikuti bahasa HP" kembali ke bahasa HP |
+| LN4 | Dari layar login | Sebelum masuk, ketuk "Bahasa" | Berfungsi; halaman masuk terbuka dalam bahasa yang sama |
+| LN5 | Indonesia dan Inggris | Pindah di antara keduanya | Berubah seketika, tanpa memulai ulang |
+| LN6 | Arab | Pilih Arab | Pemberitahuan meminta app dibuka ulang; sesudahnya tata letak kanan ke kiri, panah dicerminkan, font Arab, angka Barat |
+| LN7 | Kembali ke Inggris | Setelah LN6 pilih Inggris, tutup dan buka lagi | Tata letak kembali kiri ke kanan (diperbaiki di 1.3.1) |
+| LN8 | Bentuk jamak | Periksa "sisa hari" untuk 1, 2, 3, 11 hari dalam Arab, dan 1 lawan 2 dalam Inggris | Bentuk yang benar setiap kali |
+| LN9 | Error dan formulir | Picu validasi dan error server | Pesan dalam bahasa yang dipilih |
+| LN10 | Celah yang diketahui | Teks pengingat dan e-mail dari server | Masih bahasa Indonesia (bahasa di backend direncanakan) |
+| LN11 | Redaksi Arab | Minta penutur asli membaca app dan halaman masuk | Ditulis tanpa peninjau penutur asli: catat koreksinya |
+
+**Tab Pengingat dan pengaturannya**
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| M1 | Tata letak | Buka tab Pengingat | Judul dengan ikon gir, filter "Semua / Belum dibaca", lalu riwayat; tanpa formulir pengaturan, tanpa daftar garansi |
+| M2 | Gir | Ketuk gir | Layar pengaturan pengingat terbuka (sama dengan Pengaturan, "Preferensi pengingat") |
+| M3 | Status di Pengaturan | Lihat baris "Preferensi pengingat" | Menampilkan mis. "Aktif · 7, 1 hari sebelumnya · Notifikasi HP" atau "Mati"; berubah setelah disimpan |
+| M4 | Lencana belum dibaca | Punya 2 pengingat belum dibaca | Lencana "2" di tab; membuka satu menurunkannya; hilang di 0 ("50+" di batas) |
+| M5 | Filter | "Belum dibaca" | Hanya yang belum dibaca |
+| M6 | Peringatan notifikasi | Kanal Notifikasi HP, notifikasi diblokir di pengaturan sistem | Pemberitahuan di atas dengan "Izinkan notifikasi" atau "Buka pengaturan aplikasi"; tidak tampil bila diizinkan, kanalnya e-mail atau dalam aplikasi, atau pengingat dimatikan |
+| M7 | Kosong saat mati | Matikan pengingat | "Pengingat dimatikan" dengan tombol "Aktifkan pengingat" ke pengaturan |
+| M8 | Simpan pengaturan | Ubah hari, kanal, dan jam tenang, simpan, buka lagi | Tersimpan; ada pesan bila tidak ada hari yang dipilih atau jam bukan JJ:MM |
+
+**Nama dan sapaan**
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| U1 | Sapaan | Masuk | Home menyapa "Halo, <nama depan> 👋"; tanpa nama, sapaan umum |
+| U2 | Nama mengikuti login | Ubah nama di server login, masuk lagi | Akun dan sapaan menampilkan nama baru |
+| U3 | Google | Daftar dengan akun Google | Nama sesuai profil Google |
+
+**Halaman masuk (tema Keycloak)**
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| KC1 | Tampilan | Buka halaman masuk, daftar, dan lupa kata sandi | Logo ReturnIt, warna merek, kartu membulat; mode gelap mengikuti HP |
+| KC2 | Bahasa | Pilih tiap bahasa di app, lalu masuk | Halaman terbuka dalam bahasa itu; Arab kanan ke kiri |
+| KC3 | Daftar | Cari cara mendaftar | Tautan "Belum punya akun? Daftar" di halaman masuk (app tidak punya tombol daftar) |
+| KC4 | Pesan | Kata sandi salah, e-mail yang sudah ada | Pesan dalam bahasa yang dipilih |
+
+**Log aplikasi**
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| V1 | Permintaan tercatat | `adb logcat` disaring `returnit` saat memakai app | Satu baris per permintaan: metode, path, status, waktu dalam ms; peristiwa masuk dan keluar |
+| V2 | Rahasia tidak pernah tercatat | Baca barisnya | Tidak ada token akses, kata sandi, token push, atau tautan struk; tidak ada isi permintaan atau respons di build rilis |
+| V3 | Isi (hanya build debug) | Build dengan `EXPO_PUBLIC_LOG_BODY=true` atau build pengembangan | Isi JSON muncul dengan rahasia diganti `[hidden]`, dipotong di 2000 karakter |
+
+**Halaman unduhan**
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| W1 | Halaman | Buka `https://dl.<domain>/` di HP dan komputer | Halaman berbahasa Inggris; versi, ukuran, dan tanggal sama dengan `latest.json`; "What's new", fitur, langkah instal, FAQ; terang dan gelap |
+| W2 | Berkas | Ketuk "Download APK" | APK terunduh; SHA-256 sama dengan yang di halaman; dipasang di atas versi lama dan data tetap |
+| W3 | Aset | Lihat halaman | Logo dan font termuat (tidak ada gambar rusak, tidak ada kilatan font lain) |
+| W4 | Setelah rilis | Jalankan `./publish-apk.sh publish ...` | Halaman langsung menampilkan versi dan catatan baru |
 
 ## 4. Perilaku server yang perlu diketahui saat menguji
 
@@ -210,6 +319,8 @@ dikonfigurasi (lihat `deploy/README.md` / `.env` dev).
 * **Waktu pengingat:** pukul 09:00 di zona waktu pengguna (default WIB), pada 30/14/7/3/1 hari sebelum tanggal akhir. Pengingat dijadwalkan
   hingga 48 jam ke depan, dan yang terlewat tetap dikirim jika telat kurang dari 24 jam. Setiap pengingat hanya dikirim sekali.
 * **Struk:** PDF, JPEG atau PNG sampai 10 MiB. Server memeriksa isi file yang sebenarnya, bukan ekstensinya.
+* **Batas pengembalian:** pengingat 3 hari dan 1 hari sebelum batas, pukul 09:00 di zona waktu pengguna (tidak mengikuti "hari sebelumnya" yang dipilih untuk garansi). Pengingat garansi dan pengingat pengembalian terpisah.
+* **Snooze:** pilihannya besok, 3 hari lagi, dan minggu depan pukul 09:00 (setelah jam tenang bila berlaku); pilihan yang jatuh setelah tanggal yang dibahas pengingat tidak ditawarkan, dan server menjawab 422 bila tetap diminta.
 * **Penghapusan akun** terjadi 7 hari setelah permintaan dan butuh login dalam 5 menit terakhir.
 * Alasan di sisi server saat sebuah panggilan gagal ada di `docker compose logs web worker` (lokal) atau log server (staging).
 
@@ -231,9 +342,12 @@ Tingkat:      blocker (aplikasi tak bisa dipakai) / mayor (fitur rusak) / minor 
 ## 6. Checklist rilis
 
 - [ ] Smoke test lulus di HP asli
-- [ ] Semua kasus di bagian 3.1 sampai 3.7 lulus atau punya pengecualian yang disetujui dan tercatat
+- [ ] Semua kasus di bagian 3.1 sampai 3.9 lulus atau punya pengecualian yang disetujui dan tercatat
 - [ ] Pengingat push (N4) terverifikasi di perangkat asli terhadap staging
 - [ ] Penghapusan akun dengan akun sekali pakai terverifikasi dari awal sampai akhir (C3, C4, C7, C9)
 - [ ] Tidak ada token di log (E7), hanya HTTPS (E10)
 - [ ] Teks privasi dan formulir toko aplikasi sesuai `06-data-and-privacy/data-retention-policy.md`
-- [ ] Nomor versi dan catatan perubahan diperbarui
+- [ ] Teks Arab (app dan halaman masuk) sudah dibaca penutur asli (LN11)
+- [ ] Dari Arab kembali ke Inggris, tata letak kembali kiri ke kanan (LN7)
+- [ ] Tidak ada isi permintaan atau respons di build yang dipublikasikan (V2)
+- [ ] Nomor versi dan catatan perubahan diperbarui, dan halaman unduhan menampilkan versi baru (W1)
