@@ -21,3 +21,4 @@ deploy/secrets/
 # Published app builds and the app-version settings (written by deploy/publish-apk.sh on the server)
 deploy/updates/*
 !deploy/updates/.gitkeep
+!deploy/updates/latest.json.example

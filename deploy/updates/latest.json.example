@@ -1,0 +1,14 @@
+{
+  "android": {
+    "minVersion": "1.1.0",
+    "latestVersion": "1.2.0",
+    "downloadUrl": "https://dl.example.com/returnit-latest.apk",
+    "sha256": "",
+    "sizeBytes": 0,
+    "publishedAt": "2026-10-25"
+  },
+  "ios": {},
+  "message": "Perbarui aplikasi untuk melanjutkan.",
+  "maintenance": false,
+  "maintenanceMessage": "ReturnIt sedang dalam perbaikan. Coba lagi beberapa saat lagi."
+}

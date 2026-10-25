@@ -171,6 +171,27 @@ is never limited, and cancelling an account deletion is not subject to the delet
   stays on, though it is no longer shared) and probes Redis again every few seconds. A limiter
   error never takes the API down.
 
+## App version check (force update) and maintenance
+
+The API can lock outdated builds of the mobile app, invite users to update, and announce maintenance. Everything comes from
+one file, `APP_CONFIG_FILE` (`latest.json`), read live every 30 seconds; with no file nothing is restricted. Contract: `GET /api/v1/app-config`
+(public) and the answers `426 app_update_required` / `503 maintenance` on every other call that carries the header `X-App-Version`
+(see `Docs/api/openapi.yaml`). The app side is described in `Docs/mobile/01-mobile-app-guide.md`, section 6.
+
+**Try it on your computer** (the dev stack mounts `deploy/updates` into the API container):
+
+```sh
+cp deploy/updates/latest.json.example deploy/updates/latest.json    # minimum 1.1.0, latest 1.2.0
+curl "http://localhost:8080/api/v1/app-config?platform=android&version=1.0.0"   # "status":"update_required"
+curl "http://localhost:8080/api/v1/app-config?platform=android&version=1.1.5"   # "update_available"
+curl "http://localhost:8080/api/v1/app-config?platform=android&version=1.2.0"   # "ok"
+curl -i -H "X-App-Version: 1.0.0" http://localhost:8080/api/v1/purchases        # 426 (before any login check)
+# edit the file (for example "maintenance": true) and repeat after at most 30 seconds; delete it to lift every limit
+```
+
+**On the server:** use `deploy/publish-apk.sh` (publishes the APK, raises the minimum, maintenance on/off); see `deploy/README.md`, section 7.1.
+Tests: `go test ./internal/appconfig ./internal/httpapi`.
+
 ## Data export
 
 `GET /api/v1/account/export` downloads everything stored about the caller as one JSON document

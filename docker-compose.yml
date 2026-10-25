@@ -96,6 +96,10 @@ services:
       # Development: log JSON request and response bodies to see what the app sends. Never "on" in production.
       LOG_REQUEST_BODY: ${LOG_REQUEST_BODY:-on}
       CLAMAV_ADDR: clamav:3310
+      # Optional: copy deploy/updates/latest.json.example to deploy/updates/latest.json to try the force update (see README).
+      APP_CONFIG_FILE: /updates/latest.json
+    volumes:
+      - ./deploy/updates:/updates:ro
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
