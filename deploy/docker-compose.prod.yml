@@ -139,7 +139,9 @@ services:
       KC_SMTP_SSL: ${KC_SMTP_SSL:-false}
       KC_SMTP_STARTTLS: ${KC_SMTP_STARTTLS:-false}
     ports: ["127.0.0.1:8180:8080"]
-    volumes: ["./keycloak/returnit-realm.prod.json:/opt/keycloak/data/import/returnit-realm.json:ro"]
+    volumes:
+      - ./keycloak/returnit-realm.prod.json:/opt/keycloak/data/import/returnit-realm.json:ro
+      - ./keycloak/themes/returnit:/opt/keycloak/themes/returnit:ro
     depends_on:
       postgres: { condition: service_healthy }
     healthcheck:

@@ -1,0 +1,119 @@
+/* ReturnIt login theme. Colours and shapes follow the mobile app (src/constants/theme.ts). */
+@font-face { font-family: "Plus Jakarta Sans"; font-weight: 400; src: url("../fonts/PlusJakartaSans_400Regular.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Plus Jakarta Sans"; font-weight: 500; src: url("../fonts/PlusJakartaSans_500Medium.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Plus Jakarta Sans"; font-weight: 700; src: url("../fonts/PlusJakartaSans_700Bold.ttf") format("truetype"); font-display: swap; }
+
+:root {
+  --rt-primary: #2563eb;
+  --rt-primary-dark: #1d4ed8;
+  --rt-navy: #17324d;
+  --rt-muted: #64748b;
+  --rt-line: #e2e8f0;
+  --rt-bg: #f8fafc;
+  --rt-card: #ffffff;
+  --rt-logo: url("../img/logo.png");
+
+  --pf-v5-global--FontFamily--text: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Arabic", sans-serif;
+  --pf-v5-global--FontFamily--heading: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Arabic", sans-serif;
+  --pf-v5-global--primary-color--100: var(--rt-primary);
+  --pf-v5-global--primary-color--200: var(--rt-primary-dark);
+  --pf-v5-global--active-color--100: var(--rt-primary);
+  --pf-v5-global--link--Color: var(--rt-primary);
+  --pf-v5-global--link--Color--hover: var(--rt-primary-dark);
+}
+
+.pf-v5-theme-dark {
+  --rt-primary: #60a5fa;
+  --rt-primary-dark: #93c5fd;
+  --rt-navy: #f1f5f9;
+  --rt-muted: #94a3b8;
+  --rt-line: #263552;
+  --rt-bg: #0b1220;
+  --rt-card: #131e33;
+  --rt-logo: url("../img/logo-dark.png");
+}
+
+body, #keycloak-bg, .pf-v5-c-login {
+  font-family: var(--pf-v5-global--FontFamily--text);
+  color: var(--rt-navy);
+}
+
+/* Page background: calm, with a soft blue glow at the top. */
+#keycloak-bg,
+.pf-v5-c-login {
+  background: radial-gradient(circle at 50% -10%, rgba(37, 99, 235, 0.16), transparent 55%), var(--rt-bg) !important;
+}
+
+/* The realm name is replaced by the ReturnIt logo. */
+#kc-header-wrapper {
+  font-size: 0;
+  line-height: 0;
+  height: 64px;
+  width: 240px;
+  max-width: 100%;
+  margin: 0 auto;
+  background: var(--rt-logo) center / contain no-repeat;
+}
+.pf-v5-c-login__header { padding-block: 32px 8px; text-align: center; }
+
+/* The card. */
+.pf-v5-c-login__main {
+  background: var(--rt-card);
+  border: 1px solid var(--rt-line);
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(23, 50, 77, 0.10);
+  overflow: hidden;
+}
+.pf-v5-c-login__main-header { border-bottom: 0; }
+#kc-page-title, .pf-v5-c-title { color: var(--rt-navy); font-weight: 700; letter-spacing: -0.01em; }
+
+/* Fields. */
+.pf-v5-c-form-control,
+.pf-v5-c-form-control input,
+input.pf-v5-c-form-control {
+  border-radius: 12px;
+  background: var(--rt-bg);
+  color: var(--rt-navy);
+  --pf-v5-c-form-control--BorderColor: var(--rt-line);
+}
+.pf-v5-c-form-control:focus-within,
+.pf-v5-c-form-control:focus {
+  --pf-v5-c-form-control--BorderBottomColor: var(--rt-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+.pf-v5-c-form__label-text { color: var(--rt-navy); font-weight: 500; }
+
+/* Buttons. */
+.pf-v5-c-button { border-radius: 12px; font-weight: 700; padding-block: 12px; }
+.pf-v5-c-button.pf-m-primary { background: var(--rt-primary); color: #fff; }
+.pf-v5-c-button.pf-m-primary:hover,
+.pf-v5-c-button.pf-m-primary:focus { background: var(--rt-primary-dark); }
+.pf-v5-c-button.pf-m-secondary { color: var(--rt-primary); border-color: var(--rt-line); background: transparent; }
+.pf-v5-c-button.pf-m-secondary::after { border-radius: 12px; }
+.pf-v5-c-button.pf-m-primary::after { border: 0; }
+
+/* Google (and other providers) as a clear outlined button. */
+.pf-v5-c-login__main-footer-links-item-link {
+  border: 1px solid var(--rt-line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: var(--rt-card);
+  color: var(--rt-navy);
+  font-weight: 500;
+}
+.pf-v5-c-login__main-footer-links-item-link:hover { border-color: var(--rt-primary); }
+.pf-v5-c-login__main-footer-band { background: transparent; border-top: 1px solid var(--rt-line); color: var(--rt-muted); }
+
+/* Alerts follow the same rounded look. */
+.pf-v5-c-alert { border-radius: 12px; }
+
+/* Language selector. */
+#login-select-toggle { border-radius: 12px; }
+
+a { color: var(--rt-primary); }
+.kc-feedback-text, .pf-m-error { font-weight: 500; }
+
+@media (max-width: 575px) {
+  .pf-v5-c-login__main { border-radius: 16px; box-shadow: none; }
+  #kc-header-wrapper { height: 52px; width: 200px; }
+}

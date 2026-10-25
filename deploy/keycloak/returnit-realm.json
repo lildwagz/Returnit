@@ -4,6 +4,10 @@
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "accessTokenLifespan": 300,
+  "loginTheme": "returnit",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["id", "en", "ar"],
+  "defaultLocale": "id",
   "clients": [
     {
       "clientId": "returnit-app",

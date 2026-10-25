@@ -17,7 +17,8 @@
   "ssoSessionIdleTimeout": 2592000,
   "ssoSessionMaxLifespan": 7776000,
   "internationalizationEnabled": true,
-  "supportedLocales": ["id", "en"],
+  "supportedLocales": ["id", "en", "ar"],
+  "loginTheme": "returnit",
   "defaultLocale": "id",
   "smtpServer": {
     "host": "${SMTP_HOST}",

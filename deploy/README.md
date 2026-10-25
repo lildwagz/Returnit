@@ -211,3 +211,15 @@ without a database row.
 | Login page shows the wrong address or loops | `DOMAIN` in `.env.prod` is wrong or was changed after the first start; run `./up.sh up -d --force-recreate keycloak web`. |
 | App says "invalid token" | The app's issuer/audience differ from the server's (`https://auth.<domain>/realms/returnit`, audience `returnit-api`). |
 | Out of memory, containers restart | Server too small, or add swap as a stop-gap; ClamAV is the biggest user. |
+
+## Login page look (Keycloak theme)
+
+The login, register and reset-password pages use the `returnit` theme (`deploy/keycloak/themes/returnit/login`): the app's colours, logo and font, in Indonesian, English and Arabic (right to left), light and dark. It is mounted into the Keycloak container by `docker-compose.prod.yml`. A realm that already exists keeps its old settings, so on a running server:
+
+```bash
+cd ~/returnit && git pull
+cd deploy && ./up.sh up -d keycloak     # mounts the theme (Keycloak restarts, about a minute)
+./apply-login-theme.sh                  # selects the theme and adds Arabic; --reset goes back to Keycloak's own look
+```
+
+Changing a theme file later only needs `./up.sh restart keycloak`. To try it locally: `docker compose --profile auth up -d keycloak`.
