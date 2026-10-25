@@ -60,6 +60,15 @@ file renamed to `.jpg`, an empty (0 byte) file, a file with a very long name.
 | A10 | Two users on one phone | Log out alice, log in as bob | Bob sees none of alice's data (no cached list) |
 | A11 | Different login, same e-mail | Log in with an identity whose e-mail already belongs to another account | App shows a clear message built from `409 identity_conflict` ("contact support"), not a blank screen |
 | A12 | No network at login | Airplane mode, tap login | Friendly error, can retry later |
+| A13 | App lock: turn on | Settings, switch "Kunci aplikasi" on (the phone has a screen lock or fingerprint) | The system asks for fingerprint, face or PIN; after success the switch stays on |
+| A14 | App lock: phone without a screen lock | Remove the phone's screen lock, then try to switch it on | Message asking to set a screen lock first; the switch stays off |
+| A15 | App lock at start | With the lock on, force-stop the app and open it | The "ReturnIt terkunci" screen with the system prompt; the content is not visible before unlocking |
+| A16 | App lock after absence | Leave the app for more than 30 seconds, return | Locked again, and after unlocking you are on the same screen as before |
+| A17 | App lock short absence | Leave the app for under 30 seconds (answer a message), return | Not locked |
+| A18 | App lock: cancel | On the lock screen, cancel the system prompt | Stays locked; "Buka kunci" tries again; the screens underneath cannot be touched |
+| A19 | App lock: turn off | Switch it off in Settings | Asks for fingerprint, face or PIN first; afterwards the app opens without a prompt |
+| A20 | App lock: sign out from the lock screen | Tap "Keluar dari akun" on the lock screen | Back to the login screen; no data of the account visible |
+| A21 | App lock and the system prompt | Unlock, and open the system prompt again by switching the lock off | Opening and closing the system dialog never locks the app by itself |
 
 ### 3.2 Purchases: add, list, search, filter
 

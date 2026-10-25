@@ -60,6 +60,15 @@ namanya jadi `.jpg`, file kosong (0 byte), file dengan nama sangat panjang.
 | A10 | Dua pengguna di satu HP | Logout alice, login sebagai bob | Bob tidak melihat data alice (tidak ada daftar yang tertinggal di cache) |
 | A11 | Login berbeda, e-mail sama | Login dengan identitas yang e-mailnya sudah milik akun lain | Aplikasi menampilkan pesan jelas dari `409 identity_conflict` ("hubungi dukungan"), bukan layar kosong |
 | A12 | Tanpa jaringan saat login | Mode pesawat, tekan login | Pesan error ramah, bisa mencoba lagi nanti |
+| A13 | Kunci aplikasi: aktifkan | Pengaturan, nyalakan saklar "Kunci aplikasi" (HP punya kunci layar atau sidik jari) | Sistem meminta sidik jari, wajah, atau PIN; setelah berhasil saklar tetap menyala |
+| A14 | Kunci aplikasi: HP tanpa kunci layar | Hapus kunci layar HP, lalu coba menyalakannya | Pesan agar mengatur kunci layar dulu; saklar tetap mati |
+| A15 | Kunci aplikasi saat dibuka | Dengan kunci aktif, tutup paksa aplikasi lalu buka | Layar "ReturnIt terkunci" dengan permintaan sistem; isi aplikasi tidak terlihat sebelum dibuka |
+| A16 | Kunci aplikasi setelah ditinggalkan | Tinggalkan aplikasi lebih dari 30 detik, lalu kembali | Terkunci lagi, dan setelah dibuka kamu kembali ke layar yang sama |
+| A17 | Kunci aplikasi, absen singkat | Tinggalkan aplikasi kurang dari 30 detik (membalas pesan), lalu kembali | Tidak terkunci |
+| A18 | Kunci aplikasi: batal | Di layar kunci, batalkan permintaan sistem | Tetap terkunci; "Buka kunci" mencoba lagi; layar di bawahnya tidak bisa disentuh |
+| A19 | Kunci aplikasi: matikan | Matikan saklar di Pengaturan | Meminta sidik jari, wajah, atau PIN dulu; setelahnya aplikasi terbuka tanpa permintaan |
+| A20 | Kunci aplikasi: keluar dari layar kunci | Ketuk "Keluar dari akun" di layar kunci | Kembali ke layar masuk; tidak ada data akun yang terlihat |
+| A21 | Kunci aplikasi dan dialog sistem | Setelah dibuka, munculkan dialog sistem lagi dengan mematikan kunci | Membuka dan menutup dialog sistem tidak pernah mengunci aplikasi dengan sendirinya |
 
 ### 3.2 Pembelian: tambah, daftar, cari, filter
 

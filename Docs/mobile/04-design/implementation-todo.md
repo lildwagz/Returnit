@@ -30,6 +30,7 @@ Status: done / todo / decision (needs the product owner) / skip (on purpose).
 | D-02 | Status pill (soft background, dark text), light and dark |
 | D-03 | Tab bar and purchase screens exist only after login |
 | D-04 | Receipt picker in the Add form (two steps; a failed upload opens the new purchase) |
+| D-06 | App lock (fingerprint, face or phone PIN): switch in Settings, asked at start and after 30 s away, lock screen with "Keluar dari akun"; QA A13-A21 |
 | D-05 | "Lanjutkan dengan Google" on the login screen (`kc_idp_hint=google`, also registers new people); login errors show the server message; closing the browser is not an error |
 
 ## To do (differences from the prototype)
