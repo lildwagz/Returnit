@@ -4,7 +4,7 @@ Purpose: one place that says where each design screen lives in the app and what 
 so nobody re-reads the prototype and the whole codebase to find out. Update the status column when an item is done.
 
 Sources: `ReturnIt_Interactive_Prototype.html` (read in full, 2026-10-25), `ReturnIt_Paket_UIUX_Visual.docx` (poster),
-`02-screens-and-api-map.md`, `theme-tokens.md`. App repo: `lildwagzz/ReturnitMobile`, work branch `local-prod-build`.
+`02-screens-and-api-map.md`, `theme-tokens.md`. App repo: `lildwagzz/ReturnitMobile`, work branch `release/release`.
 Status: done / todo / decision (needs the product owner) / skip (on purpose).
 
 ## Where things are (screen to file)
@@ -47,11 +47,13 @@ Status: done / todo / decision (needs the product owner) / skip (on purpose).
 | U-09 | Add/Edit | Default duration 12 months (prototype); date picker instead of typing `YYYY-MM-DD`; labels "Toko / Store", "Harga (opsional)"; subtitle "Isi informasi dasar. Struk dapat ditambahkan sekarang atau nanti."; "Batal" button; title "Edit Pembelian" when editing | M | done |
 | U-10 | Feedback | Short toast after save / update / delete ("Pembelian berhasil disimpan." / "diperbarui." / "dihapus.") | S | done |
 | U-11 | Empty states | Title + one line of help, as in the prototype ("Belum ada pembelian" / "Tambahkan pembelian pertama Anda.") | S | done |
-| U-12 | Pengingat | One line of help under each day switch; keep the notification inbox and also show the "needs attention" purchases (expiring / expired) as the prototype does | M | todo |
-| U-13 | Akun | Account screen: e-mail, name, "Member since" (`createdAt`), export, delete, sign out (see `02-screens-and-api-map.md`) | M | todo |
-| U-14 | Ekspor data | `GET /account/export` returns JSON; offer share / save (CSV only if the product owner wants it, convert in the app) | M | todo |
+| U-12 | Pengingat | One line of help under each day switch; keep the notification inbox and also show the "needs attention" purchases (expiring / expired) as the prototype does | M | done |
+| U-13 | Akun | Account screen: e-mail, name, "Member since" (`createdAt`), export, delete, sign out (see `02-screens-and-api-map.md`) | M | done (the export button comes with U-14) |
+| U-14 | Ekspor data | `GET /account/export` returns JSON; offer share / save (CSV only if the product owner wants it, convert in the app) | M | done |
 | U-15 | Privasi | Link to the privacy policy (Play Store / App Store need it); text not written yet | S | decision |
-| U-16 | Repo docs | `KNOWN-ISSUES.md` (receipt link problem is fixed on the server) and the template `README.md` | XS | todo |
+| U-16 | Repo docs | `KNOWN-ISSUES.md` (receipt link problem is fixed on the server) and the template `README.md` | XS | done |
+| U-18 | Pengingat | Channel labels "Notifikasi HP / E-mail / Hanya di aplikasi" under "Kirim juga lewat" (the in-app copy is always created, only one extra channel), a one-sentence summary of what the settings will do, and the push-permission warning only when the channel is push | S | done |
+| U-17 | All data screens | Query cache (TanStack Query): in memory only, 30 s freshness, background refresh, kept per screen state, invalidated after add / edit / delete / receipt change, cleared on sign-out and when the session ends. Not done: offline cache, receipt image cache, ETag | M | done |
 
 ## Decisions needed
 
@@ -59,7 +61,7 @@ Status: done / todo / decision (needs the product owner) / skip (on purpose).
 |---|---|
 | X-01 | Product photo (poster shows one on the list and the form; the prototype uses emoji). The API has one receipt per purchase and no product photo. Options: emoji / category icon, or a backend change (count, formats, thumbnails). |
 | X-02 | Poster extras not in the prototype or the API doc: bell icon on Home, avatar on Settings, "Help & Support", "About ReturnIt". Keep or drop? |
-| X-03 | Export format: JSON as the API gives, or CSV as the prototype shows. |
+| X-03 | Export format: JSON as the API gives, or CSV as the prototype shows. | Decided 2026-10-25: CSV, converted in the app from the JSON export (U-14).
 | X-04 | Recent purchases on Home: prototype shows 3, the API doc says 5 (the app uses 5). |
 
 ## On purpose different (skip)

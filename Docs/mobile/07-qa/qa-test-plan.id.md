@@ -175,6 +175,12 @@ dikonfigurasi (lihat `deploy/README.md` / `.env` dev).
 | E10 | Hanya HTTPS (staging) | Periksa lalu lintas jaringan | Semua lewat HTTPS; tidak ada panggilan HTTP |
 | E11 | Putar layar | Putar saat mengisi formulir dan saat upload | Data yang diketik tidak hilang; upload tidak terduplikasi |
 | E12 | Aplikasi ke latar belakang | Kirim aplikasi ke latar belakang saat proses login, lalu kembali | Proses selesai atau mulai ulang dengan rapi |
+| E13 | Pembaruan wajib (saat dibuka) | Tim backend menaikkan versi minimum di atas build kamu (`./publish-apk.sh min <versi>`), lalu buka aplikasi | Layar penuh "Perbarui aplikasi" dengan versimu dan versi minimum; tombol "Perbarui sekarang" dan "Saya sudah memperbarui"; tidak ada layar lain yang bisa dibuka |
+| E14 | Pembaruan wajib (aplikasi sudah terbuka) | Dengan aplikasi terbuka di Home, naikkan versi minimum, lalu tarik untuk menyegarkan | Layar kunci yang sama muncul setelah panggilan API itu (`426`); tidak ada yang berfungsi sampai diperbarui |
+| E15 | Ajakan memperbarui | Setel versi terbaru di atas build kamu dan versi minimum di bawahnya | Banner "Versi X tersedia" di Home; "Nanti" menyembunyikannya sampai aplikasi ditutup dan tidak muncul lagi untuk versi yang sama; aplikasi tetap bisa dipakai |
+| E16 | Pemeliharaan | `./publish-apk.sh maintenance on "pesan"` | Layar "Sedang dalam perbaikan" dengan pesan dan "Coba lagi"; setelah `maintenance off`, "Coba lagi" kembali normal |
+| E17 | Offline tidak pernah mengunci | Mode pesawat, lalu buka aplikasi | Aplikasi terbuka normal (keadaan offline), tanpa layar pembaruan atau pemeliharaan |
+| E18 | Unduh dari layar kunci | Ketuk "Perbarui sekarang" | Browser membuka `https://dl.<domain>/`, APK terunduh, dan SHA-256-nya sama dengan yang ada di halaman |
 
 ### 3.8 Bahasa, aksesibilitas, perangkat
 

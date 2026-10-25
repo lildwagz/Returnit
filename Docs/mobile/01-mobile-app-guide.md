@@ -147,7 +147,25 @@ hours get them afterwards.
   It does not contain the receipt files (each purchase has a `downloadPath` to fetch its file).
 - The user also receives e-mails when deletion is requested, 24 hours before, and after erasure.
 
-## 6. Good practice
+## 6. App version, force update and maintenance
+
+The server can lock an outdated build of the app, invite users to update, or announce maintenance. The app does not
+decide this itself: it sends its version and obeys the answer.
+
+- **Ask at start and on return to the foreground:** `GET /app-config?platform=android&version=<app version>` (public, no login). The
+  answer has a `status`: `ok` (carry on), `update_available` (show an invitation that can be closed), `update_required` (show a
+  screen that cannot be closed, with the `downloadUrl`) or `maintenance` (maintenance screen, with a `message`). If the call fails,
+  carry on: being offline must never lock anyone out.
+- **Send the version with every API call:** headers `X-App-Version` (the `version` in app.json, for example `1.4.0`) and
+  `X-App-Platform` (`android` or `ios`). A call from a version below the minimum is answered `426` with error code
+  `app_update_required` (the error carries `minVersion` and `downloadUrl`); during maintenance every call is answered `503` with code
+  `maintenance`. Treat both like the start-up answer and show the same screens. This also stops an old build that was missed by the start-up check.
+- **Versions** are compared as numbers (`1.10.0` is newer than `1.9.0`). Raise `version` in app.json for every build you hand out.
+- The header can be forged, so this protects against a broken old release; it is not a security control.
+- Implemented in the app: `src/lib/app-gate.ts`, `src/lib/app-config.ts`, `src/components/update-gate.tsx` (lock screen) and
+  `src/components/update-banner.tsx` (invitation on Home). Contract: `03-openapi.yaml`.
+
+## 7. Good practice
 
 - Store tokens only in the platform secure storage (Keychain / Android Keystore).
 - Never log tokens, signed receipt URLs or push tokens.

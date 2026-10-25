@@ -175,6 +175,12 @@ FCM configured (see `deploy/README.md` / dev `.env`).
 | E10 | HTTPS only (staging) | Check network traffic | Everything over HTTPS; no HTTP calls |
 | E11 | Rotate the screen | Rotate during a form and an upload | Typed data not lost; upload not duplicated |
 | E12 | App backgrounded | Background the app during the login flow, return | Flow completes or restarts cleanly |
+| E13 | Update required (start) | Backend team raises the minimum above your build (`./publish-apk.sh min <version>`), then open the app | Full screen "Perbarui aplikasi" with your version and the minimum; "Perbarui sekarang" and "Saya sudah memperbarui"; no other screen can be reached |
+| E14 | Update required (app already open) | With the app open on Home, raise the minimum, then pull to refresh | The same lock screen appears after that API call (`426`); nothing else works until updated |
+| E15 | Update invitation | Set the latest version above your build, the minimum below it | Banner "Versi X tersedia" on Home; "Nanti" hides it until the app is closed and it does not return for the same version; the app stays usable |
+| E16 | Maintenance | `./publish-apk.sh maintenance on "message"` | Screen "Sedang dalam perbaikan" with the message and "Coba lagi"; after `maintenance off`, "Coba lagi" returns to normal |
+| E17 | Offline never locks | Airplane mode, then open the app | The app opens normally (offline state), no update or maintenance screen |
+| E18 | Download from the lock screen | Tap "Perbarui sekarang" | The browser opens `https://dl.<domain>/`, the APK downloads, and its SHA-256 equals the one on the page |
 
 ### 3.8 Language, accessibility, devices
 

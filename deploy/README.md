@@ -119,6 +119,28 @@ cd deploy && ./up.sh up -d --build
 Database changes are applied automatically (the `migrate` service runs before the app starts). Watch
 `./up.sh logs -f web worker` for a minute afterwards.
 
+## 7.1 Publishing the Android app (download page, force update, maintenance)
+
+Until the app is in the Play Store, this server hands out the APK. Caddy serves it at `https://dl.<DOMAIN>/` (a small
+download page, the APK files and their SHA-256), and the API tells the app which versions may still be used. Everything is
+driven by one script and the file `updates/latest.json` (read live by the API, no restart):
+
+```sh
+cd ~/returnit/deploy
+# after an EAS build: give the version (as in app.json) and the APK address from the build page
+./publish-apk.sh publish 1.4.0 https://expo.dev/artifacts/eas/....apk
+./publish-apk.sh publish 1.4.0 <apk> --min 1.2.0 --message "Perbarui aplikasi."   # also lock older apps
+./publish-apk.sh min 1.2.0                 # only change the minimum (older apps are locked until they update)
+./publish-apk.sh maintenance on "Kembali pukul 10.00"    # every app call answers 503; "off" ends it
+./publish-apk.sh status
+```
+
+The script refuses: an APK that is not an APK, a published version whose content would change, and a minimum above the
+newest published build (nobody could update). It keeps the newest 10 builds. After raising the minimum, check
+`curl https://api.<DOMAIN>/api/v1/app-config?platform=android&version=<an old version>` (it should say `update_required`).
+Only the page, `returnit-*.apk` and `returnit-*.apk.sha256` are public; `latest.json` is not. Builds made before this feature
+do not send their version, so they cannot be locked: ask those users to install the new build by hand.
+
 ## 8. Backups (do this on day one)
 
 ```sh

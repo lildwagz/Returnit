@@ -11,13 +11,42 @@ servers:
     description: Placeholder production base URL
 security:
   - bearerAuth: []
-# Every operation can also answer 429 (see components.responses.TooManyRequests).
+# Every operation can also answer 429 (see components.responses.TooManyRequests), 426 for an app version that is no
+# longer supported and 503 during maintenance (see components.responses.UpgradeRequired and Maintenance).
 tags:
+  - name: App
   - name: Purchases
   - name: Reminders
   - name: Account
   - name: Devices
 paths:
+  /app-config:
+    get:
+      tags: [App]
+      summary: What this build of the app must do (force update, update invitation, maintenance)
+      description: >
+        Public (no login): the app calls it when it opens and when it returns to the foreground, before showing the
+        login screen. The server decides with the version it is sent, so the app needs no version rules of its own.
+        `ok`: carry on. `update_available`: show an invitation that can be closed. `update_required`: show a screen that
+        cannot be closed with the download address. `maintenance`: show the maintenance screen. An unknown or
+        unreadable version is never blocked. If the call fails the app carries on (being offline must not lock anyone
+        out); the API refuses outdated versions with 426 anyway. Never cached (Cache-Control: no-store). Limited per client IP.
+      security: []
+      parameters:
+        - in: query
+          name: platform
+          schema: {type: string, enum: [android, ios], default: android}
+        - in: query
+          name: version
+          description: The app version (the `version` in app.json, for example 1.4.0). May also be sent as the X-App-Version header.
+          schema: {type: string, example: 1.4.0}
+      responses:
+        '200':
+          description: Decision and release data
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AppConfig'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
   /purchases:
     get:
       tags: [Purchases]
@@ -412,6 +441,27 @@ components:
       description: Seconds to wait before retrying
       schema: {type: integer, minimum: 1}
   responses:
+    UpgradeRequired:
+      description: >
+        Any call under /api/v1 (except /app-config) answers 426 with error code `app_update_required` when the request
+        carries `X-App-Version` (and optionally `X-App-Platform`, default android) below the minimum the server was told to
+        accept. The error also carries `minVersion` and `downloadUrl`, and the response header `X-Min-App-Version`. The check
+        runs before authentication. A request without X-App-Version is not refused (curl, tests, builds from before this
+        existed): this protects against a broken old release, it is not a security control.
+      headers:
+        X-Min-App-Version: {schema: {type: string}}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Maintenance:
+      description: >
+        While the maintenance switch is on, every call under /api/v1 answers 503 with error code `maintenance` and
+        Retry-After (300 seconds). /app-config and the health checks keep working so the app can tell the user.
+      headers:
+        Retry-After: {$ref: '#/components/headers/RetryAfter'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
     TooManyRequests:
       description: >
         Rate limit exceeded. Limits (per minute unless noted): 60 per user for all calls, 10 for
@@ -442,6 +492,19 @@ components:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
   schemas:
+    AppConfig:
+      type: object
+      required: [status, platform]
+      properties:
+        status: {type: string, enum: [ok, update_available, update_required, maintenance]}
+        platform: {type: string}
+        minVersion: {type: string, description: Older versions are locked. Empty when nothing is configured.}
+        latestVersion: {type: string}
+        downloadUrl: {type: string, format: uri, description: Where the newest build can be downloaded (the app opens it).}
+        sha256: {type: string, description: SHA-256 of the newest APK.}
+        sizeBytes: {type: integer}
+        publishedAt: {type: string, format: date}
+        message: {type: string, description: Text for the update or maintenance screen; present only when status is not ok.}
     Purchase:
       type: object
       required: [id, productName, purchaseDate, createdAt, updatedAt]
