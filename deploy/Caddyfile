@@ -47,6 +47,9 @@ dl.{$DOMAIN} {
 		@apk path *.apk
 		header @apk Content-Disposition attachment
 		header @apk Content-Type application/vnd.android.package-archive
+		# static page assets only (fonts, images); index.html, the APK and latest.json stay uncacheable
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=604800"
 		file_server
 	}
 	handle {
