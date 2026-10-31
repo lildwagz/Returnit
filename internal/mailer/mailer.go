@@ -1,4 +1,4 @@
-// Package mailer sends plain-text e-mail over SMTP.
+// Package mailer sends e-mail over SMTP: plain text, or text plus HTML (multipart/alternative).
 package mailer
 
 import (
@@ -25,7 +25,8 @@ var ErrPermanent = errors.New("mailer: permanent failure")
 type Message struct {
 	To      string
 	Subject string
-	Body    string
+	Body    string // plain text; always sent, it is what a client without HTML shows
+	HTML    string // optional; when set the message carries both versions and the client picks
 }
 
 // Mailer sends one message. Implementations must be safe for concurrent use.
@@ -150,12 +151,32 @@ func (s *SMTP) format(m Message) string {
 	h("Date", time.Now().UTC().Format(time.RFC1123Z))
 	h("Message-ID", "<"+hex.EncodeToString(id)+"@"+domain+">")
 	h("MIME-Version", "1.0")
-	h("Content-Type", `text/plain; charset="utf-8"`)
-	h("Content-Transfer-Encoding", "quoted-printable")
 	h("Auto-Submitted", "auto-generated")
+	if m.HTML == "" {
+		h("Content-Type", `text/plain; charset="utf-8"`)
+		h("Content-Transfer-Encoding", "quoted-printable")
+		b.WriteString("\r\n")
+		writeQP(&b, m.Body)
+		return b.String()
+	}
+	// The boundary is random per message, so it cannot occur in the body.
+	boundary := "rt-" + hex.EncodeToString(id)
+	h("Content-Type", `multipart/alternative; boundary="`+boundary+`"`)
 	b.WriteString("\r\n")
-	qp := quotedprintable.NewWriter(&b)
-	_, _ = qp.Write([]byte(strings.ReplaceAll(m.Body, "\n", "\r\n")))
-	_ = qp.Close()
+	// Plain text first, HTML last: the last part a client understands wins.
+	for _, part := range []struct{ typ, text string }{{"text/plain", m.Body}, {"text/html", m.HTML}} {
+		b.WriteString("--" + boundary + "\r\n")
+		b.WriteString("Content-Type: " + part.typ + `; charset="utf-8"` + "\r\n")
+		b.WriteString("Content-Transfer-Encoding: quoted-printable\r\n\r\n")
+		writeQP(&b, part.text)
+		b.WriteString("\r\n")
+	}
+	b.WriteString("--" + boundary + "--\r\n")
 	return b.String()
+}
+
+func writeQP(b *strings.Builder, text string) {
+	qp := quotedprintable.NewWriter(b)
+	_, _ = qp.Write([]byte(strings.ReplaceAll(text, "\n", "\r\n")))
+	_ = qp.Close()
 }

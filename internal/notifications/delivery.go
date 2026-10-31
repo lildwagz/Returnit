@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/returnit/returnit/internal/emailtpl"
 	"github.com/returnit/returnit/internal/mailer"
 	"github.com/returnit/returnit/internal/push"
 )
@@ -34,6 +36,8 @@ type Delivery struct {
 	Phones  PhoneSender
 	Mailer  mailer.Mailer
 	Log     *slog.Logger
+	// AssetsURL is where the e-mail logos are served; empty shows the name as text.
+	AssetsURL string
 }
 
 func (d *Delivery) Send(ctx context.Context, userID uuid.UUID, channel string, m Message) error {
@@ -87,15 +91,34 @@ func (d *Delivery) sendEmail(ctx context.Context, userID uuid.UUID, m Message) e
 	if d.Mailer == nil || d.Pool == nil {
 		return nil
 	}
-	var to string
-	err := d.Pool.QueryRow(ctx, `SELECT email FROM users WHERE id = $1`, userID).Scan(&to)
+	// The address, the person's language and what the reminder is about, in one read.
+	var (
+		to, language, product string
+		kind                  string
+		days                  *int
+		end                   *time.Time
+	)
+	err := d.Pool.QueryRow(ctx, `
+SELECT u.email, u.language, COALESCE(n.kind, 'warranty'), n.offset_days, n.warranty_end_date, COALESCE(p.product_name, '')
+FROM users u
+LEFT JOIN notifications n ON n.id = $2 AND n.user_id = u.id
+LEFT JOIN purchases p ON p.id = n.purchase_id
+WHERE u.id = $1`, userID, m.ID).Scan(&to, &language, &kind, &days, &end, &product)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return fmt.Errorf("%w: user no longer exists", ErrGone)
 	}
 	if err != nil {
 		return fmt.Errorf("notifications: load e-mail address: %w", err)
 	}
-	err = d.Mailer.Send(ctx, mailer.Message{To: to, Subject: m.Title, Body: m.Body + "\n\n--\nThis is an automatic reminder from ReturnIt. You can change reminders in the app."})
+	logo, logoDark := emailtpl.AssetURLs(d.AssetsURL)
+	msg := mailer.Message{To: to, Subject: m.Title}
+	if days != nil && end != nil && product != "" {
+		mail := emailtpl.Reminder(language, kind == KindReturn, m.Title, m.Body, product, *end, *days, logo, logoDark)
+		msg.Subject, msg.Body, msg.HTML = mail.Subject, mail.Text, mail.HTML
+	} else {
+		msg.Body = m.Body // the purchase is gone: the stored text still says what it was about
+	}
+	err = d.Mailer.Send(ctx, msg)
 	if errors.Is(err, mailer.ErrPermanent) {
 		return fmt.Errorf("%w: %v", ErrPermanent, err)
 	}

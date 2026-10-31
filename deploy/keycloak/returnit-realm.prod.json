@@ -19,6 +19,7 @@
   "internationalizationEnabled": true,
   "supportedLocales": ["id", "en", "ar"],
   "loginTheme": "returnit",
+  "emailTheme": "returnit",
   "defaultLocale": "id",
   "smtpServer": {
     "host": "${SMTP_HOST}",

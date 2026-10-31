@@ -258,3 +258,12 @@ cd deploy && ./up.sh up -d keycloak     # mounts the theme (Keycloak restarts, a
 ```
 
 Changing a theme file later only needs `./up.sh restart keycloak`. To try it locally: `docker compose --profile auth up -d keycloak`.
+
+## E-mail look
+
+Every e-mail has the same design (logo, card, one button, light and dark, Indonesian, English and Arabic): the ones the API and worker send (reminders by e-mail, account-deletion notices; code in `internal/emailtpl`) and the ones Keycloak sends (confirm e-mail, reset password, required actions, test; theme `deploy/keycloak/themes/returnit/email`).
+
+- **Logos.** An e-mail needs an https address for its logo. The worker reads `EMAIL_ASSETS_URL` (default `https://dl.<DOMAIN>/assets`, set in `docker-compose.prod.yml`), and `email-logo.png` / `email-logo-dark.png` live in `deploy/download-page/assets`. That folder is copied to the download site by `./publish-apk.sh`; after pulling new logos run `./publish-apk.sh publish <current version> <apk>` once, or copy the two files into `deploy/updates/assets/` by hand. Without them the e-mails still work and show the name "ReturnIt" as text.
+- **Keycloak.** A realm that already exists does not use the e-mail theme yet. After `git pull` and `./up.sh up -d keycloak`, run `./sync-keycloak-mail.sh` (it also selects the theme). Changing a theme file later only needs `./up.sh restart keycloak`.
+- **Language.** Reminders and deletion notices follow the language the person chose in the app (`users.language`, set by `PUT /account/language`); Keycloak e-mails follow the locale of the login page.
+- **Try it locally.** Run Mailpit (`docker run -p 8025:8025 -p 1025:1025 axllent/mailpit`) and point `SMTP_ADDR` at `localhost:1025` with `SMTP_TLS=none`; messages show at http://localhost:8025.

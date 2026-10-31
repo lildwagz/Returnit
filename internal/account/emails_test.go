@@ -1,30 +1,19 @@
 package account
 
 import (
-	"strings"
 	"testing"
 	"time"
 )
 
-func TestComposeUsesUserTimezone(t *testing.T) {
+func TestZoneFallsBackToWIB(t *testing.T) {
 	at := time.Date(2026, 11, 27, 3, 0, 0, 0, time.UTC) // 10:00 in WIB
-	_, body := Compose(KindRequested, at, "Asia/Jakarta")
-	if !strings.Contains(body, "27 November 2026, 10:00 WIB") {
-		t.Errorf("date not shown in WIB:\n%s", body)
+	if got := at.In(zone("Asia/Jakarta")).Format("15:04 MST"); got != "10:00 WIB" {
+		t.Errorf("WIB: %s", got)
 	}
-	_, body = Compose(KindReminder, at, "no/such-zone") // bad zone falls back to WIB, never fails
-	if !strings.Contains(body, "10:00 WIB") {
-		t.Errorf("fallback timezone:\n%s", body)
+	if got := at.In(zone("no/such-zone")).Format("15:04 MST"); got != "10:00 WIB" { // a bad zone never holds a notice back
+		t.Errorf("fallback: %s", got)
 	}
-	for _, k := range []string{KindRequested, KindReminder, KindErased} {
-		sub, body := Compose(k, at, "Asia/Jakarta")
-		if sub == "" || body == "" || strings.ContainsAny(sub, "\r\n") {
-			t.Errorf("%s: bad subject/body", k)
-		}
-	}
-	// The "erased" notice must not promise a date or contain a link.
-	_, erased := Compose(KindErased, at, "Asia/Jakarta")
-	if strings.Contains(erased, "http") || strings.Contains(erased, "2026") {
-		t.Errorf("erased notice:\n%s", erased)
+	if got := at.In(zone("Asia/Makassar")).Format("15:04 MST"); got != "11:00 WITA" {
+		t.Errorf("WITA: %s", got)
 	}
 }

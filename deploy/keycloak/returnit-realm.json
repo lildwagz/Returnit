@@ -5,6 +5,7 @@
   "loginWithEmailAllowed": true,
   "accessTokenLifespan": 300,
   "loginTheme": "returnit",
+  "emailTheme": "returnit",
   "internationalizationEnabled": true,
   "supportedLocales": ["id", "en", "ar"],
   "defaultLocale": "id",

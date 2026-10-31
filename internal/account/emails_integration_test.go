@@ -42,6 +42,19 @@ func mailpit(t *testing.T, api, to string) []mpMessage {
 	return out.Messages
 }
 
+// mailpitHTML is the HTML part of a message ("" when it has none).
+func mailpitHTML(t *testing.T, api, id string) string {
+	t.Helper()
+	resp, err := http.Get(api + "/api/v1/message/" + id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var out struct{ HTML string }
+	json.NewDecoder(resp.Body).Decode(&out)
+	return out.HTML
+}
+
 func mailpitBody(t *testing.T, api, id string) string {
 	t.Helper()
 	resp, err := http.Get(api + "/api/v1/message/" + id)
@@ -70,10 +83,14 @@ func TestDeletionEmails(t *testing.T) {
 
 	us := users.NewStore(pool)
 	sfx := strings.ReplaceAll(uuid.NewString(), "-", "")[:12]
-	mk := func(name string) (uuid.UUID, string) {
+	// The notices follow the language the person chose in the app (users.language).
+	mk := func(name, language string) (uuid.UUID, string) {
 		addr := name + "-" + sfx + "@example.com"
 		id, err := us.EnsureBySubject(ctx, name+"-"+sfx, addr, name)
 		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := pool.Exec(ctx, `UPDATE users SET language = $2 WHERE id = $1`, id, language); err != nil {
 			t.Fatal(err)
 		}
 		t.Cleanup(func() {
@@ -83,9 +100,9 @@ func TestDeletionEmails(t *testing.T) {
 		})
 		return id, addr
 	}
-	alice, aliceMail := mk("alice")
-	bob, bobMail := mk("bob")
-	carol, carolMail := mk("carol")
+	alice, aliceMail := mk("alice", "en")
+	bob, bobMail := mk("bob", "en")
+	carol, carolMail := mk("carol", "id")
 
 	clock := time.Now().UTC()
 	svc := account.NewService(pool, 7*24*time.Hour)
@@ -113,6 +130,9 @@ func TestDeletionEmails(t *testing.T) {
 	}
 	if body := mailpitBody(t, api, got[0].ID); !strings.Contains(body, "WIB") || !strings.Contains(body, at.In(wib).Format("2 January 2006")) {
 		t.Errorf("body should state the erasure date in WIB:\n%s", body)
+	}
+	if html := mailpitHTML(t, api, got[0].ID); !strings.Contains(html, `lang="en"`) || !strings.Contains(html, "Permanently deleted on") {
+		t.Errorf("the e-mail must also carry an English HTML version: %s", html)
 	}
 	if rows(alice) != 1 {
 		t.Errorf("sent row must be deleted (address no longer kept), rows=%d", rows(alice))
@@ -203,8 +223,8 @@ func TestDeletionEmails(t *testing.T) {
 	}
 	back := &account.EmailSender{Pool: pool, Mailer: smtp, Log: log, Now: func() time.Time { return next.Add(time.Second) }}
 	back.SendDue(ctx)
-	if n := len(mailpit(t, api, carolMail)); n != 1 {
-		t.Errorf("not delivered after recovery: %d", n)
+	if got := mailpit(t, api, carolMail); len(got) != 1 || got[0].Subject != "Akun ReturnIt Anda akan dihapus" {
+		t.Errorf("not delivered after recovery, or not in Indonesian: %+v", got)
 	}
 }
 

@@ -417,6 +417,24 @@ Jalankan di build 1.8.0 atau lebih baru (Android).
 | H7 | Dua kali | Bagikan berkas, batalkan form, lalu buka aplikasi seperti biasa | Form tidak terbuka lagi dengan sendirinya |
 | H8 | Font besar, 375 px, Arab | Ulangi F1 dan H1 | Baris dan form muat; arah benar |
 
+### 3.15 Email (backend dengan migrasi 14 dan 15, tema email Keycloak)
+
+Butuh tema email aktif di realm (`./sync-keycloak-mail.sh`) dan logo yang disajikan di `https://dl.<domain>/assets/`.
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| M1 | Konfirmasi email | Daftarkan akun baru | Email memuat logo ReturnIt, kartu, tombol biru "Konfirmasi email", tautan teks di bawahnya, dan masa berlaku dalam bahasa akun ("12 jam") |
+| M2 | Reset kata sandi | "Lupa kata sandi" di halaman login | Desain sama; tombol "Atur kata sandi baru"; catatan "Bukan Anda?..." |
+| M3 | Bahasa | Ulangi M1 dengan aplikasi dan halaman login berbahasa Inggris dan Arab | Subjek, teks, dan masa berlaku dalam bahasa itu; Arab dari kanan ke kiri dan rata kanan |
+| M4 | Pengingat garansi (kanal email) | Pengaturan pengingat: kanal email; tunggu atau picu pengingat | Subjek berisi judul pengingat; kartu menampilkan produk, tanggal dengan hari, dan penanda "7 hari lagi" (kuning bila 7 hari atau kurang, biru bila lebih) |
+| M5 | Pengingat pengembalian | Pembelian dengan batas pengembalian 3 hari lagi | Label "Batas pengembalian", penanda "3 hari lagi" |
+| M6 | Penghapusan akun | Minta penghapusan di aplikasi | Pemberitahuan punya kotak merah berisi tanggal dan jam dalam WIB (atau zona pengguna) serta cara membatalkan; pengingat sehari sebelumnya dan pemberitahuan "sudah dihapus" berdesain sama; "sudah dihapus" tanpa kotak tanggal |
+| M7 | Mode gelap | Buka M1, M4, dan M6 di klien mode gelap (aplikasi Gmail, Apple Mail) | Latar dan kartu gelap, teks terang, tombol biru muda berteks gelap; logo berganti ke versi gelap |
+| M8 | Teks polos | Lihat versi teks (atau klien hanya-teks) | Isi sama, tautan di baris sendiri, tanpa HTML |
+| M9 | Nama produk bersimbol | Produk bernama `<b>Laptop</b> & "x"` | Email menampilkan karakter apa adanya, tidak ada format yang tersuntik |
+| M10 | Layar sempit dan font besar | Buka di HP 375 px dengan font sistem terbesar | Tidak ada gulir horizontal; tombol tetap setinggi minimal 48 px |
+| M11 | Tanpa logo | Blokir gambar di klien | Teks alternatif "ReturnIt" tampil; sisanya tetap terbaca |
+
 ## 4. Perilaku server yang perlu diketahui saat menguji
 
 * **Ubah (PATCH) menimpa semuanya.** Jika sebuah field hilang setelah diubah, berarti aplikasi lupa mengirimnya.
@@ -447,7 +465,7 @@ Tingkat:      blocker (aplikasi tak bisa dipakai) / mayor (fitur rusak) / minor 
 ## 6. Checklist rilis
 
 - [ ] Smoke test lulus di HP asli
-- [ ] Semua kasus di bagian 3.1 sampai 3.14 lulus atau punya pengecualian yang disetujui dan tercatat
+- [ ] Semua kasus di bagian 3.1 sampai 3.15 lulus atau punya pengecualian yang disetujui dan tercatat
 - [ ] Pengingat push (N4) terverifikasi di perangkat asli terhadap staging
 - [ ] Penghapusan akun dengan akun sekali pakai terverifikasi dari awal sampai akhir (C3, C4, C7, C9)
 - [ ] Tidak ada token di log (E7), hanya HTTPS (E10)

@@ -2,6 +2,11 @@ package mailer
 
 import (
 	"errors"
+	"io"
+	"mime"
+	"mime/multipart"
+	"mime/quotedprintable"
+	"net/mail"
 	"net/textproto"
 	"strings"
 	"testing"
@@ -61,5 +66,36 @@ func TestClassifyNeverLeaksAddress(t *testing.T) {
 	// A wrong SMTP password (535) is our misconfiguration, not a bad recipient: keep retrying.
 	if auth := classify("auth", &textproto.Error{Code: 535, Msg: "bad credentials"}); errors.Is(auth, ErrPermanent) {
 		t.Error("auth failure must not be permanent")
+	}
+}
+
+func TestFormatMultipart(t *testing.T) {
+	s := &SMTP{From: "noreply@example.com"}
+	out := s.format(Message{To: "a@example.com", Subject: "s", Body: "plain body é", HTML: "<p>html body é</p>"})
+	msg, err := mail.ReadMessage(strings.NewReader(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mt, params, err := mime.ParseMediaType(msg.Header.Get("Content-Type"))
+	if err != nil || mt != "multipart/alternative" {
+		t.Fatalf("content type %q: %v", mt, err)
+	}
+	r := multipart.NewReader(msg.Body, params["boundary"])
+	var types, bodies []string
+	for {
+		part, err := r.NextPart()
+		if err != nil {
+			break
+		}
+		raw, _ := io.ReadAll(quotedprintable.NewReader(part))
+		ct, _, _ := mime.ParseMediaType(part.Header.Get("Content-Type"))
+		types = append(types, ct)
+		bodies = append(bodies, string(raw))
+	}
+	if len(types) != 2 || types[0] != "text/plain" || types[1] != "text/html" {
+		t.Fatalf("parts %v", types)
+	}
+	if !strings.Contains(bodies[0], "plain body é") || !strings.Contains(bodies[1], "<p>html body é</p>") {
+		t.Fatalf("bodies %q", bodies)
 	}
 }

@@ -194,6 +194,8 @@ services:
     environment:
       <<: *app-env
       SMTP_ADDR: ${SMTP_HOST:+${SMTP_HOST}:${SMTP_PORT:-587}}
+      # Where the logos of the e-mails live (the download site serves them); an e-mail needs an https address.
+      EMAIL_ASSETS_URL: ${EMAIL_ASSETS_URL:-https://dl.${DOMAIN}/assets}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_TLS: ${SMTP_TLS:-starttls}
       SMTP_USERNAME: ${SMTP_USERNAME:-}

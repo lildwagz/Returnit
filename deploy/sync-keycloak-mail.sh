@@ -5,6 +5,8 @@
 # SMTP_USERNAME or SMTP_PASSWORD in .env.prod later changes the API and worker (they read the file at every
 # start) but NOT Keycloak, which keeps sending registration, verification and password-reset e-mails with the old
 # values (for example Brevo refusing "noreply@example.com"). Run this after changing any SMTP_ line.
+# It also points the realm at the ReturnIt e-mail theme (themes/returnit/email), which a realm created before that theme
+# existed does not use yet.
 #   ./sync-keycloak-mail.sh
 set -euo pipefail
 # shellcheck disable=SC1091
@@ -62,7 +64,7 @@ else:
 
 _, cur = call('GET', '/admin/realms/' + realm, t)
 before = cur.get('smtpServer', {}).get('from')
-call('PUT', '/admin/realms/' + realm, t, body={'smtpServer': smtp})  # partial update: nothing else changes
+call('PUT', '/admin/realms/' + realm, t, body={'smtpServer': smtp, 'emailTheme': 'returnit'})  # partial update: nothing else changes
 _, after = call('GET', '/admin/realms/' + realm, t)
 now = after.get('smtpServer', {})
 print('Keycloak realm "%s": sender %s -> %s (host %s:%s, user %s)' % (

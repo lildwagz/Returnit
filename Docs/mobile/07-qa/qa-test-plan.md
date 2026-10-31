@@ -417,6 +417,24 @@ Run these on build 1.8.0 or newer (Android).
 | H7 | Twice | Share a file, cancel the form, then open the app normally | The form does not open again by itself |
 | H8 | Large font, 375 px, Arabic | Repeat F1 and H1 | Rows and form fit; direction is right |
 
+### 3.15 E-mails (backend with migrations 14 and 15, Keycloak e-mail theme)
+
+Needs the e-mail theme active in the realm (`./sync-keycloak-mail.sh`) and the logos served at `https://dl.<domain>/assets/`.
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| M1 | Confirm e-mail | Register a new account | The e-mail has the ReturnIt logo, a card, a blue "Confirm e-mail" button, the plain link under it, and the expiry in the account's language ("12 jam") |
+| M2 | Reset password | "Forgot password" on the login page | Same design; "Atur kata sandi baru" button; the note "Bukan Anda?..." |
+| M3 | Language | Repeat M1 with the app and the login page in English and in Arabic | Subject, text and expiry are in that language; Arabic is right to left and right aligned |
+| M4 | Warranty reminder (e-mail channel) | Reminder settings: channel e-mail; wait for or trigger a reminder | Subject is the reminder title; the card shows the product, the date with the weekday and a pill "7 hari lagi" (amber at 7 days or fewer, blue above) |
+| M5 | Return reminder | A purchase with a return deadline in 3 days | Label "Batas pengembalian", pill "3 hari lagi" |
+| M6 | Account deletion | Request deletion in the app | The notice has a red box with the date and time in WIB (or the person's zone) and how to cancel; the day-before reminder and the "erased" notice follow the same design; "erased" has no date box |
+| M7 | Dark mode | Open M1, M4 and M6 in a client in dark mode (Gmail app, Apple Mail) | Dark background and card, light text, light-blue button with dark text; logo switches to the dark version |
+| M8 | Plain text | View the text version (or a text-only client) | Same content, the link on its own line, no HTML |
+| M9 | Product name with symbols | A product called `<b>Laptop</b> & "x"` | The e-mail shows the characters as typed, no formatting injected |
+| M10 | Narrow screen and large font | Open on a 375 px phone with the largest system font | No horizontal scroll; the button stays at least 48 px tall |
+| M11 | No logo | Block images in the client | The alt text "ReturnIt" shows; everything else is readable |
+
 ## 4. Server behaviour to know while testing
 
 * **Edit replaces everything.** If a field disappears after editing, the app forgot to send it.
@@ -447,7 +465,7 @@ Severity:     blocker (cannot use app) / major (feature broken) / minor / cosmet
 ## 6. Release checklist
 
 - [ ] Smoke test passes on a real phone
-- [ ] All cases in sections 3.1 to 3.14 pass or have an accepted, documented exception
+- [ ] All cases in sections 3.1 to 3.15 pass or have an accepted, documented exception
 - [ ] Push reminder (N4) verified on a real device against staging
 - [ ] Account deletion with a throwaway account verified end to end (C3, C4, C7, C9)
 - [ ] No tokens in logs (E7), HTTPS only (E10)

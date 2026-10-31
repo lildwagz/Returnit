@@ -84,6 +84,9 @@ type Worker struct {
 	// SMTP is where deletion notices are sent; SMTP.Addr empty means e-mail is not configured
 	// (notices stay queued and the worker says so at startup).
 	SMTP SMTP
+	// EmailAssetsURL is where the e-mail logos are served (https://dl.<domain>/assets); empty means e-mails show the
+	// name as text instead of the logo.
+	EmailAssetsURL string
 	// Keycloak, when set, lets the worker delete the login identity of erased accounts.
 	Keycloak Keycloak
 	// FCM, when set, enables mobile push notifications (Firebase Cloud Messaging).
@@ -224,6 +227,7 @@ func LoadWorker() (Worker, error) {
 		}
 		w.OrphanGrace = d
 	}
+	w.EmailAssetsURL = os.Getenv("EMAIL_ASSETS_URL")
 	w.SMTP = SMTP{Addr: os.Getenv("SMTP_ADDR"), From: os.Getenv("SMTP_FROM"), Username: os.Getenv("SMTP_USERNAME"),
 		Password: os.Getenv("SMTP_PASSWORD"), TLS: strings.ToLower(getenv("SMTP_TLS", "starttls"))}
 	if w.SMTP.Addr != "" {

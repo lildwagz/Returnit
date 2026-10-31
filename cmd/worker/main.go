@@ -90,14 +90,14 @@ func run(log *slog.Logger) error {
 
 	var emails *account.EmailSender
 	if cfg.SMTP.Addr != "" {
-		emails = &account.EmailSender{Pool: pool, Log: log, Mailer: &mailer.SMTP{
+		emails = &account.EmailSender{Pool: pool, Log: log, AssetsURL: cfg.EmailAssetsURL, Mailer: &mailer.SMTP{
 			Addr: cfg.SMTP.Addr, From: cfg.SMTP.From, Username: cfg.SMTP.Username, Password: cfg.SMTP.Password, TLS: cfg.SMTP.TLS}}
 	} else {
 		log.Warn("SMTP_ADDR is not set: account-deletion e-mails stay queued until e-mail is configured")
 	}
 
 	devs := devices.NewService(pool)
-	delivery := &notifications.Delivery{Pool: pool, Devices: devs, Log: log}
+	delivery := &notifications.Delivery{Pool: pool, Devices: devs, Log: log, AssetsURL: cfg.EmailAssetsURL}
 	if emails != nil {
 		delivery.Mailer = emails.Mailer
 	}

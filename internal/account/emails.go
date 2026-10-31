@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/returnit/returnit/internal/emailtpl"
 	"github.com/returnit/returnit/internal/mailer"
 )
 
@@ -33,9 +34,11 @@ func queueEmail(ctx context.Context, tx pgx.Tx, user uuid.UUID, kind, to, tz str
 	if !mailer.ValidAddress(to) {
 		return nil // nothing sensible to send to; deletion itself must not fail because of this
 	}
+	// The notice is written in the language the person uses in the app, read now because the user row is gone by the
+	// time the "erased" notice is sent.
 	if _, err := tx.Exec(ctx, `
-INSERT INTO account_emails (user_id, kind, to_address, timezone, erasure_at, next_attempt_at)
-VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id, kind, erasure_at) DO NOTHING`,
+INSERT INTO account_emails (user_id, kind, to_address, timezone, erasure_at, next_attempt_at, language)
+VALUES ($1,$2,$3,$4,$5,$6, COALESCE((SELECT language FROM users WHERE id = $1), 'id')) ON CONFLICT (user_id, kind, erasure_at) DO NOTHING`,
 		user, kind, to, tz, erasureAt, sendAt); err != nil {
 		return fmt.Errorf("account: queue %s e-mail: %w", kind, err)
 	}
@@ -48,6 +51,8 @@ type EmailSender struct {
 	Pool   *pgxpool.Pool
 	Mailer mailer.Mailer
 	Log    *slog.Logger
+	// AssetsURL is where the e-mail logos are served (see config.Worker.EmailAssetsURL); empty shows the name as text.
+	AssetsURL string
 	// Now is injectable for tests; nil means time.Now.
 	Now func() time.Time
 }
@@ -64,6 +69,7 @@ type queued struct {
 	user      uuid.UUID
 	kind, to  string
 	tz        string
+	language  string
 	erasureAt time.Time
 	attempts  int
 	created   time.Time
@@ -79,7 +85,7 @@ func (e *EmailSender) SendDue(ctx context.Context) (int, error) {
 	rows, err := e.Pool.Query(ctx, `
 UPDATE account_emails SET next_attempt_at = $2, attempts = attempts + 1
 WHERE id IN (SELECT id FROM account_emails WHERE next_attempt_at <= $1 ORDER BY next_attempt_at LIMIT $3 FOR UPDATE SKIP LOCKED)
-RETURNING id, user_id, kind, to_address, timezone, erasure_at, attempts, created_at`,
+RETURNING id, user_id, kind, to_address, timezone, language, erasure_at, attempts, created_at`,
 		now, now.Add(emailLease), emailBatch)
 	if err != nil {
 		return 0, fmt.Errorf("account: claim e-mails: %w", err)
@@ -87,7 +93,7 @@ RETURNING id, user_id, kind, to_address, timezone, erasure_at, attempts, created
 	var list []queued
 	for rows.Next() {
 		var q queued
-		if err := rows.Scan(&q.id, &q.user, &q.kind, &q.to, &q.tz, &q.erasureAt, &q.attempts, &q.created); err != nil {
+		if err := rows.Scan(&q.id, &q.user, &q.kind, &q.to, &q.tz, &q.language, &q.erasureAt, &q.attempts, &q.created); err != nil {
 			rows.Close()
 			return 0, fmt.Errorf("account: scan e-mail: %w", err)
 		}
@@ -134,8 +140,9 @@ func (e *EmailSender) deliver(ctx context.Context, q queued, now time.Time) (boo
 			return drop("erasure date passed")
 		}
 	}
-	subject, body := Compose(q.kind, q.erasureAt, q.tz)
-	err := e.Mailer.Send(ctx, mailer.Message{To: q.to, Subject: subject, Body: body})
+	logo, logoDark := emailtpl.AssetURLs(e.AssetsURL)
+	mail := emailtpl.Account(q.language, q.kind, q.erasureAt.In(zone(q.tz)), logo, logoDark)
+	err := e.Mailer.Send(ctx, mailer.Message{To: q.to, Subject: mail.Subject, Body: mail.Text, HTML: mail.HTML})
 	if err == nil {
 		e.Log.Info("account e-mail sent", "email_id", q.id, "kind", q.kind)
 		_, derr := e.Pool.Exec(ctx, `DELETE FROM account_emails WHERE id = $1`, q.id)
@@ -166,28 +173,11 @@ func truncate(s string, n int) string {
 	return s
 }
 
-// Compose renders a notice. Dates are shown in the user's own time zone.
-func Compose(kind string, erasureAt time.Time, tz string) (subject, body string) {
+// zone is the person's time zone; an unknown one falls back to WIB so a notice is never held back by it.
+func zone(tz string) *time.Location {
 	loc, err := time.LoadLocation(tz)
 	if err != nil {
 		loc, _ = time.LoadLocation("Asia/Jakarta")
 	}
-	when := erasureAt.In(loc).Format("2 January 2006, 15:04 MST")
-	const sig = "\nThis is an automatic message from ReturnIt. Please do not reply."
-	switch kind {
-	case KindRequested:
-		return "Your ReturnIt account will be deleted",
-			"We received a request to delete your ReturnIt account.\n\n" +
-				"Your account and everything in it (purchases, receipts, reminders and notifications) will be permanently erased on " + when + ".\n\n" +
-				"Changed your mind? Open the app and cancel the deletion before that time. After it, nothing can be restored.\n\n" +
-				"If you did not ask for this, cancel the deletion in the app right away and change your password at your login provider.\n" + sig
-	case KindReminder:
-		return "Your ReturnIt account will be erased tomorrow",
-			"Your ReturnIt account is scheduled to be permanently erased on " + when + ".\n\n" +
-				"To keep it, open the app and cancel the deletion before then. After that nothing can be restored.\n" + sig
-	default:
-		return "Your ReturnIt account has been erased",
-			"As requested, your ReturnIt account and all its data (purchases, receipts, reminders and notifications) have been permanently erased.\n\n" +
-				"Backups are overwritten within the retention period described in our data retention policy. Nothing more is needed from you.\n" + sig
-	}
+	return loc
 }
