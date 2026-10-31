@@ -64,6 +64,12 @@ paths:
           schema: { type: string, enum: [phone, computer, tv_audio, camera, appliance, kitchen, vehicle, tools, furniture, wearable, other] }
           description: Only purchases in this category. An unknown key returns 400 validation_error.
         - in: query
+          name: sort
+          schema: { type: string, enum: [warrantyEnd] }
+          description: >
+            Omitted: newest purchase first. `warrantyEnd`: warranties still running first (ending soonest on top), then ended
+            ones (most recently ended first), then purchases without a warranty end date. Anything else returns 400 validation_error.
+        - in: query
           name: page
           schema: { type: integer, minimum: 1, default: 1 }
         - in: query
@@ -417,6 +423,27 @@ paths:
                         category: {type: string, nullable: true}
                         kind: {type: string, enum: [warranty, return]}
                         date: {type: string, format: date}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /account/language:
+    put:
+      tags: [Account]
+      summary: Tell the server which language the person uses
+      description: >
+        Reminders (push, e-mail and the inbox) are written in this language. The app sends it after sign-in and whenever the
+        language changes; repeating the same language is harmless. Reminders already created (sent or waiting) are rewritten
+        in the new language. Default for a person who never sent one: `id`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [language]
+              properties:
+                language: { type: string, enum: [id, en, ar] }
+      responses:
+        '204': { description: Saved }
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
   /devices:

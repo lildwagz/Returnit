@@ -128,7 +128,7 @@ func (h purchaseHandler) list(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, ErrorBody("bad_request", "page and pageSize must be integers", c))
 		return
 	}
-	f := purchases.ListFilter{Query: c.Query("q"), Status: c.Query("warrantyStatus"), Category: c.Query("category"), Page: page, PageSize: size}
+	f := purchases.ListFilter{Query: c.Query("q"), Status: c.Query("warrantyStatus"), Category: c.Query("category"), Sort: c.Query("sort"), Page: page, PageSize: size}
 	items, total, err := h.svc.List(c.Request.Context(), userID(c), f)
 	if err != nil {
 		writeErr(c, err)

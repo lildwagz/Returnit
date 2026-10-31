@@ -140,8 +140,14 @@ func (r *PGRepo) List(ctx context.Context, userID uuid.UUID, f ListFilter) ([]Pu
 	if err := r.pool.QueryRow(ctx, `SELECT count(*) FROM purchases p`+listWhere, userID, q, f.Status, f.Category).Scan(&total); err != nil {
 		return nil, 0, mapErr(err)
 	}
+	order := ` ORDER BY p.purchase_date DESC, p.id`
+	if f.Sort == SortWarrantyEnd {
+		order = ` ORDER BY CASE WHEN p.warranty_end_date IS NULL THEN 2 WHEN p.warranty_end_date < CURRENT_DATE THEN 1 ELSE 0 END,
+		  CASE WHEN p.warranty_end_date >= CURRENT_DATE THEN p.warranty_end_date END ASC,
+		  p.warranty_end_date DESC, p.purchase_date DESC, p.id`
+	}
 	rows, err := r.pool.Query(ctx, `SELECT `+cols+from+listWhere+
-		` ORDER BY p.purchase_date DESC, p.id LIMIT $5 OFFSET $6`,
+		order+` LIMIT $5 OFFSET $6`,
 		userID, q, f.Status, f.Category, f.PageSize, (f.Page-1)*f.PageSize)
 	if err != nil {
 		return nil, 0, mapErr(err)

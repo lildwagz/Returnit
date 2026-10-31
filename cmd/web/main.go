@@ -123,6 +123,7 @@ func run(log *slog.Logger) error {
 		Notifications:    notifications.NewService(pool),
 		Account:          account.NewService(pool, cfg.AccountDeletionGrace),
 		Devices:          devices.NewService(pool),
+		Language:         &notifications.LanguageService{Pool: pool},
 		Logger:           log,
 		Limiter:          limiter,
 		Limits:           cfg.RateLimits,
