@@ -342,7 +342,7 @@ Run these on build 1.6.0 or newer, against a backend that has `GET /deadlines`.
 | ID | Case | Steps | Expected |
 |---|---|---|---|
 | D1 | The tab | Open the app signed in | Five tabs: Beranda, Pembelian, Tenggat, Pengingat, Pengaturan; the Tenggat icon is a calendar |
-| D2 | Groups | With purchases ending in 2 days, in 20 days and in 3 months, and one that ended 5 days ago | Sections "Minggu ini", "Bulan ini", "Nanti" and "Sudah lewat" in that order, each only when it has items; every row is in the right one |
+| D2 | Groups | With purchases ending in 2 days (and one today), in 20 days and in 3 months, and one that ended 5 days ago | Sections "Dalam 7 hari", "Dalam 30 hari", "Nanti" and "Sudah lewat" in that order, each only when it has items; every row is in the right one |
 | D3 | A row | Look at a row | Product name, "Akhir garansi" or "Batas pengembalian", the date, and a countdown ("3 hari lagi", "hari ini", "5 hari lalu") coloured like the cards |
 | D4 | Both dates | A purchase with a warranty end and a return deadline | Two rows, one of each kind |
 | D5 | Open | Tap a row | The purchase detail opens; Back returns to Tenggat at the same place |

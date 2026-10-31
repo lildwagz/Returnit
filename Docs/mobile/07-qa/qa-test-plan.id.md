@@ -342,7 +342,7 @@ Jalankan di build 1.6.0 atau lebih baru, dengan backend yang sudah memiliki `GET
 | ID | Kasus | Langkah | Hasil yang diharapkan |
 |---|---|---|---|
 | D1 | Tab | Buka aplikasi setelah masuk | Lima tab: Beranda, Pembelian, Tenggat, Pengingat, Pengaturan; ikon Tenggat berupa kalender |
-| D2 | Kelompok | Dengan pembelian yang berakhir 2 hari lagi, 20 hari lagi, dan 3 bulan lagi, serta satu yang berakhir 5 hari lalu | Bagian "Minggu ini", "Bulan ini", "Nanti", dan "Sudah lewat" berurutan, masing-masing hanya bila ada isinya; tiap baris ada di bagian yang benar |
+| D2 | Kelompok | Dengan pembelian yang berakhir 2 hari lagi (dan satu hari ini), 20 hari lagi, dan 3 bulan lagi, serta satu yang berakhir 5 hari lalu | Bagian "Dalam 7 hari", "Dalam 30 hari", "Nanti", dan "Sudah lewat" berurutan, masing-masing hanya bila ada isinya; tiap baris ada di bagian yang benar |
 | D3 | Satu baris | Lihat satu baris | Nama produk, "Akhir garansi" atau "Batas pengembalian", tanggal, dan hitung mundur ("3 hari lagi", "hari ini", "5 hari lalu") berwarna seperti kartu |
 | D4 | Dua tanggal | Pembelian dengan akhir garansi dan batas pengembalian | Dua baris, satu untuk tiap jenis |
 | D5 | Buka | Ketuk satu baris | Detail pembelian terbuka; Kembali membawa ke Tenggat di posisi yang sama |
