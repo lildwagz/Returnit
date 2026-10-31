@@ -397,6 +397,26 @@ Run these on build 1.7.0 or newer, against a backend with migration 14 (`users.l
 | L3 | Push and e-mail | With a reminder due, English app | The push notification and the e-mail subject are English |
 | L4 | Default | A new account that never set a language | Reminders are Indonesian |
 
+### 3.14 Choose a receipt file and share to ReturnIt (version 1.8.0)
+
+Run these on build 1.8.0 or newer (Android).
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| F1 | The row | Tap "+" on Home or Purchases | The sheet shows three rows: photograph, choose a receipt file, enter by hand |
+| F2 | Pick a photo | "Choose a receipt file", pick a JPEG or PNG | The new-purchase form opens with the file attached (name shown); saving uploads it |
+| F3 | Pick a PDF | Same, with a PDF | Attached; after saving it opens in the viewer |
+| F4 | Refused file | Pick a file of another type (for example a Word file), or one over 10 MB | A clear message; no form opens |
+| F5 | Cancel | Open the picker and go back | Nothing happens |
+| H1 | Share a photo | In the Gallery, Share a photo and choose ReturnIt | ReturnIt opens on the new-purchase form with the photo attached |
+| H2 | Share a PDF | In a file manager or e-mail app, Share a PDF and choose ReturnIt | Same, with the PDF attached |
+| H3 | App closed | Share while ReturnIt is not running | The app starts and goes to the form (after the lock screen, if the app lock is on) |
+| H4 | App open | Share while ReturnIt is open on another screen | The form opens on top; Back returns to where you were |
+| H5 | Signed out | Share while signed out, then sign in | After signing in the form opens with the file |
+| H6 | Wrong content | Share plain text or a link to ReturnIt (it should not be offered) or a WebP/HEIC image | Not offered for text; an unsupported image shows "not supported" and no form opens |
+| H7 | Twice | Share a file, cancel the form, then open the app normally | The form does not open again by itself |
+| H8 | Large font, 375 px, Arabic | Repeat F1 and H1 | Rows and form fit; direction is right |
+
 ## 4. Server behaviour to know while testing
 
 * **Edit replaces everything.** If a field disappears after editing, the app forgot to send it.
@@ -427,7 +447,7 @@ Severity:     blocker (cannot use app) / major (feature broken) / minor / cosmet
 ## 6. Release checklist
 
 - [ ] Smoke test passes on a real phone
-- [ ] All cases in sections 3.1 to 3.13 pass or have an accepted, documented exception
+- [ ] All cases in sections 3.1 to 3.14 pass or have an accepted, documented exception
 - [ ] Push reminder (N4) verified on a real device against staging
 - [ ] Account deletion with a throwaway account verified end to end (C3, C4, C7, C9)
 - [ ] No tokens in logs (E7), HTTPS only (E10)

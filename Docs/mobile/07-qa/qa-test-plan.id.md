@@ -397,6 +397,26 @@ Jalankan di build 1.7.0 atau lebih baru, dengan backend yang sudah memiliki migr
 | L3 | Push dan e-mail | Dengan pengingat jatuh tempo, aplikasi berbahasa Inggris | Notifikasi push dan subjek e-mail berbahasa Inggris |
 | L4 | Bawaan | Akun baru yang belum pernah mengatur bahasa | Pengingat berbahasa Indonesia |
 
+### 3.14 Pilih berkas struk dan Bagikan ke ReturnIt (versi 1.8.0)
+
+Jalankan di build 1.8.0 atau lebih baru (Android).
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| F1 | Barisnya | Ketuk "+" di Beranda atau Pembelian | Menu menampilkan tiga baris: foto struk, pilih berkas struk, isi manual |
+| F2 | Pilih foto | "Pilih berkas struk", pilih JPEG atau PNG | Form pembelian baru terbuka dengan berkas terlampir (nama tampil); saat disimpan berkas terunggah |
+| F3 | Pilih PDF | Sama, dengan PDF | Terlampir; setelah disimpan terbuka di penampil |
+| F4 | Berkas ditolak | Pilih berkas jenis lain (mis. Word) atau lebih dari 10 MB | Pesan yang jelas; form tidak terbuka |
+| F5 | Batal | Buka pemilih lalu kembali | Tidak terjadi apa-apa |
+| H1 | Bagikan foto | Di Galeri, Bagikan foto lalu pilih ReturnIt | ReturnIt terbuka di form pembelian baru dengan foto terlampir |
+| H2 | Bagikan PDF | Di pengelola berkas atau aplikasi email, Bagikan PDF lalu pilih ReturnIt | Sama, dengan PDF terlampir |
+| H3 | Aplikasi tertutup | Bagikan saat ReturnIt tidak berjalan | Aplikasi mulai dan menuju form (setelah layar kunci bila kunci aplikasi aktif) |
+| H4 | Aplikasi terbuka | Bagikan saat ReturnIt terbuka di layar lain | Form terbuka di atasnya; Kembali ke layar semula |
+| H5 | Belum masuk | Bagikan saat belum login, lalu masuk | Setelah login form terbuka dengan berkasnya |
+| H6 | Isi yang salah | Bagikan teks atau tautan (ReturnIt seharusnya tidak ditawarkan) atau gambar WebP/HEIC | Teks tidak ditawarkan; gambar yang tidak didukung menampilkan "tidak didukung" dan form tidak terbuka |
+| H7 | Dua kali | Bagikan berkas, batalkan form, lalu buka aplikasi seperti biasa | Form tidak terbuka lagi dengan sendirinya |
+| H8 | Font besar, 375 px, Arab | Ulangi F1 dan H1 | Baris dan form muat; arah benar |
+
 ## 4. Perilaku server yang perlu diketahui saat menguji
 
 * **Ubah (PATCH) menimpa semuanya.** Jika sebuah field hilang setelah diubah, berarti aplikasi lupa mengirimnya.
@@ -427,7 +447,7 @@ Tingkat:      blocker (aplikasi tak bisa dipakai) / mayor (fitur rusak) / minor 
 ## 6. Checklist rilis
 
 - [ ] Smoke test lulus di HP asli
-- [ ] Semua kasus di bagian 3.1 sampai 3.13 lulus atau punya pengecualian yang disetujui dan tercatat
+- [ ] Semua kasus di bagian 3.1 sampai 3.14 lulus atau punya pengecualian yang disetujui dan tercatat
 - [ ] Pengingat push (N4) terverifikasi di perangkat asli terhadap staging
 - [ ] Penghapusan akun dengan akun sekali pakai terverifikasi dari awal sampai akhir (C3, C4, C7, C9)
 - [ ] Tidak ada token di log (E7), hanya HTTPS (E10)
