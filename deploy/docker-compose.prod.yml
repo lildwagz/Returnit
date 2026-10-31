@@ -154,7 +154,8 @@ services:
 
   web:
     <<: *restart
-    image: returnit:${APP_VERSION:-local}
+    # RETURNIT_IMAGE is set by release.sh (a pinned ghcr.io image); without it the image is built here, as before.
+    image: ${RETURNIT_IMAGE:-returnit:local}
     build: { context: .., dockerfile: Dockerfile }
     command: ["/web"]
     environment:
@@ -187,7 +188,8 @@ services:
 
   worker:
     <<: *restart
-    image: returnit:${APP_VERSION:-local}
+    # RETURNIT_IMAGE is set by release.sh (a pinned ghcr.io image); without it the image is built here, as before.
+    image: ${RETURNIT_IMAGE:-returnit:local}
     command: ["/worker"]
     environment:
       <<: *app-env
