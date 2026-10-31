@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -22,14 +23,25 @@ import (
 )
 
 // memStore is an in-memory storage.Store, so this test needs Postgres only (no MinIO).
-type memStore struct{ objects map[string][]byte }
+// The race part of the test uploads from several goroutines, so the map is guarded.
+type memStore struct {
+	mu      sync.Mutex
+	objects map[string][]byte
+}
 
 func (m *memStore) Put(_ context.Context, key string, r io.Reader, _ int64, _ string) error {
 	b, _ := io.ReadAll(r)
+	m.mu.Lock()
 	m.objects[key] = b
+	m.mu.Unlock()
 	return nil
 }
-func (m *memStore) Delete(_ context.Context, key string) error                        { delete(m.objects, key); return nil }
+func (m *memStore) Delete(_ context.Context, key string) error {
+	m.mu.Lock()
+	delete(m.objects, key)
+	m.mu.Unlock()
+	return nil
+}
 func (m *memStore) List(context.Context, string, func(string, time.Time) error) error { return nil }
 func (m *memStore) SignedGetURL(_ context.Context, key, _ string, _ time.Duration) (string, error) {
 	return "https://signed.example/" + key, nil
