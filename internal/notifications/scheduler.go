@@ -50,7 +50,7 @@ SELECT p.id, p.user_id, p.product_name, p.warranty_end_date, p.return_deadline,
        COALESCE(rp.days_before, '[30,14,7,3,1]'::jsonb),
        COALESCE(rp.channel, 'push'),
        to_char(rp.quiet_hours_start, 'HH24:MI'), to_char(rp.quiet_hours_end, 'HH24:MI'),
-       COALESCE(rp.timezone, 'Asia/Jakarta')
+       COALESCE(rp.timezone, 'Asia/Jakarta'), u.language
 FROM purchases p
 JOIN users u ON u.id = p.user_id AND u.deletion_scheduled_at IS NULL
 LEFT JOIN reminder_preferences rp ON rp.user_id = p.user_id
@@ -68,7 +68,7 @@ ORDER BY p.id LIMIT $3`, now, last, planBatch)
 			var raw []byte
 			var we, rd *time.Time
 			if err := rows.Scan(&pid, &uid, &c.ProductName, &we, &rd, &c.Prefs.Enabled, &raw,
-				&c.Prefs.Channel, &c.Prefs.QuietStart, &c.Prefs.QuietEnd, &c.Prefs.Timezone); err != nil {
+				&c.Prefs.Channel, &c.Prefs.QuietStart, &c.Prefs.QuietEnd, &c.Prefs.Timezone, &c.Language); err != nil {
 				rows.Close()
 				return created, fmt.Errorf("notifications: plan scan: %w", err)
 			}

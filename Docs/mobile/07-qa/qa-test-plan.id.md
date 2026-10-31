@@ -377,6 +377,26 @@ Jalankan di build 1.6.0 atau lebih baru, dengan backend yang sudah memiliki `GET
 | D11 | Bahasa dan tata letak | Arab, font sistem besar, lebar 375 px | Baris mulai dari sisi awal, teks terbungkus atau terpotong dengan rapi, label tab muat |
 | D12 | Pembaca layar | TalkBack di satu baris dan di judul bagian | Baris dibaca produk, jenis, tanggal, dan hitung mundur; judul bagian diumumkan sebagai judul |
 
+### 3.13 Urutan, Urungkan, dan bahasa pengingat (versi 1.7.0)
+
+Jalankan di build 1.7.0 atau lebih baru, dengan backend yang sudah memiliki migrasi 14 (`users.language`).
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| S1 | Tombol urutan | Tab Pembelian, ketuk tombol jam ("Terbaru" / "Newest") | Berganti ke "Garansi berakhir" / "Ends soonest" dan daftar tersusun ulang; ketuk lagi kembali ke yang terbaru |
+| S2 | Urutan | Dengan garansi berakhir 10 hari lagi dan 200 hari lagi, satu berakhir 3 hari lalu, satu berakhir lama, satu tanpa tanggal | Urutan: 10 hari, 200 hari, berakhir 3 hari lalu, berakhir lama, tanpa tanggal |
+| S3 | Dengan filter | Urutkan menurut akhir garansi saat chip status, kategori, atau pencarian aktif | Hasil terfilter dan terurut; jumlah tetap benar |
+| S4 | Urungkan | Geser kartu lalu Hapus (Beranda atau Pembelian) | Tanpa konfirmasi; kartu hilang dan pesan dengan "Urungkan" tampil sekitar 5 detik |
+| S5 | Urungkan berhasil | Ketuk Urungkan dalam 5 detik | Kartu kembali ke tempatnya; tidak ada yang terhapus (cek setelah tarik untuk menyegarkan) |
+| S6 | Terhapus | Biarkan 5 detik lewat | Pembelian terhapus; tetap hilang setelah disegarkan |
+| S7 | Keluar dari aplikasi | Geser Hapus lalu langsung tekan Home | Pembelian tetap terhapus (cek saat dibuka lagi) |
+| S8 | Offline | Geser Hapus tanpa koneksi, tunggu 5 detik | Pesan kesalahan; kartu kembali |
+| S9 | Layar detail | Hapus dari layar detail pembelian | Tetap meminta konfirmasi dulu (tidak berubah) |
+| L1 | Bahasa pengingat | Atur aplikasi ke English, tunggu atau picu pengingat (atau buka Pengingat) | Judul dan teks berbahasa Inggris ("Warranty ending soon" ...) |
+| L2 | Ganti bahasa | Ganti aplikasi antara Indonesia, English, dan Arab | Pengingat di tab Pengingat tampil dalam bahasa baru setelah disegarkan |
+| L3 | Push dan e-mail | Dengan pengingat jatuh tempo, aplikasi berbahasa Inggris | Notifikasi push dan subjek e-mail berbahasa Inggris |
+| L4 | Bawaan | Akun baru yang belum pernah mengatur bahasa | Pengingat berbahasa Indonesia |
+
 ## 4. Perilaku server yang perlu diketahui saat menguji
 
 * **Ubah (PATCH) menimpa semuanya.** Jika sebuah field hilang setelah diubah, berarti aplikasi lupa mengirimnya.
@@ -407,7 +427,7 @@ Tingkat:      blocker (aplikasi tak bisa dipakai) / mayor (fitur rusak) / minor 
 ## 6. Checklist rilis
 
 - [ ] Smoke test lulus di HP asli
-- [ ] Semua kasus di bagian 3.1 sampai 3.12 lulus atau punya pengecualian yang disetujui dan tercatat
+- [ ] Semua kasus di bagian 3.1 sampai 3.13 lulus atau punya pengecualian yang disetujui dan tercatat
 - [ ] Pengingat push (N4) terverifikasi di perangkat asli terhadap staging
 - [ ] Penghapusan akun dengan akun sekali pakai terverifikasi dari awal sampai akhir (C3, C4, C7, C9)
 - [ ] Tidak ada token di log (E7), hanya HTTPS (E10)

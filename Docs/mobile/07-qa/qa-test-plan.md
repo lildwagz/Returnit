@@ -377,6 +377,26 @@ Run these on build 1.6.0 or newer, against a backend that has `GET /deadlines`.
 | D11 | Languages and layout | Arabic, large system font, 375 px width | Rows keep the start edge, texts wrap or truncate cleanly, the tab label fits |
 | D12 | Screen reader | TalkBack on a row and on the section headings | Row reads product, kind, date and countdown; headings are announced as headings |
 
+### 3.13 Sorting, Undo and reminder language (version 1.7.0)
+
+Run these on build 1.7.0 or newer, against a backend with migration 14 (`users.language`).
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| S1 | Sort pill | Purchases tab, tap the clock pill ("Terbaru" / "Newest") | It switches to "Garansi berakhir" / "Ends soonest" and the list reorders; tap again returns to newest first |
+| S2 | Order | With warranties ending in 10 and 200 days, one ended 3 days ago, one ended long ago, one without a date | Order: 10 days, 200 days, ended 3 days ago, ended long ago, no date |
+| S3 | With filters | Sort by warranty end while a status chip, category or search is active | The result is filtered and sorted; counts still right |
+| S4 | Undo | Swipe a card to Delete (Home or Purchases) | No confirmation; the card disappears and a message with "Urungkan" / "Undo" shows for about 5 s |
+| S5 | Undo works | Tap Undo within 5 s | The card is back in place; nothing was deleted (check after pull to refresh) |
+| S6 | Delete happens | Let the 5 s pass | The purchase is deleted; it stays gone after a refresh |
+| S7 | Leave the app | Swipe Delete, then press Home at once | The purchase is deleted anyway (check on reopening) |
+| S8 | Offline | Swipe Delete with no connection, wait 5 s | An error message; the card comes back |
+| S9 | Detail screen | Delete from the purchase detail screen | Still asks for confirmation first (unchanged) |
+| L1 | Reminder language | Set the app to English, wait for or trigger a reminder (or open Pengingat) | Title and text are English ("Warranty ending soon" ...) |
+| L2 | Switch | Change the app between Indonesian, English and Arabic | Existing reminders in the Pengingat tab show in the new language after a refresh |
+| L3 | Push and e-mail | With a reminder due, English app | The push notification and the e-mail subject are English |
+| L4 | Default | A new account that never set a language | Reminders are Indonesian |
+
 ## 4. Server behaviour to know while testing
 
 * **Edit replaces everything.** If a field disappears after editing, the app forgot to send it.
@@ -407,7 +427,7 @@ Severity:     blocker (cannot use app) / major (feature broken) / minor / cosmet
 ## 6. Release checklist
 
 - [ ] Smoke test passes on a real phone
-- [ ] All cases in sections 3.1 to 3.12 pass or have an accepted, documented exception
+- [ ] All cases in sections 3.1 to 3.13 pass or have an accepted, documented exception
 - [ ] Push reminder (N4) verified on a real device against staging
 - [ ] Account deletion with a throwaway account verified end to end (C3, C4, C7, C9)
 - [ ] No tokens in logs (E7), HTTPS only (E10)

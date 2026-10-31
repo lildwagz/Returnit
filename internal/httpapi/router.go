@@ -43,6 +43,7 @@ type Deps struct {
 	// Empty (the default) means the socket address is always used, so a client cannot spoof its IP.
 	TrustedProxies []string
 	Devices        DeviceService
+	Language       LanguageService // nil leaves PUT /account/language out
 	RequestTimeout time.Duration
 	// FreshLoginMaxAge is how recent the login must be to request account deletion; 0 means 5 minutes.
 	FreshLoginMaxAge time.Duration
@@ -95,6 +96,7 @@ func NewRouter(d Deps) *gin.Engine {
 	registerReminders(v1, d.Reminders)
 	registerNotifications(v1, d.Notifications)
 	registerDevices(v1, d.Devices)
+	registerLanguage(v1, d.Language)
 	freshAge := d.FreshLoginMaxAge
 	if freshAge <= 0 {
 		freshAge = 5 * time.Minute

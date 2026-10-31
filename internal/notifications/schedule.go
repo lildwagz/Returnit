@@ -109,6 +109,7 @@ type Candidate struct {
 	End         time.Time // warranty end, date only; the zero value means the purchase has no warranty end date
 	ReturnEnd   time.Time // return deadline, date only; the zero value means none
 	Prefs       Prefs
+	Language    string // the owner's app language (id, en, ar); empty means Indonesian
 }
 
 // Planned is a notification the planner wants to exist.
@@ -134,7 +135,8 @@ func Plan(c Candidate, now time.Time) []Planned {
 	}
 	loc := loadLocation(c.Prefs.Timezone)
 	var out []Planned
-	add := func(kind string, end time.Time, offset int, title, body string) {
+	add := func(kind string, end time.Time, offset int) {
+		title, body := Texts(c.Language, kind, c.ProductName, offset, end)
 		at := ReminderTime(end, offset, loc, c.Prefs.QuietStart, c.Prefs.QuietEnd)
 		if at.Before(now.Add(-CatchUp)) || at.After(now.Add(PlanAhead)) {
 			return
@@ -157,31 +159,15 @@ func Plan(c Candidate, now time.Time) []Planned {
 	}
 	if !c.End.IsZero() {
 		for _, d := range c.Prefs.DaysBefore {
-			add(KindWarranty, c.End, d, "Garansi segera berakhir", reminderBody(c.ProductName, d, c.End))
+			add(KindWarranty, c.End, d)
 		}
 	}
 	if !c.ReturnEnd.IsZero() {
 		for _, d := range ReturnOffsets {
-			add(KindReturn, c.ReturnEnd, d, "Batas pengembalian segera berakhir", returnBody(c.ProductName, d, c.ReturnEnd))
+			add(KindReturn, c.ReturnEnd, d)
 		}
 	}
 	return out
-}
-
-func returnBody(product string, days int, end time.Time) string {
-	when := fmt.Sprintf("dalam %d hari", days)
-	if days == 1 {
-		when = "besok"
-	}
-	return fmt.Sprintf("Batas pengembalian %s berakhir %s (%s).", product, when, end.Format("2006-01-02"))
-}
-
-func reminderBody(product string, days int, end time.Time) string {
-	when := fmt.Sprintf("dalam %d hari", days)
-	if days == 1 {
-		when = "besok"
-	}
-	return fmt.Sprintf("Garansi %s berakhir %s (%s).", product, when, end.Format("2006-01-02"))
 }
 
 // Action is the outcome of re-validating a due notification.

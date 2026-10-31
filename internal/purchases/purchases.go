@@ -84,9 +84,14 @@ type ListFilter struct {
 	Query    string
 	Status   string // "", active, expiring, expired, none
 	Category string // "" or one of Categories
+	Sort     string // "" (newest purchase first) or SortWarrantyEnd
 	Page     int
 	PageSize int
 }
+
+// SortWarrantyEnd orders warranties that are still running first (ending soonest on top), then the ones that have
+// ended (most recently ended first), then the purchases without a warranty end date.
+const SortWarrantyEnd = "warrantyEnd"
 
 type Repository interface {
 	Create(ctx context.Context, userID uuid.UUID, in Input) (Purchase, error)
@@ -158,6 +163,9 @@ func (s *Service) List(ctx context.Context, userID uuid.UUID, f ListFilter) ([]P
 	case "", "active", "expiring", "expired", "none":
 	default:
 		return nil, 0, verr("invalid warrantyStatus")
+	}
+	if f.Sort != "" && f.Sort != SortWarrantyEnd {
+		return nil, 0, verr("invalid sort")
 	}
 	if f.Category != "" && !IsCategory(f.Category) {
 		return nil, 0, verr("invalid category")
