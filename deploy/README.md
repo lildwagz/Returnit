@@ -160,8 +160,10 @@ One-time setup (nothing here is automated, and nothing secret goes into git or c
 2. **Restrict it on the server.** Add one line to `~/.ssh/authorized_keys` of the deploy user, with the public key:
    `restrict,command="/home/azzam/returnit/deploy/release.sh" ssh-ed25519 AAAA... returnit-deploy`
    The key can then run that one script and nothing else (the arguments arrive in `SSH_ORIGINAL_COMMAND`).
-3. **Let the server pull the private image.** Create a GitHub token with only `read:packages`, then on the server:
-   `docker login ghcr.io -u <github user>` (paste the token when asked).
+3. **Let the server pull the private image.** Create a *classic* GitHub token with only `read:packages` (GHCR does not
+   take fine-grained tokens), with an expiry you will remember (a deploy fails at `docker pull` once it expires), then on the
+   server: `docker login ghcr.io -u <github user>` (paste the token at the prompt, never on the command line). Check with
+   `docker pull ghcr.io/lildwagz/returnit:latest`.
 4. **GitHub, repository settings.** Environment `production` (add required reviewers there if you want a click
    before each deploy). Secrets: `DEPLOY_SSH_KEY` (the private key), `DEPLOY_KNOWN_HOSTS` (the output of
    `ssh-keyscan -t ed25519 <host>`, checked against the real fingerprint), `DEPLOY_HOST`, `DEPLOY_USER`.
