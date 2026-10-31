@@ -145,6 +145,35 @@ newest published build (nobody could update). It keeps the newest 10 builds. Aft
 Only the page, its `assets/`, `returnit-*.apk` and `returnit-*.apk.sha256` are public; `latest.json` is not. Builds made before this feature
 do not send their version, so they cannot be locked: ask those users to install the new build by hand.
 
+## 7.2 Automatic deploys (GitHub Actions to this server)
+
+A push to `main` runs the tests, builds the image once, smoke-tests it, pushes it to `ghcr.io/lildwagz/returnit`
+(tags: the commit and `latest`) and then the `deploy` job runs `release.sh` on this server over SSH. The script
+fast-forwards this checkout to that commit (the migrations and the Caddyfile come from it), pulls the image **by
+digest**, runs `up -d`, waits until `web` and `worker` are healthy, and goes back to the previous image if they are
+not. Migrations are never undone by a rollback: keep them backward compatible. The state is in `deploy/.release/`
+(not in git): `env` (the image now running), `history` (one line per release).
+
+One-time setup (nothing here is automated, and nothing secret goes into git or chat):
+
+1. **A key only for deploys.** On your laptop: `ssh-keygen -t ed25519 -N "" -C returnit-deploy -f returnit-deploy`.
+2. **Restrict it on the server.** Add one line to `~/.ssh/authorized_keys` of the deploy user, with the public key:
+   `restrict,command="/home/azzam/returnit/deploy/release.sh" ssh-ed25519 AAAA... returnit-deploy`
+   The key can then run that one script and nothing else (the arguments arrive in `SSH_ORIGINAL_COMMAND`).
+3. **Let the server pull the private image.** Create a GitHub token with only `read:packages`, then on the server:
+   `docker login ghcr.io -u <github user>` (paste the token when asked).
+4. **GitHub, repository settings.** Environment `production` (add required reviewers there if you want a click
+   before each deploy). Secrets: `DEPLOY_SSH_KEY` (the private key), `DEPLOY_KNOWN_HOSTS` (the output of
+   `ssh-keyscan -t ed25519 <host>`, checked against the real fingerprint), `DEPLOY_HOST`, `DEPLOY_USER`.
+   Variable `DEPLOY_HEALTH_URL`, for example `https://api.<DOMAIN>/api/v1/app-config`. Delete the private key file
+   from your laptop afterwards.
+5. **First release by hand** (to see it work before CI does it):
+   `ssh <server> 'cd ~/returnit/deploy && ./release.sh ghcr.io/lildwagz/returnit@sha256:<digest> <commit>'`
+   The digest is printed by the `publish` job (`published ghcr.io/...@sha256:...`).
+
+Roll back to the previous image by hand: `cat deploy/.release/history`, then `./release.sh <older image> <its commit>`.
+The old way still works: without `deploy/.release/env`, `./up.sh up -d --build` builds the image here.
+
 ## 8. Backups (do this on day one)
 
 ```sh
