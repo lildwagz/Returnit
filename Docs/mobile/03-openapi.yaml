@@ -145,8 +145,11 @@ paths:
       - $ref: '#/components/parameters/PurchaseId'
     post:
       tags: [Purchases]
-      summary: Upload a receipt file
-      description: Use a private object-storage bucket; validate MIME type, extension, size, and malware scan status.
+      summary: Upload a receipt file (original single-receipt API)
+      description: >
+        Use a private object-storage bucket; validate MIME type, extension, size, and malware scan status.
+        A purchase can hold up to 5 receipts. This original endpoint replaces the OLDEST receipt, or adds the first one,
+        so apps written for one receipt keep working. To add another file, use POST /purchases/{purchaseId}/receipts.
       requestBody:
         required: true
         content:
@@ -160,7 +163,7 @@ paths:
                   format: binary
       responses:
         '201':
-          description: Receipt uploaded (replaces any existing receipt for the purchase)
+          description: Receipt uploaded (replaces the oldest receipt of the purchase, if any)
           content:
             application/json:
               schema: {$ref: '#/components/schemas/Receipt'}
@@ -170,7 +173,7 @@ paths:
         '415': {description: "Unsupported media type; content is sniffed, only PDF/JPEG/PNG accepted"}
     get:
       tags: [Purchases]
-      summary: Get a short-lived signed download URL for the receipt
+      summary: Get a short-lived signed download URL for the oldest receipt
       responses:
         '200':
           description: Signed URL (valid ~5 minutes; never log or persist it)
@@ -188,7 +191,68 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
     delete:
       tags: [Purchases]
-      summary: Delete the receipt file and metadata
+      summary: Delete the oldest receipt file and metadata
+      responses:
+        '204': {description: Deleted}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /purchases/{purchaseId}/receipts:
+    parameters:
+      - $ref: '#/components/parameters/PurchaseId'
+    post:
+      tags: [Purchases]
+      summary: Add one more receipt file (up to 5 per purchase)
+      description: >
+        Stores the file next to the existing ones. The same checks as the single-receipt upload apply (type sniffing,
+        size, malware scan). A purchase holds at most 5 receipts: the sixth is refused with 409 receipt_limit_reached
+        and nothing is stored. Rate limited like every receipt upload.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Receipt added
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Receipt'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {description: "The purchase already has 5 receipts (error code receipt_limit_reached)"}
+        '413': {description: File too large (default limit 10 MiB)}
+        '415': {description: "Unsupported media type; content is sniffed, only PDF/JPEG/PNG accepted"}
+  /purchases/{purchaseId}/receipts/{receiptId}:
+    parameters:
+      - $ref: '#/components/parameters/PurchaseId'
+      - $ref: '#/components/parameters/ReceiptId'
+    get:
+      tags: [Purchases]
+      summary: Get a short-lived signed download URL for one receipt
+      responses:
+        '200':
+          description: Signed URL (valid ~5 minutes; never log or persist it)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, url, expiresAt, fileName, contentType, sizeBytes]
+                properties:
+                  id: {type: string, format: uuid}
+                  url: {type: string, format: uri}
+                  expiresAt: {type: string, format: date-time}
+                  fileName: {type: string}
+                  contentType: {type: string}
+                  sizeBytes: {type: integer}
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      tags: [Purchases]
+      summary: Delete one receipt file and its metadata
       responses:
         '204': {description: Deleted}
         '404': {$ref: '#/components/responses/NotFound'}
@@ -481,12 +545,24 @@ paths:
                             receipt:
                               type: object
                               nullable: true
+                              description: The oldest receipt (older readers know one per purchase).
                               properties:
                                 fileName: {type: string}
                                 contentType: {type: string}
                                 sizeBytes: {type: integer}
                                 uploadedAt: {type: string, format: date-time}
                                 downloadPath: {type: string}
+                            receipts:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  id: {type: string, format: uuid}
+                                  fileName: {type: string}
+                                  contentType: {type: string}
+                                  sizeBytes: {type: integer}
+                                  uploadedAt: {type: string, format: date-time}
+                                  downloadPath: {type: string}
                   notifications:
                     type: array
                     items:
@@ -532,6 +608,11 @@ components:
     PurchaseId:
       in: path
       name: purchaseId
+      required: true
+      schema: {type: string, format: uuid}
+    ReceiptId:
+      in: path
+      name: receiptId
       required: true
       schema: {type: string, format: uuid}
   headers:
@@ -619,18 +700,20 @@ components:
         category: {type: string, enum: [phone, computer, tv_audio, camera, appliance, kitchen, vehicle, tools, furniture, wearable, other], nullable: true, description: "What kind of product it is (the app shows the name and an icon). Null for purchases without one."}
         notes: {type: string, maxLength: 2000, nullable: true}
         receipt:
-          type: object
+          allOf: [{$ref: '#/components/schemas/Receipt'}]
           nullable: true
-          properties:
-            fileName: {type: string}
-            contentType: {type: string}
-            sizeBytes: {type: integer}
+          description: The oldest receipt, or null. Kept for apps that know one receipt per purchase; use receipts.
+        receipts:
+          type: array
+          description: All receipts of the purchase, oldest first (at most 5). An empty list, never null.
+          items: {$ref: '#/components/schemas/Receipt'}
         createdAt: {type: string, format: date-time}
         updatedAt: {type: string, format: date-time}
     Receipt:
       type: object
-      required: [fileName, contentType, sizeBytes, uploadedAt]
+      required: [id, fileName, contentType, sizeBytes, uploadedAt]
       properties:
+        id: {type: string, format: uuid}
         fileName: {type: string, maxLength: 255}
         contentType: {type: string, enum: [application/pdf, image/jpeg, image/png]}
         sizeBytes: {type: integer}
