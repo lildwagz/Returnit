@@ -9,6 +9,13 @@ set -a
 # shellcheck disable=SC1091
 . ./.env.prod
 set +a
+# The image the last automated release rolled to (written by release.sh); absent until the first release.
+if [ -f .release/env ]; then
+	set -a
+	# shellcheck disable=SC1091
+	. ./.release/env
+	set +a
+fi
 
 # Keycloak's realm file wants these in its own spelling.
 case "${SMTP_TLS:-starttls}" in
