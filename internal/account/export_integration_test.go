@@ -101,6 +101,10 @@ func TestExport(t *testing.T) {
 				FileName, ContentType, DownloadPath string
 				SizeBytes                           int64
 			}
+			Receipts []struct {
+				ID, FileName, ContentType, DownloadPath string
+				SizeBytes                               int64
+			}
 		}
 		Notifications []struct {
 			Title string
@@ -131,6 +135,13 @@ func TestExport(t *testing.T) {
 		lp.Receipt.DownloadPath != "/api/v1/purchases/"+laptop.String()+"/receipt" {
 		t.Errorf("receipt metadata: %+v", lp.Receipt)
 	}
+	if len(lp.Receipts) != 1 || lp.Receipts[0].ID == "" ||
+		lp.Receipts[0].DownloadPath != "/api/v1/purchases/"+laptop.String()+"/receipts/"+lp.Receipts[0].ID {
+		t.Errorf("receipts list: %+v", lp.Receipts)
+	}
+	if len(doc.Purchases[0].Receipts) != 0 {
+		t.Errorf("a purchase without receipts must export an empty list: %+v", doc.Purchases[0].Receipts)
+	}
 	if doc.Purchases[0].Receipt != nil {
 		t.Error("a purchase without a receipt must export receipt: null")
 	}
@@ -140,7 +151,7 @@ func TestExport(t *testing.T) {
 
 	// Privacy: nothing that belongs to anyone else, and no internal identifiers.
 	for _, forbidden := range []string{"BOBS SECRET ITEM", "xb-" + sfx, bob.String(), bobItem.String(),
-		storageKey, "receipts/", aliceSub, "identity_subject", "idempotency", "exp-sent-", "future body", "cancelled body"} {
+		storageKey, "receipts/" + alice.String(), aliceSub, "identity_subject", "idempotency", "exp-sent-", "future body", "cancelled body"} {
 		if strings.Contains(raw, forbidden) {
 			t.Errorf("export contains %q", forbidden)
 		}

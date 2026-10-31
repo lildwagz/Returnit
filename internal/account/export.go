@@ -20,6 +20,7 @@ import (
 const ExportFormat = "returnit-export/1"
 
 type exportReceipt struct {
+	ID           uuid.UUID `json:"id"`
 	FileName     string    `json:"fileName"`
 	ContentType  string    `json:"contentType"`
 	SizeBytes    int64     `json:"sizeBytes"`
@@ -38,7 +39,8 @@ type exportPurchase struct {
 	WarrantyEndDate   *purchases.Date `json:"warrantyEndDate"`
 	Category          *string         `json:"category"`
 	Notes             *string         `json:"notes"`
-	Receipt           *exportReceipt  `json:"receipt"`
+	Receipt           *exportReceipt  `json:"receipt"` // the oldest receipt (older readers know one per purchase)
+	Receipts          []exportReceipt `json:"receipts"`
 	CreatedAt         time.Time       `json:"createdAt"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
 }
@@ -124,8 +126,11 @@ SELECT id, email, display_name, created_at, deletion_scheduled_at FROM users WHE
 	rows, err := tx.Query(ctx, `
 SELECT p.id, p.product_name, p.store_name, p.purchase_date, p.price::float8, p.currency,
        p.warranty_start_date, p.warranty_end_date, p.category, p.notes, p.created_at, p.updated_at,
-       r.file_name, r.content_type, r.size_bytes, r.uploaded_at
-FROM purchases p LEFT JOIN receipts r ON r.purchase_id = p.id
+       rc.items
+FROM purchases p LEFT JOIN LATERAL (
+  SELECT jsonb_agg(jsonb_build_object('id', r.id, 'fileName', r.file_name, 'contentType', r.content_type,
+                                      'sizeBytes', r.size_bytes, 'uploadedAt', r.uploaded_at) ORDER BY r.uploaded_at, r.id) AS items
+  FROM receipts r WHERE r.purchase_id = p.id) rc ON true
 WHERE p.user_id = $1
 ORDER BY p.purchase_date DESC, p.id`, userID)
 	if err != nil {
@@ -136,11 +141,9 @@ ORDER BY p.purchase_date DESC, p.id`, userID)
 		var p exportPurchase
 		var pd time.Time
 		var ws, we *time.Time
-		var rf, rc *string
-		var rs *int64
-		var ru *time.Time
+		var items []byte
 		if err := rows.Scan(&p.ID, &p.ProductName, &p.StoreName, &pd, &p.Price, &p.Currency, &ws, &we,
-			&p.Category, &p.Notes, &p.CreatedAt, &p.UpdatedAt, &rf, &rc, &rs, &ru); err != nil {
+			&p.Category, &p.Notes, &p.CreatedAt, &p.UpdatedAt, &items); err != nil {
 			rows.Close()
 			return fmt.Errorf("account: export purchases scan: %w", err)
 		}
@@ -151,9 +154,20 @@ ORDER BY p.purchase_date DESC, p.id`, userID)
 		if we != nil {
 			p.WarrantyEndDate = &purchases.Date{Time: *we}
 		}
-		if rf != nil && rc != nil && rs != nil && ru != nil {
-			p.Receipt = &exportReceipt{FileName: *rf, ContentType: *rc, SizeBytes: *rs, UploadedAt: *ru,
-				DownloadPath: "/api/v1/purchases/" + p.ID.String() + "/receipt"}
+		p.Receipts = []exportReceipt{}
+		if len(items) > 0 {
+			if err := json.Unmarshal(items, &p.Receipts); err != nil {
+				rows.Close()
+				return fmt.Errorf("account: export receipts: %w", err)
+			}
+			for i := range p.Receipts {
+				p.Receipts[i].DownloadPath = "/api/v1/purchases/" + p.ID.String() + "/receipts/" + p.Receipts[i].ID.String()
+			}
+			if len(p.Receipts) > 0 {
+				oldest := p.Receipts[0]
+				oldest.DownloadPath = "/api/v1/purchases/" + p.ID.String() + "/receipt" // the original API, for readers of this field
+				p.Receipt = &oldest
+			}
 		}
 		if !first {
 			if err := put(","); err != nil {

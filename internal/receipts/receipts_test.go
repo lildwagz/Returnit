@@ -50,24 +50,85 @@ func (f *fakeStore) SignedGetURL(_ context.Context, key, _ string, _ time.Durati
 type fakeRepo struct {
 	owner     uuid.UUID
 	purchase  uuid.UUID
-	rec       *Record
+	rec       *Record  // the oldest receipt
+	extra     []Record // the others, oldest first
 	upsertErr error
 }
 
 func (f *fakeRepo) Owns(_ context.Context, u, p uuid.UUID) (bool, error) {
 	return u == f.owner && p == f.purchase, nil
 }
-func (f *fakeRepo) Upsert(_ context.Context, _, _ uuid.UUID, rec Record) (*string, error) {
+func (f *fakeRepo) Upsert(_ context.Context, _, _ uuid.UUID, rec Record) (*string, uuid.UUID, error) {
 	if f.upsertErr != nil {
-		return nil, f.upsertErr
+		return nil, uuid.Nil, f.upsertErr
 	}
+	rec.ID = uuid.New()
 	var old *string
 	if f.rec != nil {
 		k := f.rec.StorageKey
 		old = &k
 	}
 	f.rec = &rec
-	return old, nil
+	return old, rec.ID, nil
+}
+
+func (f *fakeRepo) Add(_ context.Context, _, _ uuid.UUID, rec Record, limit int) (uuid.UUID, error) {
+	if f.upsertErr != nil {
+		return uuid.Nil, f.upsertErr
+	}
+	n := len(f.extra)
+	if f.rec != nil {
+		n++
+	}
+	if n >= limit {
+		return uuid.Nil, ErrLimit
+	}
+	rec.ID = uuid.New()
+	if f.rec == nil {
+		f.rec = &rec
+	} else {
+		f.extra = append(f.extra, rec)
+	}
+	return rec.ID, nil
+}
+
+func (f *fakeRepo) all() []Record {
+	var out []Record
+	if f.rec != nil {
+		out = append(out, *f.rec)
+	}
+	return append(out, f.extra...)
+}
+
+func (f *fakeRepo) GetByID(_ context.Context, u, p, id uuid.UUID) (Record, error) {
+	if u != f.owner || p != f.purchase {
+		return Record{}, ErrNotFound
+	}
+	for _, r := range f.all() {
+		if r.ID == id {
+			return r, nil
+		}
+	}
+	return Record{}, ErrNotFound
+}
+
+func (f *fakeRepo) DeleteByID(_ context.Context, u, p, id uuid.UUID) (string, error) {
+	if u != f.owner || p != f.purchase {
+		return "", ErrNotFound
+	}
+	all := f.all()
+	for i, r := range all {
+		if r.ID == id {
+			all = append(all[:i], all[i+1:]...)
+			f.rec, f.extra = nil, nil
+			if len(all) > 0 {
+				f.rec = &all[0]
+				f.extra = all[1:]
+			}
+			return r.StorageKey, nil
+		}
+	}
+	return "", ErrNotFound
 }
 func (f *fakeRepo) Get(_ context.Context, u, p uuid.UUID) (Record, error) {
 	if f.rec == nil || u != f.owner || p != f.purchase {
@@ -257,5 +318,70 @@ func TestMalwareScanFailsClosed(t *testing.T) {
 		if len(st.objects) != 0 || repo.rec != nil {
 			t.Errorf("%s: file or metadata stored despite scan failure", name)
 		}
+	}
+}
+
+func TestAddKeepsSeveralReceiptsUpToTheLimit(t *testing.T) {
+	svc, repo, st, u, p := setup(1 << 20)
+	ctx := context.Background()
+	var ids []uuid.UUID
+	for i := 0; i < MaxPerPurchase; i++ {
+		r, err := svc.Add(ctx, u, p, "a.pdf", 10, bytes.NewReader(pdfBytes))
+		if err != nil {
+			t.Fatalf("add %d: %v", i, err)
+		}
+		if r.ID == uuid.Nil {
+			t.Fatalf("add %d: no id", i)
+		}
+		ids = append(ids, r.ID)
+	}
+	if len(repo.all()) != MaxPerPurchase || len(st.objects) != MaxPerPurchase {
+		t.Fatalf("records=%d objects=%d", len(repo.all()), len(st.objects))
+	}
+	// One too many: refused, and the file that was just uploaded is not left in the store.
+	if _, err := svc.Add(ctx, u, p, "extra.pdf", 10, bytes.NewReader(pdfBytes)); !errors.Is(err, ErrLimit) {
+		t.Fatalf("sixth receipt: err=%v", err)
+	}
+	if len(st.objects) != MaxPerPurchase || len(st.deleted) != 1 {
+		t.Errorf("rejected upload left an object: objects=%d deleted=%d", len(st.objects), len(st.deleted))
+	}
+	// Room again after deleting one.
+	if err := svc.DeleteByID(ctx, u, p, ids[2]); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Add(ctx, u, p, "again.pdf", 10, bytes.NewReader(pdfBytes)); err != nil {
+		t.Errorf("add after delete: %v", err)
+	}
+}
+
+func TestOriginalUploadReplacesOnlyTheOldest(t *testing.T) {
+	svc, repo, _, u, p := setup(1 << 20)
+	ctx := context.Background()
+	first, _ := svc.Add(ctx, u, p, "one.pdf", 10, bytes.NewReader(pdfBytes))
+	second, _ := svc.Add(ctx, u, p, "two.pdf", 10, bytes.NewReader(pdfBytes))
+	if _, err := svc.Upload(ctx, u, p, "new.pdf", 10, bytes.NewReader(pdfBytes)); err != nil {
+		t.Fatal(err)
+	}
+	all := repo.all()
+	if len(all) != 2 || all[0].FileName != "new.pdf" || all[1].ID != second.ID || all[0].ID == first.ID {
+		t.Errorf("after the original upload: %+v", all)
+	}
+}
+
+func TestByIDLookupsAreOwnerScoped(t *testing.T) {
+	svc, _, _, u, p := setup(1 << 20)
+	ctx := context.Background()
+	r, _ := svc.Add(ctx, u, p, "a.pdf", 10, bytes.NewReader(pdfBytes))
+	if _, _, got, err := svc.SignedURLByID(ctx, u, p, r.ID); err != nil || got.ID != r.ID {
+		t.Fatalf("owner: %v %v", got.ID, err)
+	}
+	if _, _, _, err := svc.SignedURLByID(ctx, uuid.New(), p, r.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("another user: %v", err)
+	}
+	if _, _, _, err := svc.SignedURLByID(ctx, u, p, uuid.New()); !errors.Is(err, ErrNotFound) {
+		t.Errorf("unknown receipt id: %v", err)
+	}
+	if err := svc.DeleteByID(ctx, uuid.New(), p, r.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("delete by another user: %v", err)
 	}
 }

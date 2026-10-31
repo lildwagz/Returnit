@@ -32,19 +32,23 @@ type Purchase struct {
 	WarrantyStartDate *Date     `json:"warrantyStartDate"`
 	WarrantyEndDate   *Date     `json:"warrantyEndDate"`
 	// ReturnDeadline is the last day the shop takes the product back (optional).
-	ReturnDeadline *Date        `json:"returnDeadline"`
-	Category       *string      `json:"category"` // one of Categories, or null
-	Notes          *string      `json:"notes"`
-	Receipt        *ReceiptInfo `json:"receipt"`
-	CreatedAt      time.Time    `json:"createdAt"`
-	UpdatedAt      time.Time    `json:"updatedAt"`
+	ReturnDeadline *Date   `json:"returnDeadline"`
+	Category       *string `json:"category"` // one of Categories, or null
+	Notes          *string `json:"notes"`
+	// Receipt is the oldest receipt, kept for apps that know one file per purchase; Receipts lists them all (never null).
+	Receipt   *ReceiptInfo  `json:"receipt"`
+	Receipts  []ReceiptInfo `json:"receipts"`
+	CreatedAt time.Time     `json:"createdAt"`
+	UpdatedAt time.Time     `json:"updatedAt"`
 }
 
 // ReceiptInfo is the receipt metadata embedded in purchase responses.
 type ReceiptInfo struct {
-	FileName    string `json:"fileName"`
-	ContentType string `json:"contentType"`
-	SizeBytes   int64  `json:"sizeBytes"`
+	ID          uuid.UUID `json:"id"`
+	FileName    string    `json:"fileName"`
+	ContentType string    `json:"contentType"`
+	SizeBytes   int64     `json:"sizeBytes"`
+	UploadedAt  time.Time `json:"uploadedAt"`
 }
 
 // Input is a validated create/update payload.

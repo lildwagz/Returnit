@@ -111,9 +111,9 @@ AppAuth-iOS, or `flutter_appauth`, `react-native-app-auth`). Never use the passw
 | List / search purchases | `GET /purchases` (`?q=` to search, `?warrantyStatus=`, `?category=`, paging with `page` and `pageSize`) |
 | Add purchase | `POST /purchases` (required: `productName`, `purchaseDate`; optional store, price, currency, warranty dates, notes) |
 | Purchase detail / edit / delete | `GET`, `PATCH`, `DELETE /purchases/{id}`. **`PATCH` replaces the whole record**: send every field again (like create); anything you leave out is cleared |
-| Attach receipt (camera or file) | `POST /purchases/{id}/receipt`, multipart form, field name **`file`** |
-| View receipt | `GET /purchases/{id}/receipt` returns a **signed URL valid about 5 minutes**; open it right away, never store or log it |
-| Remove receipt | `DELETE /purchases/{id}/receipt` |
+| Attach receipt (camera or file) | `POST /purchases/{id}/receipts` adds one more (up to **5** per purchase; the sixth gives `409 receipt_limit_reached`), multipart form, field name **`file`**. The original `POST /purchases/{id}/receipt` replaces the oldest receipt (or adds the first) and still works |
+| View receipt | `GET /purchases/{id}/receipts/{receiptId}` (or the original `GET /purchases/{id}/receipt` for the oldest) returns a **signed URL valid about 5 minutes**; open it right away, never store or log it |
+| Remove receipt | `DELETE /purchases/{id}/receipts/{receiptId}` (the original `DELETE /purchases/{id}/receipt` removes the oldest). The list of a purchase's receipts is the `receipts` array of `GET /purchases/{id}` (each with `id`); `receipt` is the oldest, kept for older apps |
 | Home summary | `GET /summary`: `counts` (`active`, `expiring`, `expired`, `unknown`, `total`), `coveredValue` per currency, `nextExpiring` and `nextReturn` (the nearest warranty end and return deadline, each with the purchase id; null when there is none) |
 | Category | Optional field `category` (one of the 11 keys in the OpenAPI file) on create and `PATCH`. **On `PATCH`, leaving it out keeps the stored category**; `null` clears it. Filter the list with `?category=` |
 | Return deadline | Optional field `returnDeadline` (`YYYY-MM-DD`, on or after `purchaseDate`) on create and `PATCH`; it has its own reminders 3 days and 1 day before (notifications of kind `return`) |
@@ -121,7 +121,7 @@ AppAuth-iOS, or `flutter_appauth`, `react-native-app-auth`). Never use the passw
 | Notification inbox | `GET /notifications` (`?unreadOnly=true`, `?limit=`), `POST /notifications/{id}/read`. Each item has `kind` (`warranty` or `return`) and `snoozeUntil` |
 | Remind me again | `POST /notifications/{id}/snooze` with `{"until":"tomorrow"|"in_3_days"|"next_week"}` returns `{scheduledAt}`. Offer **only** the choices listed in the item's `snoozeUntil` (those that still fall on or before the date the reminder is about); show no button when the list is empty. `422 snooze_not_possible` if the server refuses anyway |
 
-**Receipts:** PDF, JPEG or PNG only, at most 10 MiB. A new upload replaces the old receipt. The server scans files for
+**Receipts:** PDF, JPEG or PNG only, at most 10 MiB. A purchase can hold up to 5 receipts. The server scans files for
 malware: `422` means the file was rejected as infected, `503` means the scanner is temporarily down (ask the user to
 try again later), `413` too large, `415` wrong type. Compress photos before upload.
 

@@ -19,13 +19,37 @@ type ReceiptService interface {
 	Upload(ctx context.Context, userID, purchaseID uuid.UUID, filename string, declaredSize int64, body io.Reader) (receipts.Receipt, error)
 	SignedURL(ctx context.Context, userID, purchaseID uuid.UUID) (string, time.Time, receipts.Receipt, error)
 	Delete(ctx context.Context, userID, purchaseID uuid.UUID) error
+	Add(ctx context.Context, userID, purchaseID uuid.UUID, filename string, declaredSize int64, body io.Reader) (receipts.Receipt, error)
+	SignedURLByID(ctx context.Context, userID, purchaseID, id uuid.UUID) (string, time.Time, receipts.Receipt, error)
+	DeleteByID(ctx context.Context, userID, purchaseID, id uuid.UUID) error
 }
 
+// A purchase holds up to receipts.MaxPerPurchase files.
+//   - /purchases/:id/receipt (singular) is the original API: upload replaces the oldest receipt (or adds the first),
+//     download and delete act on the oldest one. Apps built before several receipts keep working.
+//   - /purchases/:id/receipts adds one more; /purchases/:id/receipts/:rid downloads or deletes one named receipt.
 func registerReceipts(g *gin.RouterGroup, svc ReceiptService, uploadLimit gin.HandlerFunc) {
 	h := receiptHandler{svc}
 	g.POST("/purchases/:id/receipt", uploadLimit, h.upload)
 	g.GET("/purchases/:id/receipt", h.download)
 	g.DELETE("/purchases/:id/receipt", h.delete)
+	g.POST("/purchases/:id/receipts", uploadLimit, h.add)
+	g.GET("/purchases/:id/receipts/:rid", h.download)
+	g.DELETE("/purchases/:id/receipts/:rid", h.delete)
+}
+
+// receiptID reads the optional :rid. ok is false (and 404 sent) for a malformed one, like pathID.
+func receiptID(c *gin.Context) (id *uuid.UUID, ok bool) {
+	raw := c.Param("rid")
+	if raw == "" {
+		return nil, true
+	}
+	v, err := uuid.Parse(raw)
+	if err != nil {
+		c.JSON(http.StatusNotFound, ErrorBody("not_found", "resource not found", c))
+		return nil, false
+	}
+	return &v, true
 }
 
 type receiptHandler struct{ svc ReceiptService }
@@ -33,7 +57,13 @@ type receiptHandler struct{ svc ReceiptService }
 // multipartOverhead leaves room for multipart boundaries and the filename header.
 const multipartOverhead = 64 << 10
 
-func (h receiptHandler) upload(c *gin.Context) {
+// upload is the original single-receipt upload (replace the oldest); add stores one more.
+func (h receiptHandler) upload(c *gin.Context) { h.store(c, h.svc.Upload) }
+func (h receiptHandler) add(c *gin.Context)    { h.store(c, h.svc.Add) }
+
+type storeFunc func(ctx context.Context, userID, purchaseID uuid.UUID, filename string, declaredSize int64, body io.Reader) (receipts.Receipt, error)
+
+func (h receiptHandler) store(c *gin.Context, save storeFunc) {
 	id, ok := pathID(c)
 	if !ok {
 		return
@@ -57,7 +87,7 @@ func (h receiptHandler) upload(c *gin.Context) {
 	}
 	defer f.Close()
 
-	rec, err := h.svc.Upload(c.Request.Context(), userID(c), id, fh.Filename, fh.Size, f)
+	rec, err := save(c.Request.Context(), userID(c), id, fh.Filename, fh.Size, f)
 	if err != nil {
 		writeReceiptErr(c, err)
 		return
@@ -70,14 +100,28 @@ func (h receiptHandler) download(c *gin.Context) {
 	if !ok {
 		return
 	}
-	url, exp, rec, err := h.svc.SignedURL(c.Request.Context(), userID(c), id)
+	rid, ok := receiptID(c)
+	if !ok {
+		return
+	}
+	var (
+		url string
+		exp time.Time
+		rec receipts.Receipt
+		err error
+	)
+	if rid == nil {
+		url, exp, rec, err = h.svc.SignedURL(c.Request.Context(), userID(c), id)
+	} else {
+		url, exp, rec, err = h.svc.SignedURLByID(c.Request.Context(), userID(c), id, *rid)
+	}
 	if err != nil {
 		writeReceiptErr(c, err)
 		return
 	}
 	c.Header("Cache-Control", "no-store")
 	c.JSON(http.StatusOK, gin.H{
-		"url": url, "expiresAt": exp, "fileName": rec.FileName,
+		"id": rec.ID, "url": url, "expiresAt": exp, "fileName": rec.FileName,
 		"contentType": rec.ContentType, "sizeBytes": rec.SizeBytes,
 	})
 }
@@ -87,7 +131,17 @@ func (h receiptHandler) delete(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.svc.Delete(c.Request.Context(), userID(c), id); err != nil {
+	rid, ok := receiptID(c)
+	if !ok {
+		return
+	}
+	var err error
+	if rid == nil {
+		err = h.svc.Delete(c.Request.Context(), userID(c), id)
+	} else {
+		err = h.svc.DeleteByID(c.Request.Context(), userID(c), id, *rid)
+	}
+	if err != nil {
 		writeReceiptErr(c, err)
 		return
 	}
@@ -107,6 +161,8 @@ func writeReceiptErr(c *gin.Context, err error) {
 	case errors.Is(err, malware.ErrUnavailable):
 		c.Header("Retry-After", "30")
 		c.JSON(http.StatusServiceUnavailable, ErrorBody("scan_unavailable", "file scanning is temporarily unavailable, try again later", c))
+	case errors.Is(err, receipts.ErrLimit):
+		c.JSON(http.StatusConflict, ErrorBody("receipt_limit_reached", "a purchase can have at most 5 receipts; delete one first", c))
 	case errors.Is(err, receipts.ErrEmpty):
 		c.JSON(http.StatusBadRequest, ErrorBody("bad_request", "file is empty", c))
 	default:
