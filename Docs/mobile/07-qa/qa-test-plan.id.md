@@ -358,6 +358,24 @@ Jalankan di build 1.6.0 atau lebih baru, dengan backend yang sudah memakai migra
 | R16 | Pratinjau | Buka pembelian dengan dua foto dan satu PDF | Baris foto menampilkan pratinjau kecil persegi (PDF tetap ikon); ruangnya sudah dipesan dari awal sehingga tidak ada yang bergeser; membuka foto sesudahnya langsung tampil; tanpa koneksi baris tetap menampilkan ikon |
 | R17 | Zoom | Buka struk berupa foto; ketuk kaca pembesar di bagian atas (atau ketuk fotonya) | Foto membesar sekitar 2,5 kali dan bisa digeser ke samping serta atas-bawah; tombol di atas kini berbunyi perkecil; mengetuknya (atau fotonya) kembali ke tampilan pas; PDF tidak punya kaca pembesar (bisa dicubit) |
 | R15 | Pembaca layar | TalkBack di satu baris, tombol penampil, dan sheet tambah | Baris dibaca "Buka <nama>"; tombol tutup dan hapus punya label; sheet diumumkan sebagai dialog dan tombolnya berlabel |
+### 3.12 Tab Tenggat (versi 1.6.0)
+
+Jalankan di build 1.6.0 atau lebih baru, dengan backend yang sudah memiliki `GET /deadlines`.
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| D1 | Tab | Buka aplikasi setelah masuk | Lima tab: Beranda, Pembelian, Tenggat, Pengingat, Pengaturan; ikon Tenggat berupa kalender |
+| D2 | Kelompok | Dengan pembelian yang berakhir 2 hari lagi (dan satu hari ini), 20 hari lagi, dan 3 bulan lagi, serta satu yang berakhir 5 hari lalu | Bagian "Dalam 7 hari", "Dalam 30 hari", "Nanti", dan "Sudah lewat" berurutan, masing-masing hanya bila ada isinya; tiap baris ada di bagian yang benar |
+| D3 | Satu baris | Lihat satu baris | Nama produk, "Akhir garansi" atau "Batas pengembalian", tanggal, dan hitung mundur ("3 hari lagi", "hari ini", "5 hari lalu") berwarna seperti kartu |
+| D4 | Dua tanggal | Pembelian dengan akhir garansi dan batas pengembalian | Dua baris, satu untuk tiap jenis |
+| D5 | Buka | Ketuk satu baris | Detail pembelian terbuka; Kembali membawa ke Tenggat di posisi yang sama |
+| D6 | Kosong | Akun tanpa tanggal | Keadaan kosong ("Belum ada tenggat"), tanpa error |
+| D7 | Segarkan | Tambah pembelian bergaransi, kembali ke tab; tarik ke bawah | Baris baru muncul; tarik untuk menyegarkan berfungsi |
+| D8 | Yang lama | Garansi yang berakhir 40 hari lalu | Tidak tampil (daftar hanya mundur 30 hari) |
+| D9 | Kategori | Pembelian yang punya kategori | Baris menampilkan ikon kategori |
+| D10 | Offline dan kesalahan | Buka tanpa koneksi | Pesan kesalahan dengan "Coba lagi"; tidak ada yang crash |
+| D11 | Bahasa dan tata letak | Arab, font sistem besar, lebar 375 px | Baris mulai dari sisi awal, teks terbungkus atau terpotong dengan rapi, label tab muat |
+| D12 | Pembaca layar | TalkBack di satu baris dan di judul bagian | Baris dibaca produk, jenis, tanggal, dan hitung mundur; judul bagian diumumkan sebagai judul |
 
 ## 4. Perilaku server yang perlu diketahui saat menguji
 
@@ -389,7 +407,7 @@ Tingkat:      blocker (aplikasi tak bisa dipakai) / mayor (fitur rusak) / minor 
 ## 6. Checklist rilis
 
 - [ ] Smoke test lulus di HP asli
-- [ ] Semua kasus di bagian 3.1 sampai 3.11 lulus atau punya pengecualian yang disetujui dan tercatat
+- [ ] Semua kasus di bagian 3.1 sampai 3.12 lulus atau punya pengecualian yang disetujui dan tercatat
 - [ ] Pengingat push (N4) terverifikasi di perangkat asli terhadap staging
 - [ ] Penghapusan akun dengan akun sekali pakai terverifikasi dari awal sampai akhir (C3, C4, C7, C9)
 - [ ] Tidak ada token di log (E7), hanya HTTPS (E10)

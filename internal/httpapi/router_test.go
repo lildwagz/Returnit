@@ -210,6 +210,11 @@ func TestPurchaseValidationErrors(t *testing.T) {
 	}
 }
 
+// Deadlines of the in-memory fake: none (it has no dates; the SQL is covered by an integration test).
+func (m *memRepo) Deadlines(context.Context, uuid.UUID, int) ([]purchases.Deadline, error) {
+	return []purchases.Deadline{}, nil
+}
+
 // Summary counts the owner's rows only (the in-memory fake has no warranty dates; the SQL is covered by an integration test).
 func (m *memRepo) Summary(_ context.Context, u uuid.UUID) (purchases.Summary, error) {
 	s := purchases.Summary{CoveredValue: []purchases.CurrencyAmount{}}
