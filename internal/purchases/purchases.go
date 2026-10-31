@@ -93,6 +93,8 @@ type Repository interface {
 	Delete(ctx context.Context, userID, id uuid.UUID) (receiptKey *string, err error)
 	// Summary counts the user's purchases by warranty state and finds the next dates (see Summary).
 	Summary(ctx context.Context, userID uuid.UUID) (Summary, error)
+	// Deadlines lists warranty ends and return deadlines from pastDays days ago onward, soonest first (see Deadline).
+	Deadlines(ctx context.Context, userID uuid.UUID, pastDays int) ([]Deadline, error)
 }
 
 // ObjectPurger asks the worker to delete receipt files after their purchase is deleted.

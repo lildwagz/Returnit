@@ -20,6 +20,7 @@ Base URL: `https://api.<domain>/api/v1` (local: `http://localhost:8080/api/v1`).
 | Needs | Call |
 |---|---|
 | Greeting with the first word of the name | `GET /account` (`displayName`; the generic greeting while it is empty) |
+| Tenggat tab (a list of dates: passed, this week, this month, later) | `GET /deadlines?pastDays=30` (see the mobile guide); tap a row to open `GET /purchases/{purchaseId}` |
 | "Garansi aktif", "Segera berakhir", "Total pembelian" counts | `GET /summary`, field `counts` (`active`, `expiring`, `total`) |
 | "Nilai barang yang masih bergaransi", next warranty to end, nearest return deadline | the same `GET /summary` (`coveredValue`, `nextExpiring`, `nextReturn`); each date opens its purchase |
 | "Pembelian terbaru" | `GET /purchases?pageSize=5` (newest purchase date first) |

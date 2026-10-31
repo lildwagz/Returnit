@@ -335,6 +335,25 @@ Run these on build 1.5.0 or newer, against a backend with migration 12 or newer.
 | C15 | Languages and layout | Arabic, large system font, 375 px width | Icon row scrolls sideways and keeps its start edge (right in Arabic); chip names are not cut; sheet rows are readable |
 | C16 | Screen reader | TalkBack on the icon row, the filter pill and a card | Chips read name and selected state; the card reads the category first; icons are not read twice |
 
+### 3.12 Tenggat tab (version 1.6.0)
+
+Run these on build 1.6.0 or newer, against a backend that has `GET /deadlines`.
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| D1 | The tab | Open the app signed in | Five tabs: Beranda, Pembelian, Tenggat, Pengingat, Pengaturan; the Tenggat icon is a calendar |
+| D2 | Groups | With purchases ending in 2 days, in 20 days and in 3 months, and one that ended 5 days ago | Sections "Minggu ini", "Bulan ini", "Nanti" and "Sudah lewat" in that order, each only when it has items; every row is in the right one |
+| D3 | A row | Look at a row | Product name, "Akhir garansi" or "Batas pengembalian", the date, and a countdown ("3 hari lagi", "hari ini", "5 hari lalu") coloured like the cards |
+| D4 | Both dates | A purchase with a warranty end and a return deadline | Two rows, one of each kind |
+| D5 | Open | Tap a row | The purchase detail opens; Back returns to Tenggat at the same place |
+| D6 | Empty | An account without dates | An empty state ("Belum ada tenggat"), no error |
+| D7 | Refresh | Add a purchase with a warranty, return to the tab; pull down | The new row appears; pull to refresh works |
+| D8 | Old items | A warranty that ended 40 days ago | Not listed (the list reaches 30 days back) |
+| D9 | Category | A purchase with a category | The row shows the category icon |
+| D10 | Offline and errors | Open with no connection | An error message with "Coba lagi"; nothing crashes |
+| D11 | Languages and layout | Arabic, large system font, 375 px width | Rows keep the start edge, texts wrap or truncate cleanly, the tab label fits |
+| D12 | Screen reader | TalkBack on a row and on the section headings | Row reads product, kind, date and countdown; headings are announced as headings |
+
 ## 4. Server behaviour to know while testing
 
 * **Edit replaces everything.** If a field disappears after editing, the app forgot to send it.
@@ -365,7 +384,7 @@ Severity:     blocker (cannot use app) / major (feature broken) / minor / cosmet
 ## 6. Release checklist
 
 - [ ] Smoke test passes on a real phone
-- [ ] All cases in sections 3.1 to 3.10 pass or have an accepted, documented exception
+- [ ] All cases in sections 3.1 to 3.12 pass or have an accepted, documented exception
 - [ ] Push reminder (N4) verified on a real device against staging
 - [ ] Account deletion with a throwaway account verified end to end (C3, C4, C7, C9)
 - [ ] No tokens in logs (E7), HTTPS only (E10)

@@ -319,6 +319,42 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/Summary'}
         '401': {$ref: '#/components/responses/Unauthorized'}
+  /deadlines:
+    get:
+      tags: [Purchases]
+      summary: Warranty ends and return deadlines for the Tenggat tab
+      description: >
+        Every warranty end date and return deadline of the user's purchases from `pastDays` days ago onward (so ones that
+        just passed are included), soonest first, at most 500. A purchase with both dates gives two items. "Today" is
+        the database's calendar day (UTC), the same rule as the list filter and the summary; the app groups the items
+        (this week, this month, later, passed) by its own local date.
+      parameters:
+        - in: query
+          name: pastDays
+          schema: {type: integer, minimum: 0, maximum: 90, default: 30}
+          description: How many days back to include. Outside 0 to 90 returns 400 validation_error.
+      responses:
+        '200':
+          description: Deadlines (an empty list when there are none, never null)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [purchaseId, productName, kind, date]
+                      properties:
+                        purchaseId: {type: string, format: uuid}
+                        productName: {type: string}
+                        category: {type: string, nullable: true}
+                        kind: {type: string, enum: [warranty, return]}
+                        date: {type: string, format: date}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
   /devices:
     post:
       tags: [Devices]
