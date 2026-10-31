@@ -335,6 +335,28 @@ Jalankan di build 1.5.0 atau lebih baru, dengan backend yang sudah memakai migra
 | C15 | Bahasa dan tata letak | Arab, font sistem besar, lebar 375 px | Baris ikon bergeser ke samping dan mulai dari sisi awal (kanan di Arab); nama chip tidak terpotong; baris sheet terbaca |
 | C16 | Pembaca layar | TalkBack di baris ikon, tombol filter, dan kartu | Chip membaca nama dan status terpilih; kartu membaca kategori lebih dulu; ikon tidak terbaca dua kali |
 
+### 3.11 Beberapa struk per pembelian (versi 1.6.0)
+
+Jalankan di build 1.6.0 atau lebih baru, dengan backend yang sudah memakai migrasi 13 atau lebih baru.
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| R1 | Struk pertama | Buka pembelian tanpa struk; kartu menulis "Belum ada struk terlampir"; ketuk "Tambah", lalu "Ambil foto" | Foto tertambah; tertulis "1 dari 5 struk" dan satu baris menampilkan nama berkas, "Foto", dan ukurannya |
+| R2 | Tambah lagi | Tambah satu PDF dengan "Pilih berkas", lalu satu foto lagi | Tiga baris, yang tertua di atas; penghitung "3 dari 5 struk" |
+| R3 | Lihat | Ketuk satu baris | Penampil layar penuh terbuka dengan gambar (atau PDF dengan "Halaman 1 dari N"); nama berkas dan ukuran ada di bagian atas |
+| R4 | Tampil dari cache | Tutup penampil dan buka baris yang sama lagi | Langsung tampil, tanpa indikator memuat |
+| R5 | Hapus satu | Di penampil ketuk ikon tempat sampah, konfirmasi | Penampil menutup; baris itu hilang; yang lain tetap; penghitung berkurang |
+| R6 | Batas | Tambah struk sampai ada 5 | "Tambah struk" nonaktif dan muncul "Sudah 5 struk. Hapus satu untuk menambah yang baru."; setelah menghapus satu tombolnya aktif lagi |
+| R7 | Batas dari server | API: `POST /purchases/{id}/receipts` yang keenam | `409 receipt_limit_reached`, dan tidak ada berkas yang tersimpan |
+| R8 | Klip di kartu | Lihat daftar Pembelian dan Home | Pembelian dengan struk menampilkan klip dan jumlahnya di samping harga; pembaca layar juga membaca "N struk" |
+| R9 | Pembelian lama | Buka pembelian yang punya satu struk sebelum 1.6.0 | Tampil sebagai satu baris; melihat dan menghapus berfungsi |
+| R10 | Aplikasi lama, server baru | Dengan 1.5.0 (bila masih diizinkan): buka pembelian dengan 3 struk, lihat struk, ganti | Aplikasi lama menampilkan dan mengganti struk **tertua**; dua lainnya tetap |
+| R11 | Hapus pembelian | Hapus pembelian yang punya beberapa struk | Terhapus tanpa error; semua berkasnya dibersihkan dari penyimpanan oleh worker |
+| R12 | Ekspor | Ekspor data sebagai CSV | Kolom struk memuat semua nama berkas, dipisah "; " |
+| R13 | Kesalahan | Tambah berkas 15 MB; berkas `.txt`; tanpa koneksi | Pesan biasa ("Ukuran file melebihi 10 MB", jenis tidak didukung, kesalahan koneksi); tidak ada yang tertambah |
+| R14 | Bahasa dan tata letak | Arab, font sistem besar, lebar 375 px | Baris mulai dari sisi awal (kanan di Arab) dan panah menunjuk arah yang benar; nama terpotong dengan elipsis; sheet dan penampil terbaca |
+| R15 | Pembaca layar | TalkBack di satu baris, tombol penampil, dan sheet tambah | Baris dibaca "Buka <nama>"; tombol tutup dan hapus punya label; sheet diumumkan sebagai dialog dan tombolnya berlabel |
+
 ## 4. Perilaku server yang perlu diketahui saat menguji
 
 * **Ubah (PATCH) menimpa semuanya.** Jika sebuah field hilang setelah diubah, berarti aplikasi lupa mengirimnya.
@@ -365,7 +387,7 @@ Tingkat:      blocker (aplikasi tak bisa dipakai) / mayor (fitur rusak) / minor 
 ## 6. Checklist rilis
 
 - [ ] Smoke test lulus di HP asli
-- [ ] Semua kasus di bagian 3.1 sampai 3.10 lulus atau punya pengecualian yang disetujui dan tercatat
+- [ ] Semua kasus di bagian 3.1 sampai 3.11 lulus atau punya pengecualian yang disetujui dan tercatat
 - [ ] Pengingat push (N4) terverifikasi di perangkat asli terhadap staging
 - [ ] Penghapusan akun dengan akun sekali pakai terverifikasi dari awal sampai akhir (C3, C4, C7, C9)
 - [ ] Tidak ada token di log (E7), hanya HTTPS (E10)

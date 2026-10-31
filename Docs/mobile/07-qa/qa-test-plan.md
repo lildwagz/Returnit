@@ -335,6 +335,28 @@ Run these on build 1.5.0 or newer, against a backend with migration 12 or newer.
 | C15 | Languages and layout | Arabic, large system font, 375 px width | Icon row scrolls sideways and keeps its start edge (right in Arabic); chip names are not cut; sheet rows are readable |
 | C16 | Screen reader | TalkBack on the icon row, the filter pill and a card | Chips read name and selected state; the card reads the category first; icons are not read twice |
 
+### 3.11 Several receipts per purchase (version 1.6.0)
+
+Run these on build 1.6.0 or newer, against a backend with migration 13 or newer.
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| R1 | First receipt | Open a purchase without receipts; the card says "Belum ada struk terlampir"; tap "Tambah", then "Ambil foto" | The photo is added; the line reads "1 dari 5 struk" and one row shows the file name, "Foto" and its size |
+| R2 | Add more | Add a PDF with "Pilih berkas", then another photo | Three rows, oldest first; the counter reads "3 dari 5 struk" |
+| R3 | View | Tap a row | A full-screen viewer opens with the image (or the PDF with "Halaman 1 dari N"); the file name and size are in the header |
+| R4 | Cached view | Close the viewer and open the same row again | It shows at once, without a spinner |
+| R5 | Delete one | In the viewer tap the bin, confirm | The viewer closes; that row is gone; the others stay; the counter drops |
+| R6 | Limit | Add receipts until there are 5 | "Tambah struk" is disabled and the line "Sudah 5 struk. Hapus satu untuk menambah yang baru." appears; after deleting one the button works again |
+| R7 | Limit from the server | API: a sixth `POST /purchases/{id}/receipts` | `409 receipt_limit_reached`, and no file is stored |
+| R8 | Paperclip on the card | Look at the Pembelian list and Home | A purchase with receipts shows a paperclip and the count next to the price; screen readers also read "N receipts" |
+| R9 | Old purchases | Open a purchase that had one receipt before 1.6.0 | It shows as one row; viewing and deleting work |
+| R10 | Old app, new server | With 1.5.0 (if still allowed): open a purchase with 3 receipts, view the receipt, replace it | The old app shows and replaces the **oldest** one; the other two stay |
+| R11 | Delete a purchase | Delete a purchase that has several receipts | It is deleted without error; all its files are removed from storage later by the worker |
+| R12 | Export | Export the data as CSV | The receipt column lists every file name, separated by "; " |
+| R13 | Errors | Add a 15 MB file; a `.txt` file; no connection | The usual messages ("Ukuran file melebihi 10 MB", unsupported type, connection error); nothing is added |
+| R14 | Languages and layout | Arabic, large system font, 375 px width | Rows keep the start edge (right in Arabic) and the chevron points the right way; names truncate with an ellipsis; the sheet and viewer are readable |
+| R15 | Screen reader | TalkBack on a row, the viewer buttons and the add sheet | Row reads "Buka <name>"; close and delete have labels; the sheet is announced as a dialog and its buttons are labelled |
+
 ## 4. Server behaviour to know while testing
 
 * **Edit replaces everything.** If a field disappears after editing, the app forgot to send it.
@@ -365,7 +387,7 @@ Severity:     blocker (cannot use app) / major (feature broken) / minor / cosmet
 ## 6. Release checklist
 
 - [ ] Smoke test passes on a real phone
-- [ ] All cases in sections 3.1 to 3.10 pass or have an accepted, documented exception
+- [ ] All cases in sections 3.1 to 3.11 pass or have an accepted, documented exception
 - [ ] Push reminder (N4) verified on a real device against staging
 - [ ] Account deletion with a throwaway account verified end to end (C3, C4, C7, C9)
 - [ ] No tokens in logs (E7), HTTPS only (E10)
