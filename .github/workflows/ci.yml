@@ -10,15 +10,18 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Pull requests: only the newest commit matters. main: never cancel a run that may be publishing or deploying.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   checks:
     name: Format, vet, unit tests, vulnerabilities
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
       - name: gofmt
@@ -61,8 +64,10 @@ jobs:
     env:
       DATABASE_URL: postgres://returnit:returnit_dev@localhost:5432/returnit?sslmode=disable
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
 
@@ -109,55 +114,72 @@ jobs:
 
   image:
     name: Docker image builds and starts
+    if: github.event_name == 'pull_request' # on main the publish job builds and tests the image it pushes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Build
-        run: docker build -t returnit:ci .
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - run: docker build -t returnit:ci .
       - name: Both programs are present and refuse to start without configuration
-        run: |
-          for bin in /web /worker; do
-            out=$(docker run --rm returnit:ci "$bin" 2>&1 || true)
-            echo "$bin -> $out"
-            echo "$out" | grep -q "config: DATABASE_URL is required" || { echo "unexpected output from $bin"; exit 1; }
-          done
+        run: bash scripts/ci-smoke-image.sh returnit:ci
 
-  # Publishes the image that just passed every check. Only for pushes to main, never for pull requests.
-  # Stage 1 of the release automation: nothing is deployed from here yet.
+  # Publishes the image that just passed every check, built once and smoke-tested before it is pushed.
+  # Only for pushes to main, never for pull requests. Nothing is deployed from here yet.
   publish:
     name: Publish image to GHCR
-    needs: [checks, integration, image]
+    needs: [checks, integration]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write # the only job that may write packages
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
     env:
       IMAGE: ghcr.io/${{ github.repository }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       # Tags: the full commit (what a deploy pins) and "latest". The action lowercases the repository name.
       - id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
           images: ${{ env.IMAGE }}
           tags: |
             type=sha,format=long,prefix=
             type=raw,value=latest
-      - uses: docker/build-push-action@v6
+      - name: Build once, load into the local Docker (not pushed yet)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
-          push: true
+          load: true
           platforms: linux/amd64 # the server is x86_64
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: returnit:candidate
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: What was published
-        run: echo "${{ steps.meta.outputs.tags }}" | sed 's/^/published /'
+      - name: Smoke test the image that will be pushed
+        run: bash scripts/ci-smoke-image.sh returnit:candidate
+      - name: Tag, push and record the digest
+        id: push
+        run: |
+          set -euo pipefail
+          while read -r tag; do
+            [ -n "$tag" ] || continue
+            docker tag returnit:candidate "$tag"
+            docker push "$tag" | tee -a push.log
+          done <<'TAGS'
+          ${{ steps.meta.outputs.tags }}
+          TAGS
+          digest=$(grep -o 'sha256:[0-9a-f]\{64\}' push.log | tail -1)
+          test -n "$digest"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "published $IMAGE@$digest"
