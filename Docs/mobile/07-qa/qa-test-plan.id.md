@@ -355,6 +355,7 @@ Jalankan di build 1.6.0 atau lebih baru, dengan backend yang sudah memakai migra
 | R12 | Ekspor | Ekspor data sebagai CSV | Kolom struk memuat semua nama berkas, dipisah "; " |
 | R13 | Kesalahan | Tambah berkas 15 MB; berkas `.txt`; tanpa koneksi | Pesan biasa ("Ukuran file melebihi 10 MB", jenis tidak didukung, kesalahan koneksi); tidak ada yang tertambah |
 | R14 | Bahasa dan tata letak | Arab, font sistem besar, lebar 375 px | Baris mulai dari sisi awal (kanan di Arab) dan panah menunjuk arah yang benar; nama terpotong dengan elipsis; sheet dan penampil terbaca |
+| R16 | Pratinjau | Buka pembelian dengan dua foto dan satu PDF | Baris foto menampilkan pratinjau kecil persegi (PDF tetap ikon); ruangnya sudah dipesan dari awal sehingga tidak ada yang bergeser; membuka foto sesudahnya langsung tampil; tanpa koneksi baris tetap menampilkan ikon |
 | R15 | Pembaca layar | TalkBack di satu baris, tombol penampil, dan sheet tambah | Baris dibaca "Buka <nama>"; tombol tutup dan hapus punya label; sheet diumumkan sebagai dialog dan tombolnya berlabel |
 
 ## 4. Perilaku server yang perlu diketahui saat menguji
