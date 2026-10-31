@@ -17,7 +17,7 @@ type PGRepo struct{ pool *pgxpool.Pool }
 func NewPGRepo(p *pgxpool.Pool) *PGRepo { return &PGRepo{pool: p} }
 
 const cols = `p.id, p.product_name, p.store_name, p.purchase_date, p.price::float8, p.currency,
- p.warranty_start_date, p.warranty_end_date, p.return_deadline, p.notes, p.created_at, p.updated_at,
+ p.warranty_start_date, p.warranty_end_date, p.return_deadline, p.category, p.notes, p.created_at, p.updated_at,
  r.file_name, r.content_type, r.size_bytes`
 
 const from = ` FROM purchases p LEFT JOIN receipts r ON r.purchase_id = p.id`
@@ -29,7 +29,7 @@ func scan(row pgx.Row) (Purchase, error) {
 	var rf, rc *string
 	var rs *int64
 	if err := row.Scan(&p.ID, &p.ProductName, &p.StoreName, &pd, &p.Price, &p.Currency,
-		&ws, &we, &rd, &p.Notes, &p.CreatedAt, &p.UpdatedAt, &rf, &rc, &rs); err != nil {
+		&ws, &we, &rd, &p.Category, &p.Notes, &p.CreatedAt, &p.UpdatedAt, &rf, &rc, &rs); err != nil {
 		return Purchase{}, err
 	}
 	if rf != nil && rc != nil && rs != nil {
@@ -62,10 +62,10 @@ func (r *PGRepo) Create(ctx context.Context, userID uuid.UUID, in Input) (Purcha
 	var id uuid.UUID
 	err := r.pool.QueryRow(ctx, `
 INSERT INTO purchases (user_id, product_name, store_name, purchase_date, price, currency,
-  warranty_start_date, warranty_end_date, return_deadline, notes)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+  warranty_start_date, warranty_end_date, return_deadline, notes, category)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
 		userID, in.ProductName, in.StoreName, in.PurchaseDate, in.Price, in.Currency,
-		in.WarrantyStartDate, in.WarrantyEndDate, in.ReturnDeadline, in.Notes).Scan(&id)
+		in.WarrantyStartDate, in.WarrantyEndDate, in.ReturnDeadline, in.Notes, in.Category.Value).Scan(&id)
 	if err != nil {
 		return Purchase{}, mapErr(err)
 	}
@@ -81,10 +81,11 @@ func (r *PGRepo) Get(ctx context.Context, userID, id uuid.UUID) (Purchase, error
 func (r *PGRepo) Update(ctx context.Context, userID, id uuid.UUID, in Input) (Purchase, error) {
 	tag, err := r.pool.Exec(ctx, `
 UPDATE purchases SET product_name=$3, store_name=$4, purchase_date=$5, price=$6, currency=$7,
-  warranty_start_date=$8, warranty_end_date=$9, return_deadline=$10, notes=$11, updated_at=now()
+  warranty_start_date=$8, warranty_end_date=$9, return_deadline=$10, notes=$11,
+  category = CASE WHEN $12 THEN $13 ELSE category END, updated_at=now()
 WHERE id=$1 AND user_id=$2`,
 		id, userID, in.ProductName, in.StoreName, in.PurchaseDate, in.Price, in.Currency,
-		in.WarrantyStartDate, in.WarrantyEndDate, in.ReturnDeadline, in.Notes)
+		in.WarrantyStartDate, in.WarrantyEndDate, in.ReturnDeadline, in.Notes, in.Category.Set, in.Category.Value)
 	if err != nil {
 		return Purchase{}, mapErr(err)
 	}
@@ -119,17 +120,18 @@ WHERE p.user_id = $1
         WHEN p.warranty_end_date IS NULL THEN 'none'
         WHEN p.warranty_end_date < CURRENT_DATE THEN 'expired'
         WHEN p.warranty_end_date <= CURRENT_DATE + 30 THEN 'expiring'
-        ELSE 'active' END = $3)`
+        ELSE 'active' END = $3)
+  AND ($4::text = '' OR p.category = $4)`
 
 func (r *PGRepo) List(ctx context.Context, userID uuid.UUID, f ListFilter) ([]Purchase, int, error) {
 	q := likeEscaper.Replace(f.Query)
 	var total int
-	if err := r.pool.QueryRow(ctx, `SELECT count(*) FROM purchases p`+listWhere, userID, q, f.Status).Scan(&total); err != nil {
+	if err := r.pool.QueryRow(ctx, `SELECT count(*) FROM purchases p`+listWhere, userID, q, f.Status, f.Category).Scan(&total); err != nil {
 		return nil, 0, mapErr(err)
 	}
 	rows, err := r.pool.Query(ctx, `SELECT `+cols+from+listWhere+
-		` ORDER BY p.purchase_date DESC, p.id LIMIT $4 OFFSET $5`,
-		userID, q, f.Status, f.PageSize, (f.Page-1)*f.PageSize)
+		` ORDER BY p.purchase_date DESC, p.id LIMIT $5 OFFSET $6`,
+		userID, q, f.Status, f.Category, f.PageSize, (f.Page-1)*f.PageSize)
 	if err != nil {
 		return nil, 0, mapErr(err)
 	}

@@ -60,6 +60,10 @@ paths:
           name: warrantyStatus
           schema: { type: string, enum: [active, expiring, expired, none] }
         - in: query
+          name: category
+          schema: { type: string, enum: [phone, computer, tv_audio, camera, appliance, kitchen, vehicle, tools, furniture, wearable, other] }
+          description: Only purchases in this category. An unknown key returns 400 validation_error.
+        - in: query
           name: page
           schema: { type: integer, minimum: 1, default: 1 }
         - in: query
@@ -576,6 +580,7 @@ components:
         warrantyStartDate: {type: string, format: date, nullable: true}
         warrantyEndDate: {type: string, format: date, nullable: true}
         returnDeadline: {type: string, format: date, nullable: true, description: "The last day the shop takes the product back. Reminders 3 and 1 day before it, like the warranty reminders (same on/off switch, channel and quiet hours)."}
+        category: {type: string, enum: [phone, computer, tv_audio, camera, appliance, kitchen, vehicle, tools, furniture, wearable, other], nullable: true, description: "What kind of product it is (the app shows the name and an icon). Null for purchases without one."}
         notes: {type: string, maxLength: 2000, nullable: true}
         receipt:
           type: object
@@ -606,6 +611,7 @@ components:
         warrantyStartDate: {type: string, format: date}
         warrantyEndDate: {type: string, format: date}
         returnDeadline: {type: string, format: date, description: "Optional; on or after purchaseDate. Not sending it clears it (PATCH replaces everything)."}
+        category: {type: string, enum: [phone, computer, tv_audio, camera, appliance, kitchen, vehicle, tools, furniture, wearable, other], nullable: true, description: "Optional. On PATCH, leaving it out keeps the stored category (unlike the other fields, which PATCH replaces); null or an empty string clears it."}
         notes: {type: string, maxLength: 2000}
     PurchaseUpdate:
       allOf:

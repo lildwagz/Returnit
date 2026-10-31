@@ -108,13 +108,14 @@ AppAuth-iOS, or `flutter_appauth`, `react-native-app-auth`). Never use the passw
 
 | Screen | Call |
 |---|---|
-| List / search purchases | `GET /purchases` (`?q=` to search, `?warrantyStatus=`, paging with `page` and `pageSize`) |
+| List / search purchases | `GET /purchases` (`?q=` to search, `?warrantyStatus=`, `?category=`, paging with `page` and `pageSize`) |
 | Add purchase | `POST /purchases` (required: `productName`, `purchaseDate`; optional store, price, currency, warranty dates, notes) |
 | Purchase detail / edit / delete | `GET`, `PATCH`, `DELETE /purchases/{id}`. **`PATCH` replaces the whole record**: send every field again (like create); anything you leave out is cleared |
 | Attach receipt (camera or file) | `POST /purchases/{id}/receipt`, multipart form, field name **`file`** |
 | View receipt | `GET /purchases/{id}/receipt` returns a **signed URL valid about 5 minutes**; open it right away, never store or log it |
 | Remove receipt | `DELETE /purchases/{id}/receipt` |
 | Home summary | `GET /summary`: `counts` (`active`, `expiring`, `expired`, `unknown`, `total`), `coveredValue` per currency, `nextExpiring` and `nextReturn` (the nearest warranty end and return deadline, each with the purchase id; null when there is none) |
+| Category | Optional field `category` (one of the 11 keys in the OpenAPI file) on create and `PATCH`. **On `PATCH`, leaving it out keeps the stored category**; `null` clears it. Filter the list with `?category=` |
 | Return deadline | Optional field `returnDeadline` (`YYYY-MM-DD`, on or after `purchaseDate`) on create and `PATCH`; it has its own reminders 3 days and 1 day before (notifications of kind `return`) |
 | Reminder settings | `GET` / `PUT /reminder-preferences` (PUT replaces everything; allowed days before: 1, 3, 7, 14, 30; channel `push`, `email` or `in_app`) |
 | Notification inbox | `GET /notifications` (`?unreadOnly=true`, `?limit=`), `POST /notifications/{id}/read`. Each item has `kind` (`warranty` or `return`) and `snoozeUntil` |

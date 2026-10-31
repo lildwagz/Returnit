@@ -33,6 +33,7 @@ type Purchase struct {
 	WarrantyEndDate   *Date     `json:"warrantyEndDate"`
 	// ReturnDeadline is the last day the shop takes the product back (optional).
 	ReturnDeadline *Date        `json:"returnDeadline"`
+	Category       *string      `json:"category"` // one of Categories, or null
 	Notes          *string      `json:"notes"`
 	Receipt        *ReceiptInfo `json:"receipt"`
 	CreatedAt      time.Time    `json:"createdAt"`
@@ -57,24 +58,28 @@ type Input struct {
 	WarrantyEndDate   *time.Time
 	ReturnDeadline    *time.Time
 	Notes             *string
+	// Category: Set false (field absent in the request) means an update keeps the stored value.
+	Category OptString
 }
 
 // RawInput is the untrusted payload from the transport layer.
 type RawInput struct {
-	ProductName       string   `json:"productName"`
-	StoreName         *string  `json:"storeName"`
-	PurchaseDate      string   `json:"purchaseDate"`
-	Price             *float64 `json:"price"`
-	Currency          string   `json:"currency"`
-	WarrantyStartDate *string  `json:"warrantyStartDate"`
-	WarrantyEndDate   *string  `json:"warrantyEndDate"`
-	ReturnDeadline    *string  `json:"returnDeadline"`
-	Notes             *string  `json:"notes"`
+	ProductName       string    `json:"productName"`
+	StoreName         *string   `json:"storeName"`
+	PurchaseDate      string    `json:"purchaseDate"`
+	Price             *float64  `json:"price"`
+	Currency          string    `json:"currency"`
+	WarrantyStartDate *string   `json:"warrantyStartDate"`
+	WarrantyEndDate   *string   `json:"warrantyEndDate"`
+	ReturnDeadline    *string   `json:"returnDeadline"`
+	Notes             *string   `json:"notes"`
+	Category          OptString `json:"category"`
 }
 
 type ListFilter struct {
 	Query    string
 	Status   string // "", active, expiring, expired, none
+	Category string // "" or one of Categories
 	Page     int
 	PageSize int
 }
@@ -148,6 +153,9 @@ func (s *Service) List(ctx context.Context, userID uuid.UUID, f ListFilter) ([]P
 	default:
 		return nil, 0, verr("invalid warrantyStatus")
 	}
+	if f.Category != "" && !IsCategory(f.Category) {
+		return nil, 0, verr("invalid category")
+	}
 	if utf8.RuneCountInString(f.Query) > 120 {
 		return nil, 0, verr("q too long")
 	}
@@ -204,8 +212,15 @@ func Validate(r RawInput) (Input, error) {
 	if r.Notes != nil && utf8.RuneCountInString(*r.Notes) > 2000 {
 		return Input{}, verr("notes too long")
 	}
+	cat := r.Category
+	if cat.Value != nil && *cat.Value == "" {
+		cat.Value = nil // empty means none, like the date fields
+	}
+	if cat.Value != nil && !IsCategory(*cat.Value) {
+		return Input{}, verr("category is not a known category")
+	}
 	return Input{ProductName: name, StoreName: r.StoreName, PurchaseDate: pd, Price: r.Price, Currency: cur,
-		WarrantyStartDate: ws, WarrantyEndDate: we, ReturnDeadline: rd, Notes: r.Notes}, nil
+		WarrantyStartDate: ws, WarrantyEndDate: we, ReturnDeadline: rd, Notes: r.Notes, Category: cat}, nil
 }
 
 func optDate(s *string, field string) (*time.Time, error) {

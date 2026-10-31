@@ -36,6 +36,7 @@ type exportPurchase struct {
 	Currency          string          `json:"currency"`
 	WarrantyStartDate *purchases.Date `json:"warrantyStartDate"`
 	WarrantyEndDate   *purchases.Date `json:"warrantyEndDate"`
+	Category          *string         `json:"category"`
 	Notes             *string         `json:"notes"`
 	Receipt           *exportReceipt  `json:"receipt"`
 	CreatedAt         time.Time       `json:"createdAt"`
@@ -122,7 +123,7 @@ SELECT id, email, display_name, created_at, deletion_scheduled_at FROM users WHE
 	}
 	rows, err := tx.Query(ctx, `
 SELECT p.id, p.product_name, p.store_name, p.purchase_date, p.price::float8, p.currency,
-       p.warranty_start_date, p.warranty_end_date, p.notes, p.created_at, p.updated_at,
+       p.warranty_start_date, p.warranty_end_date, p.category, p.notes, p.created_at, p.updated_at,
        r.file_name, r.content_type, r.size_bytes, r.uploaded_at
 FROM purchases p LEFT JOIN receipts r ON r.purchase_id = p.id
 WHERE p.user_id = $1
@@ -139,7 +140,7 @@ ORDER BY p.purchase_date DESC, p.id`, userID)
 		var rs *int64
 		var ru *time.Time
 		if err := rows.Scan(&p.ID, &p.ProductName, &p.StoreName, &pd, &p.Price, &p.Currency, &ws, &we,
-			&p.Notes, &p.CreatedAt, &p.UpdatedAt, &rf, &rc, &rs, &ru); err != nil {
+			&p.Category, &p.Notes, &p.CreatedAt, &p.UpdatedAt, &rf, &rc, &rs, &ru); err != nil {
 			rows.Close()
 			return fmt.Errorf("account: export purchases scan: %w", err)
 		}

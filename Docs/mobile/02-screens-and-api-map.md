@@ -32,6 +32,7 @@ Base URL: `https://api.<domain>/api/v1` (local: `http://localhost:8080/api/v1`).
 | List | `GET /purchases?page=1&pageSize=20` (default size 20, maximum 100; response has `items`, `page`, `pageSize`, `total`) |
 | Search box | add `q=<text>` (matches product name and store) |
 | Filter chips | add `warrantyStatus=`: Semua = omit, Aktif = `active`, Segera Berakhir = `expiring` (ends within 30 days), Kedaluwarsa = `expired`, Tidak Diketahui = `none` (no end date) |
+| Category filter | add `category=<key>`; combines with `warrantyStatus` and `q` |
 
 ### Tambah Pembelian (add)
 | Field in design | API field |
@@ -41,6 +42,7 @@ Base URL: `https://api.<domain>/api/v1` (local: `http://localhost:8080/api/v1`).
 | Tanggal pembelian * | `purchaseDate` (`YYYY-MM-DD`) |
 | Durasi garansi (3/6/12/24/36 months or unknown) | **The API takes dates, not a duration.** Compute in the app: `warrantyStartDate` = purchase date, `warrantyEndDate` = start + N months. "Tidak diketahui" = send neither. |
 | Batas pengembalian (optional: none, 7, 14, 30 days) | **The API takes a date:** `returnDeadline` = purchase date + N days (on or after `purchaseDate`). Leave it out for "Tidak ada". It has its own reminders 3 days and 1 day before |
+| Kategori (optional icon row under the name) | `category` (key, see OpenAPI; send `null` to clear on edit, leave out to keep) |
 | Harga | `price` (number; `currency` defaults to `IDR`) |
 | Catatan (if you add it) | `notes` |
 | Unggah struk | **Two steps:** `POST /purchases` first, then `POST /purchases/{id}/receipt` (multipart field `file`). If the upload fails, the purchase still exists: show it and offer "try again" from the detail screen. |

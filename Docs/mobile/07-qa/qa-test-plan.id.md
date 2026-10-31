@@ -312,6 +312,29 @@ Jalankan di build 1.3.2 atau lebih baru, terhadap backend dengan migrasi 11 atau
 | W3 | Aset | Lihat halaman | Logo dan font termuat (tidak ada gambar rusak, tidak ada kilatan font lain) |
 | W4 | Setelah rilis | Jalankan `./publish-apk.sh publish ...` | Halaman langsung menampilkan versi dan catatan baru |
 
+### 3.10 Kategori (versi 1.5.0)
+
+Jalankan di build 1.5.0 atau lebih baru, dengan backend yang sudah memakai migrasi 12 atau lebih baru.
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| C1 | Pilih saat menambah | Buka formulir tambah; baris ikon ada di bawah nama produk; pilih "Ponsel & tablet" | Chip terisi; setelah disimpan kartu menampilkan ikon ponsel dan layar detail menampilkan "Kategori" |
+| C2 | Opsional | Simpan pembelian tanpa memilih | Tersimpan; kartu tanpa kotak ikon; detail tanpa kategori |
+| C3 | Hapus dengan mengetuk lagi | Ketuk chip yang dipilih sekali lagi | Chip tidak terisi lagi; saat disimpan tidak ada kategori yang dikirim |
+| C4 | Saran garansi | Pembelian baru, jangan sentuh durasi, pilih "Peralatan rumah" | Durasi berubah ke 24 bulan dengan teks "Durasi garansi disetel ke 24 bulan..." |
+| C5 | Pilihan sendiri menang | Pilih 6 bulan dulu, lalu pilih kategori | Durasi tetap 6 bulan, tanpa teks saran |
+| C6 | Tanpa saran | Pilih "Kendaraan" atau "Lainnya" | Durasi tetap seperti sebelumnya |
+| C7 | Edit mempertahankan | Edit pembelian yang punya kategori, ubah nama saja | Kategori tidak berubah |
+| C8 | Edit menghapus | Edit, ketuk chip yang dipilih untuk menghapus, simpan | Kartu dan detail tanpa kategori |
+| C9 | Filter | Di Pembelian ketuk "Kategori", pilih "Dapur" | Hanya pembelian dapur; tombol terisi dengan ikon dan nama; baris jumlah sesuai |
+| C10 | Filter dengan status dan pencarian | Biarkan "Dapur", ketuk "Aktif", lalu ketik nama | Hasil memenuhi ketiganya |
+| C11 | Hapus filter | Ketuk x di samping tombol atau "Semua kategori" di sheet | Daftar penuh kembali |
+| C12 | Pembelian lama | Buka pembelian yang dibuat sebelum 1.5.0 | Tampil tanpa kategori, dan bisa dibuka dan diedit seperti biasa |
+| C13 | Aplikasi lama di server baru | Dengan 1.4.1 (bila masih diizinkan), edit pembelian yang punya kategori | Kategori tetap (server mempertahankan field yang tidak dikirim) |
+| C14 | Validasi API | `POST /purchases` dengan `"category":"bogus"`; `GET /purchases?category=bogus` | Keduanya `400 validation_error` |
+| C15 | Bahasa dan tata letak | Arab, font sistem besar, lebar 375 px | Baris ikon bergeser ke samping dan mulai dari sisi awal (kanan di Arab); nama chip tidak terpotong; baris sheet terbaca |
+| C16 | Pembaca layar | TalkBack di baris ikon, tombol filter, dan kartu | Chip membaca nama dan status terpilih; kartu membaca kategori lebih dulu; ikon tidak terbaca dua kali |
+
 ## 4. Perilaku server yang perlu diketahui saat menguji
 
 * **Ubah (PATCH) menimpa semuanya.** Jika sebuah field hilang setelah diubah, berarti aplikasi lupa mengirimnya.
@@ -342,7 +365,7 @@ Tingkat:      blocker (aplikasi tak bisa dipakai) / mayor (fitur rusak) / minor 
 ## 6. Checklist rilis
 
 - [ ] Smoke test lulus di HP asli
-- [ ] Semua kasus di bagian 3.1 sampai 3.9 lulus atau punya pengecualian yang disetujui dan tercatat
+- [ ] Semua kasus di bagian 3.1 sampai 3.10 lulus atau punya pengecualian yang disetujui dan tercatat
 - [ ] Pengingat push (N4) terverifikasi di perangkat asli terhadap staging
 - [ ] Penghapusan akun dengan akun sekali pakai terverifikasi dari awal sampai akhir (C3, C4, C7, C9)
 - [ ] Tidak ada token di log (E7), hanya HTTPS (E10)

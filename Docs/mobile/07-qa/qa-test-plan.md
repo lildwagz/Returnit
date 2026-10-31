@@ -312,6 +312,29 @@ Run these on build 1.3.2 or newer, against a backend with migration 11 or newer.
 | W3 | Assets | Look at the page | Logo and font load (no broken image, no flash of a different font) |
 | W4 | After a release | Run `./publish-apk.sh publish ...` | The page shows the new version and notes at once |
 
+### 3.10 Categories (version 1.5.0)
+
+Run these on build 1.5.0 or newer, against a backend with migration 12 or newer.
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| C1 | Choose when adding | Open the add form; the icon row sits under the product name; choose "Ponsel & tablet" | The chip is filled; saving shows the phone icon on the card and "Kategori" on the detail screen |
+| C2 | Optional | Save a purchase without choosing one | Saved; the card has no icon tile; detail shows no category |
+| C3 | Clear by tapping again | Tap the chosen chip again | It is no longer filled; saving sends no category |
+| C4 | Suggested warranty | New purchase, do not touch the duration, choose "Peralatan rumah" | Duration changes to 24 months with the line "Durasi garansi disetel ke 24 bulan..." |
+| C5 | Hand-chosen duration wins | Choose 6 months first, then a category | Duration stays 6 months, no hint |
+| C6 | No suggestion | Choose "Kendaraan" or "Lainnya" | Duration stays as it was |
+| C7 | Edit keeps it | Edit a purchase that has a category, change only the name | Category unchanged |
+| C8 | Edit clears it | Edit, tap the chosen chip to clear, save | Card and detail show no category |
+| C9 | Filter | On Pembelian tap "Kategori", choose "Dapur" | Only kitchen purchases; the pill is filled with the icon and name; the count line matches |
+| C10 | Filter with status and search | Keep "Dapur" and tap "Aktif", then type a name | Results satisfy all three |
+| C11 | Clear the filter | Tap the x beside the pill or "Semua kategori" in the sheet | Full list again |
+| C12 | Old purchases | Open purchases created before 1.5.0 | They show without a category and open and edit normally |
+| C13 | Old app on the new server | With 1.4.1 (if still allowed), edit a purchase that has a category | The category is kept (the server keeps a missing field) |
+| C14 | API validation | `POST /purchases` with `"category":"bogus"`; `GET /purchases?category=bogus` | Both `400 validation_error` |
+| C15 | Languages and layout | Arabic, large system font, 375 px width | Icon row scrolls sideways and keeps its start edge (right in Arabic); chip names are not cut; sheet rows are readable |
+| C16 | Screen reader | TalkBack on the icon row, the filter pill and a card | Chips read name and selected state; the card reads the category first; icons are not read twice |
+
 ## 4. Server behaviour to know while testing
 
 * **Edit replaces everything.** If a field disappears after editing, the app forgot to send it.
@@ -342,7 +365,7 @@ Severity:     blocker (cannot use app) / major (feature broken) / minor / cosmet
 ## 6. Release checklist
 
 - [ ] Smoke test passes on a real phone
-- [ ] All cases in sections 3.1 to 3.9 pass or have an accepted, documented exception
+- [ ] All cases in sections 3.1 to 3.10 pass or have an accepted, documented exception
 - [ ] Push reminder (N4) verified on a real device against staging
 - [ ] Account deletion with a throwaway account verified end to end (C3, C4, C7, C9)
 - [ ] No tokens in logs (E7), HTTPS only (E10)
