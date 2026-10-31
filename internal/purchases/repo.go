@@ -2,6 +2,7 @@ package purchases
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -18,22 +19,32 @@ func NewPGRepo(p *pgxpool.Pool) *PGRepo { return &PGRepo{pool: p} }
 
 const cols = `p.id, p.product_name, p.store_name, p.purchase_date, p.price::float8, p.currency,
  p.warranty_start_date, p.warranty_end_date, p.return_deadline, p.category, p.notes, p.created_at, p.updated_at,
- r.file_name, r.content_type, r.size_bytes`
+ rc.items`
 
-const from = ` FROM purchases p LEFT JOIN receipts r ON r.purchase_id = p.id`
+// Receipts as one JSON array per purchase (oldest first), so a purchase is still one row however many it has.
+const from = ` FROM purchases p LEFT JOIN LATERAL (
+  SELECT jsonb_agg(jsonb_build_object('id', r.id, 'fileName', r.file_name, 'contentType', r.content_type,
+                                      'sizeBytes', r.size_bytes, 'uploadedAt', r.uploaded_at) ORDER BY r.uploaded_at, r.id) AS items
+  FROM receipts r WHERE r.purchase_id = p.id) rc ON true`
 
 func scan(row pgx.Row) (Purchase, error) {
 	var p Purchase
 	var pd time.Time
 	var ws, we, rd *time.Time
-	var rf, rc *string
-	var rs *int64
+	var items []byte
 	if err := row.Scan(&p.ID, &p.ProductName, &p.StoreName, &pd, &p.Price, &p.Currency,
-		&ws, &we, &rd, &p.Category, &p.Notes, &p.CreatedAt, &p.UpdatedAt, &rf, &rc, &rs); err != nil {
+		&ws, &we, &rd, &p.Category, &p.Notes, &p.CreatedAt, &p.UpdatedAt, &items); err != nil {
 		return Purchase{}, err
 	}
-	if rf != nil && rc != nil && rs != nil {
-		p.Receipt = &ReceiptInfo{FileName: *rf, ContentType: *rc, SizeBytes: *rs}
+	p.Receipts = []ReceiptInfo{}
+	if len(items) > 0 {
+		if err := json.Unmarshal(items, &p.Receipts); err != nil {
+			return Purchase{}, fmt.Errorf("purchases: receipts: %w", err)
+		}
+		if len(p.Receipts) > 0 {
+			first := p.Receipts[0]
+			p.Receipt = &first
+		}
 	}
 	p.PurchaseDate = Date{pd}
 	if ws != nil {
@@ -104,7 +115,7 @@ WITH k AS (
   SELECT r.storage_key FROM receipts r JOIN purchases p ON p.id = r.purchase_id
   WHERE p.id = $1 AND p.user_id = $2
 ), d AS (DELETE FROM purchases WHERE id = $1 AND user_id = $2 RETURNING id)
-SELECT d.id, (SELECT storage_key FROM k) FROM d`, id, userID).Scan(&deleted, &key)
+SELECT d.id, (SELECT storage_key FROM k LIMIT 1) FROM d`, id, userID).Scan(&deleted, &key)
 	if err != nil {
 		return nil, mapErr(err)
 	}

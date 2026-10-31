@@ -56,9 +56,10 @@ Create answers `201` with the purchase.
 | Warranty status and days left | **Compute in the app** from `warrantyEndDate` (the response has no status field) |
 | Return deadline banner and date | `returnDeadline` (plain date, may be null); calm while there is time, amber in the last 3 days, grey once it has passed |
 | Add the warranty end or the return deadline to the calendar | No API: the app opens the phone's own new-event screen (all-day event, alarms 7 days and 1 day before). No calendar permission |
-| View receipt | `GET /purchases/{id}/receipt` returns a signed `url` valid about 5 minutes: open or download it immediately, never store it |
-| Add or replace receipt | `POST /purchases/{id}/receipt` (a new upload replaces the old file) |
-| Remove receipt | `DELETE /purchases/{id}/receipt` |
+| View receipt | `GET /purchases/{id}/receipts/{receiptId}` returns a signed `url` valid about 5 minutes: open or download it immediately, never store it |
+| Add a receipt | `POST /purchases/{id}/receipts` (up to 5; `409 receipt_limit_reached` beyond that). The original `POST /purchases/{id}/receipt` replaces the oldest |
+| Remove a receipt | `DELETE /purchases/{id}/receipts/{receiptId}` |
+| The receipts of a purchase | `receipts` in `GET /purchases/{id}` and in the list (oldest first, each with `id`, `fileName`, `contentType`, `sizeBytes`, `uploadedAt`); `receipt` is the oldest |
 | Edit | `PATCH /purchases/{id}`: **send the complete object** (same fields as create); fields you leave out are cleared, not kept |
 | Delete | `DELETE /purchases/{id}` (the receipt file is deleted too) |
 
