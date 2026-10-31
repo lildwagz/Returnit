@@ -80,6 +80,9 @@ write_page() {
 	rm -rf "$DIR/assets"
 	cp -r "$here/assets" "$DIR/assets"
 	chmod -R a+rX "$DIR/assets"
+	# the privacy policy (a fixed page, public address /privacy)
+	cp "$here/privacy.html" "$DIR/privacy.html"
+	chmod 644 "$DIR/privacy.html"
 	TEMPLATE="$here/index.template.html" python3 - <<'PY'
 import html, json, os
 cfg = json.load(open(os.environ['JSON']))
