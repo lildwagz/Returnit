@@ -356,6 +356,7 @@ Run these on build 1.6.0 or newer, against a backend with migration 13 or newer.
 | R13 | Errors | Add a 15 MB file; a `.txt` file; no connection | The usual messages ("Ukuran file melebihi 10 MB", unsupported type, connection error); nothing is added |
 | R14 | Languages and layout | Arabic, large system font, 375 px width | Rows keep the start edge (right in Arabic) and the chevron points the right way; names truncate with an ellipsis; the sheet and viewer are readable |
 | R16 | Previews | Open a purchase with two photos and a PDF | Each photo row shows a small square preview (the PDF keeps its icon); the squares are reserved from the start so nothing jumps; opening a photo afterwards shows at once; with no connection the rows keep their icon |
+| R17 | Zoom | Open a photo receipt; tap the magnifier in the header (or tap the photo) | The photo is enlarged about 2.5 times and can be dragged sideways and up and down; the header button now says zoom out; tapping it (or the photo) goes back to the fitted view; a PDF has no magnifier (it pinches) |
 | R15 | Screen reader | TalkBack on a row, the viewer buttons and the add sheet | Row reads "Buka <name>"; close and delete have labels; the sheet is announced as a dialog and its buttons are labelled |
 
 ## 4. Server behaviour to know while testing
