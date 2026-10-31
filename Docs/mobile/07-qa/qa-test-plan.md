@@ -358,6 +358,24 @@ Run these on build 1.6.0 or newer, against a backend with migration 13 or newer.
 | R16 | Previews | Open a purchase with two photos and a PDF | Each photo row shows a small square preview (the PDF keeps its icon); the squares are reserved from the start so nothing jumps; opening a photo afterwards shows at once; with no connection the rows keep their icon |
 | R17 | Zoom | Open a photo receipt; tap the magnifier in the header (or tap the photo) | The photo is enlarged about 2.5 times and can be dragged sideways and up and down; the header button now says zoom out; tapping it (or the photo) goes back to the fitted view; a PDF has no magnifier (it pinches) |
 | R15 | Screen reader | TalkBack on a row, the viewer buttons and the add sheet | Row reads "Buka <name>"; close and delete have labels; the sheet is announced as a dialog and its buttons are labelled |
+### 3.12 Tenggat tab (version 1.6.0)
+
+Run these on build 1.6.0 or newer, against a backend that has `GET /deadlines`.
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| D1 | The tab | Open the app signed in | Five tabs: Beranda, Pembelian, Tenggat, Pengingat, Pengaturan; the Tenggat icon is a calendar |
+| D2 | Groups | With purchases ending in 2 days (and one today), in 20 days and in 3 months, and one that ended 5 days ago | Sections "Dalam 7 hari", "Dalam 30 hari", "Nanti" and "Sudah lewat" in that order, each only when it has items; every row is in the right one |
+| D3 | A row | Look at a row | Product name, "Akhir garansi" or "Batas pengembalian", the date, and a countdown ("3 hari lagi", "hari ini", "5 hari lalu") coloured like the cards |
+| D4 | Both dates | A purchase with a warranty end and a return deadline | Two rows, one of each kind |
+| D5 | Open | Tap a row | The purchase detail opens; Back returns to Tenggat at the same place |
+| D6 | Empty | An account without dates | An empty state ("Belum ada tenggat"), no error |
+| D7 | Refresh | Add a purchase with a warranty, return to the tab; pull down | The new row appears; pull to refresh works |
+| D8 | Old items | A warranty that ended 40 days ago | Not listed (the list reaches 30 days back) |
+| D9 | Category | A purchase with a category | The row shows the category icon |
+| D10 | Offline and errors | Open with no connection | An error message with "Coba lagi"; nothing crashes |
+| D11 | Languages and layout | Arabic, large system font, 375 px width | Rows keep the start edge, texts wrap or truncate cleanly, the tab label fits |
+| D12 | Screen reader | TalkBack on a row and on the section headings | Row reads product, kind, date and countdown; headings are announced as headings |
 
 ## 4. Server behaviour to know while testing
 
@@ -389,7 +407,7 @@ Severity:     blocker (cannot use app) / major (feature broken) / minor / cosmet
 ## 6. Release checklist
 
 - [ ] Smoke test passes on a real phone
-- [ ] All cases in sections 3.1 to 3.11 pass or have an accepted, documented exception
+- [ ] All cases in sections 3.1 to 3.12 pass or have an accepted, documented exception
 - [ ] Push reminder (N4) verified on a real device against staging
 - [ ] Account deletion with a throwaway account verified end to end (C3, C4, C7, C9)
 - [ ] No tokens in logs (E7), HTTPS only (E10)

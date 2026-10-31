@@ -19,6 +19,7 @@ type PurchaseService interface {
 	Update(ctx context.Context, userID, id uuid.UUID, raw purchases.RawInput) (purchases.Purchase, error)
 	Delete(ctx context.Context, userID, id uuid.UUID) error
 	Summary(ctx context.Context, userID uuid.UUID) (purchases.Summary, error)
+	Deadlines(ctx context.Context, userID uuid.UUID, pastDays int) ([]purchases.Deadline, error)
 }
 
 const maxBodyBytes = 64 << 10
@@ -27,6 +28,7 @@ func registerPurchases(g *gin.RouterGroup, svc PurchaseService) {
 	h := purchaseHandler{svc}
 	// Not under /purchases/: that path takes an id, and a summary must never be mistaken for one.
 	g.GET("/summary", h.summary)
+	g.GET("/deadlines", h.deadlines)
 	g.GET("/purchases", h.list)
 	g.POST("/purchases", h.create)
 	g.GET("/purchases/:id", h.get)
@@ -98,6 +100,25 @@ func (h purchaseHandler) summary(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, s)
+}
+
+// deadlines feeds the Tenggat tab: warranty ends and return deadlines, from `pastDays` days ago (default 30) onward.
+func (h purchaseHandler) deadlines(c *gin.Context) {
+	past := purchases.DefaultPastDays
+	if raw := c.Query("pastDays"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, ErrorBody("bad_request", "pastDays must be an integer", c))
+			return
+		}
+		past = n
+	}
+	items, err := h.svc.Deadlines(c.Request.Context(), userID(c), past)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
 }
 
 func (h purchaseHandler) list(c *gin.Context) {
