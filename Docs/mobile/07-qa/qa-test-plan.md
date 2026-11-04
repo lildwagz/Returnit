@@ -435,13 +435,13 @@ Needs the e-mail theme active in the realm (`./sync-keycloak-mail.sh`) and the l
 | M10 | Narrow screen and large font | Open on a 375 px phone with the largest system font | No horizontal scroll; the button stays at least 48 px tall |
 | M11 | No logo | Block images in the client | The alt text "ReturnIt" shows; everything else is readable |
 
-### 3.16 Claim package (PDF, mobile 1.9.0)
+### 3.16 Claim package (PDF, mobile 1.9.0, preview 1.9.1)
 
 Made on the phone (no backend change). Needs a build with `expo-print` and `expo-image-manipulator`.
 
 | ID | Case | Steps | Expected |
 |---|---|---|---|
-| P1 | One image receipt | Open a purchase with one photo receipt, "Buat paket klaim", "Buat PDF" | The share sheet opens with `ReturnIt-<product>-<date>.pdf`; page 1 has the logo, the status box, the product table; page 2 has the photo |
+| P1 | One image receipt | Open a purchase with one photo receipt, "Buat paket klaim", "Buat PDF" | A full-screen preview opens (title "PDF preview", page counter, "Share" button); the sheet closes. Page 1 has the logo, the status box, the product table; page 2 has the photo. "Share" opens the share sheet with `ReturnIt-<product>-<date>.pdf` |
 | P2 | No receipt | A purchase without receipts | No "photos" switch; the PDF has no receipts page |
 | P3 | Switches | Turn off price, then notes | The PDF has no price row and no notes block |
 | P4 | Warranty ended | A purchase whose warranty ended | The status box says "Garansi berakhir ..." with a red edge; still created |
@@ -449,10 +449,12 @@ Made on the phone (no backend change). Needs a build with `expo-print` and `expo
 | P6 | Symbols | Product `<b>Laptop</b> & "x"`, notes with a line break | Shown as typed, no formatting injected; line break kept |
 | P7 | Offline | Airplane mode, receipt not yet opened on this phone | "Struk 1 tidak bisa diambil" with "Coba lagi" and "Buat tanpa struk itu"; the second makes the PDF without it |
 | P8 | PDF receipt | A purchase with a PDF receipt | The PDF lists "Struk PDF terlampir terpisah: <name>" |
-| P9 | Double tap | Tap "Buat PDF" twice quickly | One share sheet only; the button is replaced by progress |
+| P9 | Double tap | Tap "Buat PDF" twice quickly | One preview only; the button is replaced by progress |
 | P10 | Big photo | A 8 MB photo receipt | Embedded (shrunk) or left out with the toast "1 struk dilewati"; never a crash |
 | P11 | Margins and footer | Open the PDF on the phone | About 16 mm side margins, footer on every page and not over the content |
-| P12 | No leftovers | After sharing, look in the app cache | No PDF copy stays |
+| P12 | No leftovers | Close the preview (X or Back), then look in the app cache; also leave the screen with the preview open | No PDF copy stays |
+| P13 | Detail layout | Open a purchase with no price and no duration | The claim button is blue, right under the warranty banner; no empty Price or Duration cell |
+| P14 | Card | Home and Purchases list | Store, date and price share one line (paperclip when there are receipts); no separate price row |
 
 ## 4. Server behaviour to know while testing
 

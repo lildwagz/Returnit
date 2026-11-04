@@ -435,13 +435,13 @@ Butuh tema email aktif di realm (`./sync-keycloak-mail.sh`) dan logo yang disaji
 | M10 | Layar sempit dan font besar | Buka di HP 375 px dengan font sistem terbesar | Tidak ada gulir horizontal; tombol tetap setinggi minimal 48 px |
 | M11 | Tanpa logo | Blokir gambar di klien | Teks alternatif "ReturnIt" tampil; sisanya tetap terbaca |
 
-### 3.16 Paket klaim (PDF, mobile 1.9.0)
+### 3.16 Paket klaim (PDF, mobile 1.9.0, pratinjau 1.9.1)
 
 Dibuat di HP (tanpa perubahan backend). Butuh build dengan `expo-print` dan `expo-image-manipulator`.
 
 | ID | Kasus | Langkah | Hasil yang diharapkan |
 |---|---|---|---|
-| P1 | Satu struk foto | Buka pembelian dengan satu struk foto, "Buat paket klaim", "Buat PDF" | Share sheet terbuka dengan `ReturnIt-<produk>-<tanggal>.pdf`; halaman 1 berisi logo, kotak status, tabel produk; halaman 2 berisi foto |
+| P1 | Satu struk foto | Buka pembelian dengan satu struk foto, "Buat paket klaim", "Buat PDF" | Pratinjau layar penuh terbuka (judul "Pratinjau PDF", penunjuk halaman, tombol "Bagikan"); sheet menutup. Halaman 1 berisi logo, kotak status, tabel produk; halaman 2 berisi foto. "Bagikan" membuka share sheet dengan `ReturnIt-<produk>-<tanggal>.pdf` |
 | P2 | Tanpa struk | Pembelian tanpa struk | Tidak ada sakelar foto; PDF tanpa halaman struk |
 | P3 | Sakelar | Matikan harga, lalu catatan | PDF tanpa baris harga dan tanpa blok catatan |
 | P4 | Garansi berakhir | Pembelian dengan garansi yang sudah berakhir | Kotak status "Garansi berakhir ..." dengan tepi merah; tetap bisa dibuat |
@@ -449,10 +449,12 @@ Dibuat di HP (tanpa perubahan backend). Butuh build dengan `expo-print` dan `exp
 | P6 | Simbol | Produk `<b>Laptop</b> & "x"`, catatan dengan baris baru | Tampil apa adanya tanpa format; baris baru terjaga |
 | P7 | Offline | Mode pesawat, struk belum pernah dibuka di HP ini | "Struk 1 tidak bisa diambil" dengan "Coba lagi" dan "Buat tanpa struk itu"; yang kedua membuat PDF tanpa struk itu |
 | P8 | Struk PDF | Pembelian dengan struk PDF | PDF memuat "Struk PDF terlampir terpisah: <nama>" |
-| P9 | Ketuk dua kali | Ketuk "Buat PDF" dua kali cepat | Hanya satu share sheet; tombol berganti menjadi progres |
+| P9 | Ketuk dua kali | Ketuk "Buat PDF" dua kali cepat | Hanya satu pratinjau; tombol berganti menjadi progres |
 | P10 | Foto besar | Struk foto 8 MB | Tertanam (dikecilkan) atau dilewati dengan toast "1 struk dilewati"; tidak pernah crash |
 | P11 | Margin dan footer | Buka PDF di HP | Margin samping sekitar 16 mm, footer di tiap halaman dan tidak menimpa isi |
-| P12 | Tanpa sisa | Setelah dibagikan, periksa cache aplikasi | Tidak ada salinan PDF tersisa |
+| P12 | Tanpa sisa | Tutup pratinjau (X atau Kembali), lalu periksa cache aplikasi; juga tinggalkan layar saat pratinjau terbuka | Tidak ada salinan PDF tersisa |
+| P13 | Tata letak detail | Buka pembelian tanpa harga dan tanpa durasi | Tombol klaim biru tepat di bawah banner garansi; tidak ada sel Harga atau Durasi kosong |
+| P14 | Kartu | Beranda dan daftar Pembelian | Toko, tanggal, dan harga dalam satu baris (klip bila ada struk); tidak ada baris harga terpisah |
 
 ## 4. Perilaku server yang perlu diketahui saat menguji
 
