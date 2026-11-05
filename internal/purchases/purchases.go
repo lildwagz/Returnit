@@ -76,24 +76,24 @@ type Input struct {
 
 // RawInput is the untrusted payload from the transport layer.
 type RawInput struct {
-	ProductName       string    `json:"productName"`
-	StoreName         *string   `json:"storeName"`
-	PurchaseDate      string    `json:"purchaseDate"`
-	Price             *float64  `json:"price"`
-	Currency          string    `json:"currency"`
-	WarrantyStartDate *string   `json:"warrantyStartDate"`
-	WarrantyEndDate   *string   `json:"warrantyEndDate"`
-	ReturnDeadline    *string   `json:"returnDeadline"`
-	Notes             *string   `json:"notes"`
-	Category          OptString `json:"category"`
+	ProductName       string     `json:"productName"`
+	StoreName         *string    `json:"storeName"`
+	PurchaseDate      string     `json:"purchaseDate"`
+	Price             *float64   `json:"price"`
+	Currency          string     `json:"currency"`
+	WarrantyStartDate *string    `json:"warrantyStartDate"`
+	WarrantyEndDate   *string    `json:"warrantyEndDate"`
+	ReturnDeadline    *string    `json:"returnDeadline"`
+	Notes             *string    `json:"notes"`
+	Category          OptString  `json:"category"`
 	BucketID          *uuid.UUID `json:"bucketId"`
 }
 
 type ListFilter struct {
 	Query    string
-	Status   string // "", active, expiring, expired, none
-	Category string // "" or one of Categories
-	Sort     string // "" (newest purchase first) or SortWarrantyEnd
+	Status   string     // "", active, expiring, expired, none
+	Category string     // "" or one of Categories
+	Sort     string     // "" (newest purchase first) or SortWarrantyEnd
 	BucketID *uuid.UUID // only this bucket; nil means every bucket the person is in
 	Page     int
 	PageSize int

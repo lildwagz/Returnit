@@ -35,7 +35,7 @@ type Deps struct {
 	Notifications NotificationService
 	Account       AccountService
 	Buckets       BucketService // nil leaves the bucket and invite routes out
-	Logger        *slog.Logger // nil means slog.Default()
+	Logger        *slog.Logger  // nil means slog.Default()
 	// Limiter backs rate limiting; nil means an in-memory limiter (per process).
 	Limiter ratelimit.Limiter
 	// Limits are the per-bucket budgets; the zero value means ratelimit.DefaultLimits().

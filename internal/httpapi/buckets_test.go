@@ -38,7 +38,9 @@ func (f *fakeBuckets) Delete(_ context.Context, _, _ uuid.UUID, confirm string) 
 func (f *fakeBuckets) Members(context.Context, uuid.UUID, uuid.UUID) ([]buckets.Member, error) {
 	return []buckets.Member{{ID: uuid.New(), Name: "Alice", Role: "owner", You: true}}, f.err
 }
-func (f *fakeBuckets) RemoveMember(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error { return f.err }
+func (f *fakeBuckets) RemoveMember(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error {
+	return f.err
+}
 func (f *fakeBuckets) TransferOwner(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error {
 	return f.err
 }

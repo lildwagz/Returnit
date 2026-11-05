@@ -47,7 +47,9 @@ type Service struct {
 	purger ObjectPurger // may be nil
 }
 
-func NewService(p *pgxpool.Pool, purger ObjectPurger) *Service { return &Service{pool: p, purger: purger} }
+func NewService(p *pgxpool.Pool, purger ObjectPurger) *Service {
+	return &Service{pool: p, purger: purger}
+}
 
 // Bucket is one bucket as the person sees it.
 type Bucket struct {
