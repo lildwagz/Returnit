@@ -119,7 +119,7 @@ func TestBucketLifecycle(t *testing.T) {
 	e.must(err)
 	pv, err := e.svc.Preview(e.ctx, inv1.Token)
 	e.must(err)
-	if pv.BucketName != "Rumah" || pv.MemberCount != 1 || pv.InvitedBy == nil || *pv.InvitedBy != "Alice" || pv.Full {
+	if pv.BucketID != home.ID || pv.BucketName != "Rumah" || pv.MemberCount != 1 || pv.InvitedBy == nil || *pv.InvitedBy != "Alice" || pv.Full {
 		t.Fatalf("preview: %+v", pv)
 	}
 	if _, err := e.svc.Preview(e.ctx, "NOTATOKEN"); !errors.Is(err, buckets.ErrInviteGone) {

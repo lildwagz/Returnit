@@ -108,10 +108,11 @@ type Member struct {
 
 // InvitePreview is what the join screen shows before the person agrees.
 type InvitePreview struct {
-	BucketName  string  `json:"bucketName"`
-	InvitedBy   *string `json:"invitedBy"`
-	MemberCount int     `json:"memberCount"`
-	Full        bool    `json:"full"`
+	BucketID    uuid.UUID `json:"bucketId"`
+	BucketName  string    `json:"bucketName"`
+	InvitedBy   *string   `json:"invitedBy"`
+	MemberCount int       `json:"memberCount"`
+	Full        bool      `json:"full"`
 }
 
 type Invite struct {
@@ -524,11 +525,11 @@ func (s *Service) RevokeInvite(ctx context.Context, userID, id uuid.UUID) error 
 func (s *Service) Preview(ctx context.Context, token string) (InvitePreview, error) {
 	var p InvitePreview
 	err := s.pool.QueryRow(ctx, `
-SELECT b.name, NULLIF(COALESCE(NULLIF(trim(u.display_name), ''), split_part(u.email, '@', 1)), ''),
+SELECT b.id, b.name, NULLIF(COALESCE(NULLIF(trim(u.display_name), ''), split_part(u.email, '@', 1)), ''),
        (SELECT count(*) FROM bucket_members x WHERE x.bucket_id = b.id)
 FROM bucket_invites i JOIN buckets b ON b.id = i.bucket_id LEFT JOIN users u ON u.id = i.created_by
 WHERE i.token_hash = $1 AND i.revoked_at IS NULL AND i.expires_at > now()`, hashToken(token)).
-		Scan(&p.BucketName, &p.InvitedBy, &p.MemberCount)
+		Scan(&p.BucketID, &p.BucketName, &p.InvitedBy, &p.MemberCount)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return InvitePreview{}, ErrInviteGone
 	}
