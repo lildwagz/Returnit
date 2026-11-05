@@ -486,6 +486,29 @@ Needs two phones (or one phone and an emulator) with two different accounts, A (
 | B22 | App Link | With the app installed, tap the link in WhatsApp | The app opens directly (no browser page); `adb shell pm get-app-links com.returnit.app` shows dl.<domain> as verified. Without the app, the page /join explains and links to the download |
 | B23 | Privacy | Open /privacy | The shared bucket parts (data, use, retention, deletion) are in both languages |
 
+### 3.18 New Home, bell and purchase list (mobile 1.11.0)
+
+No backend change. The Pengingat tab is gone: reminders open from the bell.
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| H1 | Greeting | Open Home | Avatar with the initial, "Hello, <name>", today's date in the app language, and a bell on the right; no emoji |
+| H2 | Bell and badge | Have unread reminders | A red badge with the count on the bell (50+ above 50); with none, no badge. The screen reader says "Reminders, N unread" |
+| H3 | Pengingat screen | Tap the bell on Home, Pembelian and Tenggat | The Pengingat screen opens above the tabs with a Back button and a settings icon on the right; there is no Pengingat tab (four tabs) |
+| H4 | Push tap | Tap a reminder notification with the app closed | The app opens on Pengingat with that reminder, Back returns to the tabs |
+| H5 | Attention hero | A warranty ends in 12 days | A warm card with the clock tile, the big "12 hari lagi", the name, the date, and full-width Open and To calendar buttons; with a date more than 30 days away the card is plain |
+| H6 | Summary card | Have purchases in all states | One card with the covered value, one coloured bar split by status, and the four counts matching Pembelian |
+| H7 | Return row | A return deadline exists and the hero is a warranty | A row "Batas pengembalian terdekat" with the date and product; tapping opens that purchase |
+| H8 | No purchases | New account | A blue welcome card "Mulai dengan satu pembelian" with an Add button that opens the add sheet, and the three steps; no summary or list |
+| H9 | List cards | Open Pembelian | Each card has a coloured category tile, name, store and date, tags (price, receipts, return, bucket), a coloured countdown block and a bar with the end date |
+| H10 | Expiring and expired | Look at a purchase expiring in 12 days and one that ended | The first has a warm background and an almost full amber bar; the second is paler with a full red bar and "N hari berlalu" |
+| H11 | Search and chips | Type in the search; choose Aktif, then clear | The search has an icon and a clear button; the status chips show a colour dot and a count, the chosen one is filled with a check; the bar above the chips shows the split |
+| H12 | Sorted sections | Sort by "berakhir terdekat" | Headings "Segera berakhir", "Aktif", "Sudah berakhir", "Tanpa tanggal" with a colour dot and, with no filter, the count; in "terbaru" order there are no headings |
+| H13 | No results | Search for something that does not exist | "Tidak ada hasil" with a button that clears the search and the filters |
+| H14 | Dark mode | Switch the phone to dark | Home, the cards, the chips, the bell and its badge are all readable; the warm card stays distinguishable |
+| H15 | Arabic | App in Arabic | The layout mirrors; the bell is on the left, chevrons mirror, the bars still fill from the start |
+| H16 | Large text | System font at 130 % and 200 % | Nothing is cut off on the cards or the hero; the countdown block grows instead of clipping |
+
 ## 4. Server behaviour to know while testing
 
 * **Edit replaces everything.** If a field disappears after editing, the app forgot to send it.
@@ -516,7 +539,7 @@ Severity:     blocker (cannot use app) / major (feature broken) / minor / cosmet
 ## 6. Release checklist
 
 - [ ] Smoke test passes on a real phone
-- [ ] All cases in sections 3.1 to 3.17 pass or have an accepted, documented exception
+- [ ] All cases in sections 3.1 to 3.18 pass or have an accepted, documented exception
 - [ ] Push reminder (N4) verified on a real device against staging
 - [ ] Account deletion with a throwaway account verified end to end (C3, C4, C7, C9)
 - [ ] No tokens in logs (E7), HTTPS only (E10)
