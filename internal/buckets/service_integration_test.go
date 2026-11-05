@@ -119,7 +119,7 @@ func TestBucketLifecycle(t *testing.T) {
 	e.must(err)
 	pv, err := e.svc.Preview(e.ctx, inv1.Token)
 	e.must(err)
-	if pv.BucketName != "Rumah" || pv.MemberCount != 1 || pv.InvitedBy == nil || *pv.InvitedBy != "Alice" || pv.Full {
+	if pv.BucketID != home.ID || pv.BucketName != "Rumah" || pv.MemberCount != 1 || pv.InvitedBy == nil || *pv.InvitedBy != "Alice" || pv.Full {
 		t.Fatalf("preview: %+v", pv)
 	}
 	if _, err := e.svc.Preview(e.ctx, "NOTATOKEN"); !errors.Is(err, buckets.ErrInviteGone) {
@@ -157,6 +157,18 @@ func TestBucketLifecycle(t *testing.T) {
 	}
 	if _, err := e.svc.Members(e.ctx, carol, home.ID); !errors.Is(err, buckets.ErrNotFound) {
 		t.Fatalf("members for a stranger: %v", err)
+	}
+
+	// The list carries the first members for the avatars: the owner first, display names only.
+	all, err := e.svc.List(e.ctx, bob)
+	e.must(err)
+	for _, b := range all {
+		if b.ID != home.ID {
+			continue
+		}
+		if len(b.Members) != 2 || b.Members[0].Name != "Alice" || b.Members[1].Name != "Bob" || b.MemberCount != 2 {
+			t.Fatalf("member preview: %+v", b)
+		}
 	}
 
 	// Mute is per person.
