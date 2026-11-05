@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.returnit.app",
+      "sha256_cert_fingerprints": [
+        "B5:20:BE:E1:C5:8B:D2:CE:B9:27:3D:67:DD:2E:73:C9:4F:83:64:10:92:C1:3D:A0:F6:2F:5E:DA:96:33:89:6B"
+      ]
+    }
+  }
+]
