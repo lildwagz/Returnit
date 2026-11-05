@@ -34,7 +34,8 @@ type Deps struct {
 	Reminders     ReminderService
 	Notifications NotificationService
 	Account       AccountService
-	Logger        *slog.Logger // nil means slog.Default()
+	Buckets       BucketService // nil leaves the bucket and invite routes out
+	Logger        *slog.Logger  // nil means slog.Default()
 	// Limiter backs rate limiting; nil means an in-memory limiter (per process).
 	Limiter ratelimit.Limiter
 	// Limits are the per-bucket budgets; the zero value means ratelimit.DefaultLimits().
@@ -95,6 +96,7 @@ func NewRouter(d Deps) *gin.Engine {
 	registerReceipts(v1, d.Receipts, userLimit(limiter, "upload", limits.UploadPerMinute, time.Minute, false))
 	registerReminders(v1, d.Reminders)
 	registerNotifications(v1, d.Notifications)
+	registerBuckets(v1, d.Buckets, userLimit(limiter, "invite", limits.InvitePerMinute, time.Minute, false))
 	registerDevices(v1, d.Devices)
 	registerLanguage(v1, d.Language)
 	freshAge := d.FreshLoginMaxAge

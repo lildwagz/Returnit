@@ -54,7 +54,7 @@ func TestSummaryAgainstDatabase(t *testing.T) {
 	add(owner, "usd", "USD", 100, 40, 3)
 	add(other, "someone else", "IDR", 9999999, 5, 1)
 
-	s, err := purchases.NewService(purchases.NewPGRepo(pool), nil).Summary(ctx, owner)
+	s, err := purchases.NewService(purchases.NewPGRepo(pool), nil).Summary(ctx, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestSummaryAgainstDatabase(t *testing.T) {
 	}
 	_ = expiring
 
-	empty, err := purchases.NewService(purchases.NewPGRepo(pool), nil).Summary(ctx, uuid.New())
+	empty, err := purchases.NewService(purchases.NewPGRepo(pool), nil).Summary(ctx, uuid.New(), nil)
 	if err != nil || empty.Counts.Total != 0 || empty.NextExpiring != nil || empty.NextReturn != nil || len(empty.CoveredValue) != 0 {
 		t.Fatalf("a user without purchases: %+v %v", empty, err)
 	}

@@ -16,6 +16,8 @@ import (
 type AccountService interface {
 	Get(ctx context.Context, userID uuid.UUID) (account.Account, error)
 	RequestDeletion(ctx context.Context, userID uuid.UUID) (time.Time, error)
+	// SetEraseShared records the choice to delete the person's purchases in shared buckets too.
+	SetEraseShared(ctx context.Context, userID uuid.UUID, erase bool) error
 	CancelDeletion(ctx context.Context, userID uuid.UUID) error
 	// Export streams the user's data as one JSON document (see account.Service.Export).
 	Export(ctx context.Context, userID uuid.UUID, w io.Writer) error
@@ -33,8 +35,23 @@ func registerAccount(g *gin.RouterGroup, svc AccountService, fresh gin.HandlerFu
 
 	// Schedules erasure after the grace period; 202 because nothing is deleted yet.
 	g.DELETE("/account", fresh, deletionLimit, func(c *gin.Context) {
+		// Optional body {"eraseShared": true}: also delete the purchases added to shared buckets. No body means no.
+		var opts struct {
+			EraseShared bool `json:"eraseShared"`
+		}
+		if c.Request.ContentLength != 0 {
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBodyBytes)
+			if err := c.ShouldBindJSON(&opts); err != nil && !errors.Is(err, io.EOF) {
+				c.JSON(http.StatusBadRequest, ErrorBody("bad_request", "invalid JSON body", c))
+				return
+			}
+		}
 		at, err := svc.RequestDeletion(c.Request.Context(), userID(c))
 		if err != nil {
+			writeAccountErr(c, err)
+			return
+		}
+		if err := svc.SetEraseShared(c.Request.Context(), userID(c), opts.EraseShared); err != nil {
 			writeAccountErr(c, err)
 			return
 		}

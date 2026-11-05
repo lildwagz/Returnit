@@ -112,6 +112,15 @@ UPDATE users SET deletion_requested_at = $2, deletion_scheduled_at = $3, updated
 	return at, nil
 }
 
+// SetEraseShared records whether the purchases the person added to shared buckets are deleted too when the account is
+// erased (false: they stay for the other members). It only applies while a deletion is scheduled.
+func (s *Service) SetEraseShared(ctx context.Context, userID uuid.UUID, erase bool) error {
+	if _, err := s.pool.Exec(ctx, `UPDATE users SET deletion_erase_shared = $2 WHERE id = $1 AND deletion_scheduled_at IS NOT NULL`, userID, erase); err != nil {
+		return fmt.Errorf("account: erase shared: %w", err)
+	}
+	return nil
+}
+
 // CancelDeletion clears a pending deletion. It is idempotent when nothing is pending, and
 // returns ErrTooLate once the scheduled time has passed. Notice e-mails not yet sent are dropped.
 func (s *Service) CancelDeletion(ctx context.Context, userID uuid.UUID) error {
@@ -122,7 +131,7 @@ func (s *Service) CancelDeletion(ctx context.Context, userID uuid.UUID) error {
 	}
 	defer tx.Rollback(ctx)
 	tag, err := tx.Exec(ctx, `
-UPDATE users SET deletion_requested_at = NULL, deletion_scheduled_at = NULL, updated_at = now()
+UPDATE users SET deletion_requested_at = NULL, deletion_scheduled_at = NULL, deletion_erase_shared = false, updated_at = now()
 WHERE id = $1 AND deletion_scheduled_at > $2`, userID, now)
 	if err != nil {
 		return fmt.Errorf("account: cancel deletion: %w", err)
@@ -205,10 +214,8 @@ ON CONFLICT (user_id) DO NOTHING`, d.id, d.requested, s.now()); err != nil {
 		if err := queueIdentityDeletion(ctx, tx, d.subject); err != nil {
 			return 0, err
 		}
-		// The personal bucket goes first: its purchases (and, through the receipts trigger, their files) go with it.
-		// It is not left to the users foreign key, which only clears the bucket's creator.
-		if _, err := tx.Exec(ctx, `DELETE FROM buckets WHERE personal AND created_by = $1`, d.id); err != nil {
-			return 0, fmt.Errorf("account: delete personal bucket: %w", err)
+		if err := releaseBuckets(ctx, tx, d.id); err != nil {
+			return 0, err
 		}
 		if _, err := tx.Exec(ctx, `DELETE FROM users WHERE id = $1`, d.id); err != nil {
 			return 0, fmt.Errorf("account: delete user: %w", err)
@@ -218,4 +225,68 @@ ON CONFLICT (user_id) DO NOTHING`, d.id, d.requested, s.now()); err != nil {
 		return 0, fmt.Errorf("account: commit: %w", err)
 	}
 	return len(list), nil
+}
+
+// releaseBuckets lets an account go without taking other people's data with it:
+//   - the personal bucket is deleted, and its purchases (and, through the receipts trigger, their files) go with it. This
+//     is explicit because the users foreign key only clears the bucket's creator;
+//   - in a shared bucket the person owns, ownership goes to the member who has been there longest (not someone whose
+//     own deletion is pending); when nobody is left, the bucket is deleted with its purchases;
+//   - purchases the person added to shared buckets stay there with "added by" empty, unless they chose to erase them too.
+//
+// Buckets are locked in id order so two accounts being erased together cannot deadlock.
+func releaseBuckets(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
+	if _, err := tx.Exec(ctx, `DELETE FROM buckets WHERE personal AND created_by = $1`, userID); err != nil {
+		return fmt.Errorf("account: delete personal bucket: %w", err)
+	}
+	rows, err := tx.Query(ctx, `
+SELECT b.id FROM buckets b JOIN bucket_members bm ON bm.bucket_id = b.id
+WHERE bm.user_id = $1 AND bm.role = 'owner' ORDER BY b.id FOR UPDATE OF b`, userID)
+	if err != nil {
+		return fmt.Errorf("account: owned buckets: %w", err)
+	}
+	var owned []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return fmt.Errorf("account: owned buckets: %w", err)
+		}
+		owned = append(owned, id)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("account: owned buckets: %w", err)
+	}
+	for _, id := range owned {
+		tag, err := tx.Exec(ctx, `
+UPDATE bucket_members SET role = 'owner'
+WHERE bucket_id = $1 AND user_id = (
+  SELECT bm.user_id FROM bucket_members bm JOIN users u ON u.id = bm.user_id
+  WHERE bm.bucket_id = $1 AND bm.user_id <> $2 AND u.deletion_scheduled_at IS NULL
+  ORDER BY bm.joined_at, bm.user_id LIMIT 1)`, id, userID)
+		if err != nil {
+			return fmt.Errorf("account: hand over bucket: %w", err)
+		}
+		if tag.RowsAffected() == 0 {
+			if _, err := tx.Exec(ctx, `DELETE FROM buckets WHERE id = $1`, id); err != nil {
+				return fmt.Errorf("account: delete empty bucket: %w", err)
+			}
+		}
+	}
+	// What is left is what the person added to shared buckets: it stays for the others unless they chose to erase it.
+	var erase bool
+	if err := tx.QueryRow(ctx, `SELECT deletion_erase_shared FROM users WHERE id = $1`, userID).Scan(&erase); err != nil {
+		return fmt.Errorf("account: erase shared choice: %w", err)
+	}
+	if erase {
+		if _, err := tx.Exec(ctx, `DELETE FROM purchases WHERE user_id = $1`, userID); err != nil {
+			return fmt.Errorf("account: erase shared purchases: %w", err)
+		}
+		return nil
+	}
+	if _, err := tx.Exec(ctx, `UPDATE purchases SET user_id = NULL WHERE user_id = $1`, userID); err != nil {
+		return fmt.Errorf("account: release purchases: %w", err)
+	}
+	return nil
 }

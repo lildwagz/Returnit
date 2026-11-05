@@ -456,6 +456,36 @@ Made on the phone (no backend change). Needs a build with `expo-print` and `expo
 | P13 | Detail layout | Open a purchase with no price and no duration | The claim button is blue, right under the warranty banner; no empty Price or Duration cell |
 | P14 | Card | Home and Purchases list | Store, date and price share one line (paperclip when there are receipts); no separate price row |
 
+### 3.17 Shared buckets (mobile 1.10.0, backend migrations 16 to 18)
+
+Needs two phones (or one phone and an emulator) with two different accounts, A (owner) and B (member), and a third account C.
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| B1 | Create | A: Settings → Shared buckets → Create bucket "Rumah" | The bucket screen opens; A is Owner; 1 member |
+| B2 | Limits | A creates five shared buckets, then a sixth | The sixth is refused with "reached the limit of buckets" |
+| B3 | Invite | A: Invite someone | A sheet shows the code in groups of four and the 7-day note; Share opens the system share sheet with the text and link |
+| B4 | Join by link | B (signed in, app installed) opens the link | The app opens on "Join Rumah?" with the inviter and member count; Join adds B; a toast confirms |
+| B5 | Link, signed out | B signs out, opens the link, signs in | Home shows "You have been invited"; "See the invite" opens the join screen |
+| B6 | Join by code | B: Settings → Shared buckets → Have an invite code; paste the code in lower case with spaces or hyphens | The invite is recognised; a wrong code says "not recognised" |
+| B7 | Dead invite | A makes a new link; B uses the old one. Or wait 7 days / revoke | "This link no longer works" (the same text for expired, revoked and unknown) |
+| B8 | Full | Six people join, a seventh tries | "This bucket is full"; Join is disabled on the preview |
+| B9 | Switcher | A has only the personal bucket; then A creates one | No chips with one bucket; chips "All, Personal, Rumah" with counts appear with two; the selected chip has a check; Home, Pembelian and Tenggat follow the chip |
+| B10 | Shared purchase | B adds a purchase with Bucket = Rumah | A sees it, with "Rumah · by B" on the card and "Added by B" on the detail; A may edit and delete it |
+| B11 | Move | A moves a purchase from Personal to Rumah (edit, Bucket) | B now sees it; moving it back hides it from B again |
+| B12 | Mute | B turns off "Reminders for this bucket" | B gets no reminder for its purchases; A still does; turning it on again resumes for later reminders |
+| B13 | Reminders per member | A shared purchase ends in 7 days; both have reminders on | A and B each get their own reminder (two notification rows) |
+| B14 | Leave | B: Leave bucket | B no longer sees the bucket or its purchases; what B added stays for A, shown as "Added by a former member" |
+| B15 | Remove | A taps a member, Remove | The member is gone from the list and loses access at once |
+| B16 | Transfer | A: member, Change owner; then A tries to leave | B becomes Owner and A a Member; an owner cannot leave ("transfer ownership first") |
+| B17 | Delete bucket | Owner: Delete bucket | The button stays off until the exact name is typed; its purchases and receipts vanish for all members |
+| B18 | Account deletion, keep | A (in a shared bucket) deletes the account and chooses "keep shared items"; after the waiting period the purge runs | The shared bucket stays, owned by the longest member; A's shared purchases stay as "former member"; A's personal data is gone |
+| B19 | Account deletion, erase | Same, choosing "delete account and what I added" | A's shared purchases are deleted too; other members' purchases stay |
+| B20 | Strangers | C (not a member) opens a bucket or purchase id of Rumah | "Not found" everywhere; nothing is revealed |
+| B21 | Arabic | App in Arabic | The chip row, member list and sheets are right to left; chevrons mirror |
+| B22 | App Link | With the app installed, tap the link in WhatsApp | The app opens directly (no browser page); `adb shell pm get-app-links com.returnit.app` shows dl.<domain> as verified. Without the app, the page /join explains and links to the download |
+| B23 | Privacy | Open /privacy | The shared bucket parts (data, use, retention, deletion) are in both languages |
+
 ## 4. Server behaviour to know while testing
 
 * **Edit replaces everything.** If a field disappears after editing, the app forgot to send it.
@@ -486,7 +516,7 @@ Severity:     blocker (cannot use app) / major (feature broken) / minor / cosmet
 ## 6. Release checklist
 
 - [ ] Smoke test passes on a real phone
-- [ ] All cases in sections 3.1 to 3.16 pass or have an accepted, documented exception
+- [ ] All cases in sections 3.1 to 3.17 pass or have an accepted, documented exception
 - [ ] Push reminder (N4) verified on a real device against staging
 - [ ] Account deletion with a throwaway account verified end to end (C3, C4, C7, C9)
 - [ ] No tokens in logs (E7), HTTPS only (E10)

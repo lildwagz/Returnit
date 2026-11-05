@@ -83,6 +83,12 @@ write_page() {
 	# the privacy policy (a fixed page, public address /privacy)
 	cp "$here/privacy.html" "$DIR/privacy.html"
 	chmod 644 "$DIR/privacy.html"
+	# the invite page and the Android App Links file (the app opens https://dl.<domain>/join links itself)
+	cp "$here/join.html" "$DIR/join.html"
+	mkdir -p "$DIR/.well-known"
+	cp "$here/assetlinks.json" "$DIR/.well-known/assetlinks.json"
+	chmod 755 "$DIR/.well-known"
+	chmod 644 "$DIR/join.html" "$DIR/.well-known/assetlinks.json"
 	TEMPLATE="$here/index.template.html" python3 - <<'PY'
 import html, json, os
 cfg = json.load(open(os.environ['JSON']))

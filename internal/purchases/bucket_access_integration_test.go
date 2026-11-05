@@ -77,10 +77,10 @@ WHERE bm.user_id = $1 AND b.personal AND bm.role = 'owner'`, alice).Scan(&person
 	if _, total, err := svc.List(ctx, bob, purchases.ListFilter{Page: 1, PageSize: 50}); err != nil || total != 0 {
 		t.Fatalf("list for a non-member: total %d, %v", total, err)
 	}
-	if s, err := svc.Summary(ctx, bob); err != nil || s.Counts.Total != 0 || s.NextExpiring != nil {
+	if s, err := svc.Summary(ctx, bob, nil); err != nil || s.Counts.Total != 0 || s.NextExpiring != nil {
 		t.Fatalf("summary for a non-member: %+v, %v", s, err)
 	}
-	if d, err := svc.Deadlines(ctx, bob, 0); err != nil || len(d) != 0 {
+	if d, err := svc.Deadlines(ctx, bob, 0, nil); err != nil || len(d) != 0 {
 		t.Fatalf("deadlines for a non-member: %d, %v", len(d), err)
 	}
 
@@ -102,10 +102,10 @@ INSERT INTO bucket_members (bucket_id, user_id, role) VALUES ($1, $2, 'owner'), 
 	if _, total, _ := svc.List(ctx, bob, purchases.ListFilter{Page: 1, PageSize: 50}); total != 1 {
 		t.Fatalf("list for a member: total %d", total)
 	}
-	if s, _ := svc.Summary(ctx, bob); s.Counts.Total != 1 || s.NextExpiring == nil {
+	if s, _ := svc.Summary(ctx, bob, nil); s.Counts.Total != 1 || s.NextExpiring == nil {
 		t.Fatalf("summary for a member: %+v", s)
 	}
-	if d, _ := svc.Deadlines(ctx, bob, 0); len(d) != 1 {
+	if d, _ := svc.Deadlines(ctx, bob, 0, nil); len(d) != 1 {
 		t.Fatalf("deadlines for a member: %d", len(d))
 	}
 	if _, err := svc.Update(ctx, bob, p.ID, purchases.RawInput{ProductName: "Renamed by Bob", PurchaseDate: "2026-01-01", WarrantyEndDate: &end}); err != nil {

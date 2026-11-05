@@ -456,6 +456,36 @@ Dibuat di HP (tanpa perubahan backend). Butuh build dengan `expo-print` dan `exp
 | P13 | Tata letak detail | Buka pembelian tanpa harga dan tanpa durasi | Tombol klaim biru tepat di bawah banner garansi; tidak ada sel Harga atau Durasi kosong |
 | P14 | Kartu | Beranda dan daftar Pembelian | Toko, tanggal, dan harga dalam satu baris (klip bila ada struk); tidak ada baris harga terpisah |
 
+### 3.17 Bucket bersama (mobile 1.10.0, migrasi backend 16 sampai 18)
+
+Butuh dua HP (atau satu HP dan emulator) dengan dua akun berbeda, A (pemilik) dan B (anggota), serta akun ketiga C.
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| B1 | Buat | A: Pengaturan → Bucket bersama → Buat bucket "Rumah" | Layar bucket terbuka; A berstatus Pemilik; 1 anggota |
+| B2 | Batas | A membuat lima bucket bersama, lalu yang keenam | Yang keenam ditolak dengan "sudah mencapai batas jumlah bucket" |
+| B3 | Undang | A: Undang anggota | Sheet menampilkan kode per empat karakter dan catatan 7 hari; Bagikan membuka menu bagikan sistem dengan teks dan tautan |
+| B4 | Gabung lewat tautan | B (sudah masuk, aplikasi terpasang) membuka tautan | Aplikasi terbuka di "Gabung ke Rumah?" dengan nama pengundang dan jumlah anggota; Gabung menambahkan B; toast mengonfirmasi |
+| B5 | Tautan, belum masuk | B keluar akun, membuka tautan, lalu masuk | Beranda menampilkan "Anda diundang"; "Lihat undangan" membuka layar gabung |
+| B6 | Gabung lewat kode | B: Pengaturan → Bucket bersama → Punya kode undangan; tempel kode huruf kecil dengan spasi atau tanda hubung | Undangan dikenali; kode salah menampilkan "tidak dikenali" |
+| B7 | Undangan mati | A membuat tautan baru; B memakai yang lama. Atau tunggu 7 hari / cabut | "Tautan ini sudah tidak berlaku" (teks sama untuk kedaluwarsa, dicabut, dan tidak dikenal) |
+| B8 | Penuh | Enam orang bergabung, orang ketujuh mencoba | "Bucket ini sudah penuh"; Gabung nonaktif di pratinjau |
+| B9 | Pemilih bucket | A hanya punya bucket pribadi; lalu membuat satu | Tanpa chip dengan satu bucket; dengan dua muncul chip "Semua, Pribadi, Rumah" beserta jumlah; chip terpilih bertanda centang; Beranda, Pembelian, dan Tenggat mengikuti chip |
+| B10 | Pembelian bersama | B menambah pembelian dengan Bucket = Rumah | A melihatnya, dengan "Rumah · oleh B" di kartu dan "Ditambahkan oleh B" di detail; A boleh mengubah dan menghapusnya |
+| B11 | Pindah | A memindahkan pembelian dari Pribadi ke Rumah (ubah, Bucket) | B kini melihatnya; memindahkan kembali menyembunyikannya dari B |
+| B12 | Bisukan | B mematikan "Pengingat bucket ini" | B tidak menerima pengingat untuk pembeliannya; A tetap menerima; menyalakan lagi melanjutkan untuk pengingat berikutnya |
+| B13 | Pengingat per anggota | Garansi pembelian bersama berakhir 7 hari lagi; keduanya mengaktifkan pengingat | A dan B masing-masing menerima pengingatnya sendiri (dua baris notifikasi) |
+| B14 | Keluar | B: Keluar dari bucket | B tidak lagi melihat bucket dan pembeliannya; yang B tambahkan tetap untuk A, tampil "Ditambahkan oleh mantan anggota" |
+| B15 | Keluarkan | A mengetuk anggota, Keluarkan | Anggota hilang dari daftar dan langsung kehilangan akses |
+| B16 | Ubah pemilik | A: anggota, Ubah pemilik; lalu A mencoba keluar | B menjadi Pemilik dan A Anggota; pemilik tidak bisa keluar ("ubah pemilik dulu") |
+| B17 | Hapus bucket | Pemilik: Hapus bucket | Tombol nonaktif sampai nama persis diketik; pembelian dan struk hilang untuk semua anggota |
+| B18 | Hapus akun, biarkan | A (di bucket bersama) menghapus akun dan memilih "biarkan yang di bucket bersama"; setelah masa tunggu, purge berjalan | Bucket tetap, dimiliki anggota terlama; pembelian bersama A tetap sebagai "mantan anggota"; data pribadi A hilang |
+| B19 | Hapus akun, hapus semua | Sama, memilih "hapus akun dan yang saya tambahkan" | Pembelian bersama A ikut terhapus; pembelian anggota lain tetap |
+| B20 | Orang luar | C (bukan anggota) membuka id bucket atau pembelian Rumah | "Tidak ditemukan" di mana-mana; tidak ada yang terungkap |
+| B21 | Arab | Aplikasi berbahasa Arab | Baris chip, daftar anggota, dan sheet berjalan kanan ke kiri; chevron dicerminkan |
+| B22 | App Link | Dengan aplikasi terpasang, ketuk tautan di WhatsApp | Aplikasi langsung terbuka (tanpa halaman browser); `adb shell pm get-app-links com.returnit.app` menampilkan dl.<domain> terverifikasi. Tanpa aplikasi, halaman /join menjelaskan dan menautkan ke unduhan |
+| B23 | Privasi | Buka /privacy | Bagian bucket bersama (data, penggunaan, retensi, penghapusan) ada di kedua bahasa |
+
 ## 4. Perilaku server yang perlu diketahui saat menguji
 
 * **Ubah (PATCH) menimpa semuanya.** Jika sebuah field hilang setelah diubah, berarti aplikasi lupa mengirimnya.
@@ -486,7 +516,7 @@ Tingkat:      blocker (aplikasi tak bisa dipakai) / mayor (fitur rusak) / minor 
 ## 6. Checklist rilis
 
 - [ ] Smoke test lulus di HP asli
-- [ ] Semua kasus di bagian 3.1 sampai 3.16 lulus atau punya pengecualian yang disetujui dan tercatat
+- [ ] Semua kasus di bagian 3.1 sampai 3.17 lulus atau punya pengecualian yang disetujui dan tercatat
 - [ ] Pengingat push (N4) terverifikasi di perangkat asli terhadap staging
 - [ ] Penghapusan akun dengan akun sekali pakai terverifikasi dari awal sampai akhir (C3, C4, C7, C9)
 - [ ] Tidak ada token di log (E7), hanya HTTPS (E10)
