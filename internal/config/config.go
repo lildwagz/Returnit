@@ -180,6 +180,7 @@ func LoadWeb() (Web, error) {
 		{"RATE_LIMIT_ACCOUNT_DELETE_PER_HOUR", &w.RateLimits.AccountDeletionPerHour},
 		{"RATE_LIMIT_UNAUTH_PER_MIN_PER_IP", &w.RateLimits.UnauthPerMinutePerIP},
 		{"RATE_LIMIT_EXPORT_PER_HOUR", &w.RateLimits.ExportPerHour},
+		{"RATE_LIMIT_INVITE_PER_MIN", &w.RateLimits.InvitePerMinute},
 	} {
 		if v := os.Getenv(l.env); v != "" {
 			n, err := strconv.Atoi(v)

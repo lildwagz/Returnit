@@ -154,7 +154,9 @@ SELECT n.id, n.kind, n.channel, n.offset_days, n.warranty_end_date,
        COALESCE(rp.channel, 'push'),
        to_char(rp.quiet_hours_start, 'HH24:MI'), to_char(rp.quiet_hours_end, 'HH24:MI'),
        COALESCE(rp.timezone, 'Asia/Jakarta'),
-       u.deletion_scheduled_at IS NOT NULL
+       u.deletion_scheduled_at IS NOT NULL,
+       p.id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM bucket_members bm
+         WHERE bm.bucket_id = p.bucket_id AND bm.user_id = n.user_id AND bm.notify)
 FROM notifications n
 LEFT JOIN users u ON u.id = n.user_id
 LEFT JOIN purchases p ON p.id = n.purchase_id
@@ -175,7 +177,7 @@ FOR UPDATE OF n SKIP LOCKED`, now, dispatchBatch)
 		var plannedEnd *time.Time
 		if err := rows.Scan(&r.id, &r.due.Kind, &channel, &offset, &plannedEnd,
 			&r.due.CurrentEnd, &r.due.Prefs.Enabled, &raw, &r.due.Prefs.Channel,
-			&r.due.Prefs.QuietStart, &r.due.Prefs.QuietEnd, &r.due.Prefs.Timezone, &r.due.AccountPending); err != nil {
+			&r.due.Prefs.QuietStart, &r.due.Prefs.QuietEnd, &r.due.Prefs.Timezone, &r.due.AccountPending, &r.due.Unwanted); err != nil {
 			rows.Close()
 			return st, fmt.Errorf("notifications: scan due: %w", err)
 		}

@@ -35,10 +35,11 @@ type Limits struct {
 	AccountDeletionPerHour int // DELETE /account, per user
 	UnauthPerMinutePerIP   int // requests that fail authentication, per client IP
 	ExportPerHour          int // GET /account/export (reads all of a user's data), per user
+	InvitePerMinute        int // looking up or using a bucket invite (the token is the only key), per user
 }
 
 func DefaultLimits() Limits {
-	return Limits{UserPerMinute: 60, UploadPerMinute: 10, AccountDeletionPerHour: 3, UnauthPerMinutePerIP: 30, ExportPerHour: 3}
+	return Limits{UserPerMinute: 60, UploadPerMinute: 10, AccountDeletionPerHour: 3, UnauthPerMinutePerIP: 30, ExportPerHour: 3, InvitePerMinute: 10}
 }
 
 // WithDefaults replaces every unset (zero) field with its default, so a partly filled Limits is
@@ -59,6 +60,9 @@ func (l Limits) WithDefaults() Limits {
 	}
 	if l.ExportPerHour == 0 {
 		l.ExportPerHour = d.ExportPerHour
+	}
+	if l.InvitePerMinute == 0 {
+		l.InvitePerMinute = d.InvitePerMinute
 	}
 	return l
 }

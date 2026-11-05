@@ -28,6 +28,18 @@ type Worker struct {
 	OrphanGrace time.Duration
 }
 
+// PurgeInvites deletes bucket invites that expired or were revoked more than 30 days ago (only hashes are kept, and
+// only for as long as the privacy policy says).
+func (w *Worker) PurgeInvites(ctx context.Context) (int, error) {
+	tag, err := w.Pool.Exec(ctx, `
+DELETE FROM bucket_invites
+WHERE expires_at < now() - interval '30 days' OR revoked_at < now() - interval '30 days'`)
+	if err != nil {
+		return 0, fmt.Errorf("retention: purge invites: %w", err)
+	}
+	return int(tag.RowsAffected()), nil
+}
+
 // PurgeQueued deletes objects listed in object_deletions. Failures are retried with
 // exponential backoff (1m, 2m, 4m ... capped at 1h) and never lose the key.
 func (w *Worker) PurgeQueued(ctx context.Context) (int, error) {

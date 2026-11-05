@@ -40,6 +40,11 @@ type Purchase struct {
 	Receipts  []ReceiptInfo `json:"receipts"`
 	CreatedAt time.Time     `json:"createdAt"`
 	UpdatedAt time.Time     `json:"updatedAt"`
+	// BucketID is the bucket the purchase belongs to. AddedBy is the display name of the member who added it (null once
+	// that person has left or deleted their account); AddedByMe is true for the caller.
+	BucketID  *uuid.UUID `json:"bucketId"`
+	AddedBy   *string    `json:"addedBy"`
+	AddedByMe bool       `json:"addedByMe"`
 }
 
 // ReceiptInfo is the receipt metadata embedded in purchase responses.
@@ -64,6 +69,9 @@ type Input struct {
 	Notes             *string
 	// Category: Set false (field absent in the request) means an update keeps the stored value.
 	Category OptString
+	// BucketID: nil means a new purchase goes to the personal bucket and an update keeps the bucket; a value places or
+	// moves the purchase there (the caller must be a member of that bucket).
+	BucketID *uuid.UUID
 }
 
 // RawInput is the untrusted payload from the transport layer.
@@ -78,6 +86,7 @@ type RawInput struct {
 	ReturnDeadline    *string   `json:"returnDeadline"`
 	Notes             *string   `json:"notes"`
 	Category          OptString `json:"category"`
+	BucketID          *uuid.UUID `json:"bucketId"`
 }
 
 type ListFilter struct {
@@ -85,6 +94,7 @@ type ListFilter struct {
 	Status   string // "", active, expiring, expired, none
 	Category string // "" or one of Categories
 	Sort     string // "" (newest purchase first) or SortWarrantyEnd
+	BucketID *uuid.UUID // only this bucket; nil means every bucket the person is in
 	Page     int
 	PageSize int
 }
@@ -101,9 +111,9 @@ type Repository interface {
 	// Delete removes the purchase and returns the receipt storage key, if it had one.
 	Delete(ctx context.Context, userID, id uuid.UUID) (receiptKey *string, err error)
 	// Summary counts the user's purchases by warranty state and finds the next dates (see Summary).
-	Summary(ctx context.Context, userID uuid.UUID) (Summary, error)
+	Summary(ctx context.Context, userID uuid.UUID, bucket *uuid.UUID) (Summary, error)
 	// Deadlines lists warranty ends and return deadlines from pastDays days ago onward, soonest first (see Deadline).
-	Deadlines(ctx context.Context, userID uuid.UUID, pastDays int) ([]Deadline, error)
+	Deadlines(ctx context.Context, userID uuid.UUID, pastDays int, bucket *uuid.UUID) ([]Deadline, error)
 }
 
 // ObjectPurger asks the worker to delete receipt files after their purchase is deleted.
@@ -234,7 +244,7 @@ func Validate(r RawInput) (Input, error) {
 		return Input{}, verr("category is not a known category")
 	}
 	return Input{ProductName: name, StoreName: r.StoreName, PurchaseDate: pd, Price: r.Price, Currency: cur,
-		WarrantyStartDate: ws, WarrantyEndDate: we, ReturnDeadline: rd, Notes: r.Notes, Category: cat}, nil
+		WarrantyStartDate: ws, WarrantyEndDate: we, ReturnDeadline: rd, Notes: r.Notes, Category: cat, BucketID: r.BucketID}, nil
 }
 
 func optDate(s *string, field string) (*time.Time, error) {

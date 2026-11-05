@@ -18,6 +18,7 @@ import (
 	"github.com/returnit/returnit/internal/account"
 	"github.com/returnit/returnit/internal/appconfig"
 	"github.com/returnit/returnit/internal/auth"
+	"github.com/returnit/returnit/internal/buckets"
 	"github.com/returnit/returnit/internal/config"
 	"github.com/returnit/returnit/internal/database"
 	"github.com/returnit/returnit/internal/devices"
@@ -123,6 +124,7 @@ func run(log *slog.Logger) error {
 		Notifications:    notifications.NewService(pool),
 		Account:          account.NewService(pool, cfg.AccountDeletionGrace),
 		Devices:          devices.NewService(pool),
+		Buckets:          buckets.NewService(pool, receiptSvc),
 		Language:         &notifications.LanguageService{Pool: pool},
 		Logger:           log,
 		Limiter:          limiter,

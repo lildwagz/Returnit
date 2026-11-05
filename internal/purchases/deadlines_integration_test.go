@@ -60,7 +60,7 @@ func TestDeadlines(t *testing.T) {
 	mk(alice, "No dates", nil, nil, "")
 	mk(bob, "Bobs", day(2), day(1), "")
 
-	items, err := svc.Deadlines(ctx, alice, 30)
+	items, err := svc.Deadlines(ctx, alice, 30, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,17 +81,17 @@ func TestDeadlines(t *testing.T) {
 		t.Errorf("category: %v / %v", items[1].Category, items[0].Category)
 	}
 	// A wider window brings the two-month-old one back; pastDays=0 drops everything already past.
-	if wide, _ := svc.Deadlines(ctx, alice, 90); len(wide) != 5 {
+	if wide, _ := svc.Deadlines(ctx, alice, 90, nil); len(wide) != 5 {
 		t.Errorf("90 days: %d", len(wide))
 	}
-	if none, _ := svc.Deadlines(ctx, alice, 0); len(none) != 3 {
+	if none, _ := svc.Deadlines(ctx, alice, 0, nil); len(none) != 3 {
 		t.Errorf("0 days: %d (only upcoming)", len(none))
 	}
 	// Never someone else's.
-	if bobs, _ := svc.Deadlines(ctx, bob, 30); len(bobs) != 2 {
+	if bobs, _ := svc.Deadlines(ctx, bob, 30, nil); len(bobs) != 2 {
 		t.Errorf("bob: %d", len(bobs))
 	}
-	if _, err := svc.Deadlines(ctx, alice, 91); err == nil {
+	if _, err := svc.Deadlines(ctx, alice, 91, nil); err == nil {
 		t.Error("pastDays 91 must be refused")
 	}
 }

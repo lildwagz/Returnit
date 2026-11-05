@@ -223,6 +223,11 @@ func (h handlers) sweep(ctx context.Context, _ *asynq.Task) error {
 	if n > 0 {
 		h.d.Log.Info("orphaned receipt objects removed", "count", n)
 	}
+	if n, err := h.d.Retention.PurgeInvites(ctx); err != nil {
+		return err
+	} else if n > 0 {
+		h.d.Log.Info("old bucket invites removed", "count", n)
+	}
 	return nil
 }
 

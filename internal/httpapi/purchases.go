@@ -18,8 +18,8 @@ type PurchaseService interface {
 	List(ctx context.Context, userID uuid.UUID, f purchases.ListFilter) ([]purchases.Purchase, int, error)
 	Update(ctx context.Context, userID, id uuid.UUID, raw purchases.RawInput) (purchases.Purchase, error)
 	Delete(ctx context.Context, userID, id uuid.UUID) error
-	Summary(ctx context.Context, userID uuid.UUID) (purchases.Summary, error)
-	Deadlines(ctx context.Context, userID uuid.UUID, pastDays int) ([]purchases.Deadline, error)
+	Summary(ctx context.Context, userID uuid.UUID, bucket *uuid.UUID) (purchases.Summary, error)
+	Deadlines(ctx context.Context, userID uuid.UUID, pastDays int, bucket *uuid.UUID) ([]purchases.Deadline, error)
 }
 
 const maxBodyBytes = 64 << 10
@@ -94,7 +94,11 @@ func (h purchaseHandler) delete(c *gin.Context) {
 }
 
 func (h purchaseHandler) summary(c *gin.Context) {
-	s, err := h.svc.Summary(c.Request.Context(), userID(c))
+	bucket, ok := bucketQuery(c)
+	if !ok {
+		return
+	}
+	s, err := h.svc.Summary(c.Request.Context(), userID(c), bucket)
 	if err != nil {
 		writeErr(c, err)
 		return
@@ -113,7 +117,11 @@ func (h purchaseHandler) deadlines(c *gin.Context) {
 		}
 		past = n
 	}
-	items, err := h.svc.Deadlines(c.Request.Context(), userID(c), past)
+	bucket, ok := bucketQuery(c)
+	if !ok {
+		return
+	}
+	items, err := h.svc.Deadlines(c.Request.Context(), userID(c), past, bucket)
 	if err != nil {
 		writeErr(c, err)
 		return
@@ -128,7 +136,11 @@ func (h purchaseHandler) list(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, ErrorBody("bad_request", "page and pageSize must be integers", c))
 		return
 	}
-	f := purchases.ListFilter{Query: c.Query("q"), Status: c.Query("warrantyStatus"), Category: c.Query("category"), Sort: c.Query("sort"), Page: page, PageSize: size}
+	bucket, ok := bucketQuery(c)
+	if !ok {
+		return
+	}
+	f := purchases.ListFilter{BucketID: bucket, Query: c.Query("q"), Status: c.Query("warrantyStatus"), Category: c.Query("category"), Sort: c.Query("sort"), Page: page, PageSize: size}
 	items, total, err := h.svc.List(c.Request.Context(), userID(c), f)
 	if err != nil {
 		writeErr(c, err)
@@ -145,6 +157,20 @@ func (h purchaseHandler) list(c *gin.Context) {
 		f.PageSize = purchases.MaxPageSize
 	}
 	c.JSON(http.StatusOK, gin.H{"items": items, "page": f.Page, "pageSize": f.PageSize, "total": total})
+}
+
+// bucketQuery reads the optional ?bucketId= filter. A bucket the person is not in simply matches nothing.
+func bucketQuery(c *gin.Context) (*uuid.UUID, bool) {
+	raw := c.Query("bucketId")
+	if raw == "" {
+		return nil, true
+	}
+	id, err := uuid.Parse(raw)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorBody("bad_request", "bucketId must be a UUID", c))
+		return nil, false
+	}
+	return &id, true
 }
 
 func intQuery(c *gin.Context, key string) (int, error) {

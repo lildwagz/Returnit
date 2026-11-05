@@ -188,7 +188,9 @@ type Due struct {
 	CurrentEnd *time.Time // that same date today; nil if the purchase is gone or the date was cleared
 	// AccountPending is true when the owner has requested account deletion (grace period).
 	AccountPending bool
-	Prefs          Prefs
+	// Unwanted is true when the person left the purchase's bucket or muted it after the reminder was planned.
+	Unwanted bool
+	Prefs    Prefs
 }
 
 // Decide re-checks everything that may have changed since planning (the design notes require
@@ -197,6 +199,8 @@ func Decide(d Due, now time.Time) (a Action, reason string, until time.Time) {
 	switch {
 	case d.AccountPending:
 		return ActionCancel, "account pending deletion", time.Time{}
+	case d.Unwanted:
+		return ActionCancel, "left or muted the bucket", time.Time{}
 	case d.CurrentEnd == nil:
 		return ActionCancel, "purchase removed or date cleared", time.Time{}
 	case !d.CurrentEnd.Equal(d.PlannedEnd):
