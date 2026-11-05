@@ -8,6 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/returnit/returnit/internal/buckets"
 )
 
 type PGRepo struct{ pool *pgxpool.Pool }
@@ -20,7 +22,7 @@ func NewPGRepo(p *pgxpool.Pool) *PGRepo { return &PGRepo{pool: p} }
 func (r *PGRepo) Owns(ctx context.Context, userID, purchaseID uuid.UUID) (bool, error) {
 	var ok bool
 	err := r.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM purchases WHERE id = $1 AND user_id = $2)`, purchaseID, userID).Scan(&ok)
+		`SELECT EXISTS (SELECT 1 FROM purchases WHERE id = $1 AND `+buckets.Visible("bucket_id", "$2")+`)`, purchaseID, userID).Scan(&ok)
 	if err != nil {
 		return false, fmt.Errorf("receipts: owns: %w", err)
 	}
@@ -30,7 +32,7 @@ func (r *PGRepo) Owns(ctx context.Context, userID, purchaseID uuid.UUID) (bool, 
 // lockPurchase locks the owned purchase row so concurrent uploads for it serialise (the count limit relies on it).
 func lockPurchase(ctx context.Context, tx pgx.Tx, userID, purchaseID uuid.UUID) error {
 	var locked uuid.UUID
-	if err := tx.QueryRow(ctx, `SELECT id FROM purchases WHERE id = $1 AND user_id = $2 FOR UPDATE`,
+	if err := tx.QueryRow(ctx, `SELECT id FROM purchases WHERE id = $1 AND `+buckets.Visible("bucket_id", "$2")+` FOR UPDATE`,
 		purchaseID, userID).Scan(&locked); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
@@ -109,10 +111,10 @@ UPDATE receipts SET storage_key = $2, file_name = $3, content_type = $4, size_by
 	return &old, id, nil
 }
 
-const selectRecord = `
+var selectRecord = `
 SELECT r.id, r.storage_key, r.file_name, r.content_type, r.size_bytes, r.uploaded_at
 FROM receipts r JOIN purchases p ON p.id = r.purchase_id
-WHERE p.id = $1 AND p.user_id = $2`
+WHERE p.id = $1 AND ` + buckets.Visible("p.bucket_id", "$2")
 
 func (r *PGRepo) scanRecord(ctx context.Context, sql string, args ...any) (Record, error) {
 	var rec Record
@@ -153,13 +155,13 @@ func (r *PGRepo) Delete(ctx context.Context, userID, purchaseID uuid.UUID) (stri
 	return r.deleteKey(ctx, `
 DELETE FROM receipts WHERE id = (
   SELECT r.id FROM receipts r JOIN purchases p ON p.id = r.purchase_id
-  WHERE p.id = $1 AND p.user_id = $2 ORDER BY r.uploaded_at, r.id LIMIT 1)
+  WHERE p.id = $1 AND `+buckets.Visible("p.bucket_id", "$2")+` ORDER BY r.uploaded_at, r.id LIMIT 1)
 RETURNING storage_key`, purchaseID, userID)
 }
 
 func (r *PGRepo) DeleteByID(ctx context.Context, userID, purchaseID, id uuid.UUID) (string, error) {
 	return r.deleteKey(ctx, `
 DELETE FROM receipts r USING purchases p
-WHERE r.purchase_id = p.id AND p.id = $1 AND p.user_id = $2 AND r.id = $3
+WHERE r.purchase_id = p.id AND p.id = $1 AND `+buckets.Visible("p.bucket_id", "$2")+` AND r.id = $3
 RETURNING r.storage_key`, purchaseID, userID, id)
 }

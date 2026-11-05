@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/returnit/returnit/internal/buckets"
 )
 
 const (
@@ -39,7 +41,7 @@ func (r *PGRepo) Deadlines(ctx context.Context, userID uuid.UUID, pastDays int) 
 SELECT p.id, p.product_name, p.category, d.kind, d.day
 FROM purchases p
 CROSS JOIN LATERAL (VALUES ('warranty'::text, p.warranty_end_date), ('return'::text, p.return_deadline)) AS d(kind, day)
-WHERE p.user_id = $1 AND d.day IS NOT NULL AND d.day >= CURRENT_DATE - $2::int
+WHERE `+buckets.Visible("p.bucket_id", "$1")+` AND d.day IS NOT NULL AND d.day >= CURRENT_DATE - $2::int
 ORDER BY d.day, p.id, d.kind
 LIMIT $3`, userID, pastDays, maxDeadlines)
 	if err != nil {

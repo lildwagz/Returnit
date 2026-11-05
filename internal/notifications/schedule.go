@@ -125,7 +125,7 @@ type Planned struct {
 }
 
 // Plan returns the notifications to create for a candidate at time now. It is pure and
-// deterministic; idempotency comes from Key (purchase + reminder date + offset). The channel is NOT part of
+// deterministic; idempotency comes from Key (purchase + person + reminder date + offset: each member of a shared bucket has their own reminder). The channel is NOT part of
 // the key: it is only how a reminder is delivered, so switching push <-> in_app must not make a second
 // reminder (a duplicate inbox entry whose read state was lost). A reminder that has not been sent yet is
 // delivered through whichever channel is current when it is due (see Dispatch).
@@ -142,7 +142,7 @@ func Plan(c Candidate, now time.Time) []Planned {
 			return
 		}
 		reminderDate := end.AddDate(0, 0, -offset).Format("2006-01-02")
-		key := fmt.Sprintf("%s:%s:%d", c.PurchaseID, reminderDate, offset)
+		key := fmt.Sprintf("%s:%s:%s:%d", c.PurchaseID, c.UserID, reminderDate, offset)
 		if kind == KindReturn {
 			key = "return:" + key // the same date must not collide with a warranty reminder
 		}

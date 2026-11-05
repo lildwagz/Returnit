@@ -11,6 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/returnit/returnit/internal/buckets"
 )
 
 type PGRepo struct{ pool *pgxpool.Pool }
@@ -74,7 +76,7 @@ func (r *PGRepo) Create(ctx context.Context, userID uuid.UUID, in Input) (Purcha
 	err := r.pool.QueryRow(ctx, `
 INSERT INTO purchases (user_id, product_name, store_name, purchase_date, price, currency,
   warranty_start_date, warranty_end_date, return_deadline, notes, category)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`, // bucket_id: the trigger puts it in the personal bucket
 		userID, in.ProductName, in.StoreName, in.PurchaseDate, in.Price, in.Currency,
 		in.WarrantyStartDate, in.WarrantyEndDate, in.ReturnDeadline, in.Notes, in.Category.Value).Scan(&id)
 	if err != nil {
@@ -85,7 +87,7 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
 
 func (r *PGRepo) Get(ctx context.Context, userID, id uuid.UUID) (Purchase, error) {
 	p, err := scan(r.pool.QueryRow(ctx,
-		`SELECT `+cols+from+` WHERE p.id = $1 AND p.user_id = $2`, id, userID))
+		`SELECT `+cols+from+` WHERE p.id = $1 AND `+buckets.Visible("p.bucket_id", "$2"), id, userID))
 	return p, mapErr(err)
 }
 
@@ -94,7 +96,7 @@ func (r *PGRepo) Update(ctx context.Context, userID, id uuid.UUID, in Input) (Pu
 UPDATE purchases SET product_name=$3, store_name=$4, purchase_date=$5, price=$6, currency=$7,
   warranty_start_date=$8, warranty_end_date=$9, return_deadline=$10, notes=$11,
   category = CASE WHEN $12 THEN $13 ELSE category END, updated_at=now()
-WHERE id=$1 AND user_id=$2`,
+WHERE id=$1 AND `+buckets.Visible("bucket_id", "$2"),
 		id, userID, in.ProductName, in.StoreName, in.PurchaseDate, in.Price, in.Currency,
 		in.WarrantyStartDate, in.WarrantyEndDate, in.ReturnDeadline, in.Notes, in.Category.Set, in.Category.Value)
 	if err != nil {
@@ -113,8 +115,8 @@ func (r *PGRepo) Delete(ctx context.Context, userID, id uuid.UUID) (*string, err
 	err := r.pool.QueryRow(ctx, `
 WITH k AS (
   SELECT r.storage_key FROM receipts r JOIN purchases p ON p.id = r.purchase_id
-  WHERE p.id = $1 AND p.user_id = $2
-), d AS (DELETE FROM purchases WHERE id = $1 AND user_id = $2 RETURNING id)
+  WHERE p.id = $1 AND `+buckets.Visible("p.bucket_id", "$2")+`
+), d AS (DELETE FROM purchases WHERE id = $1 AND `+buckets.Visible("bucket_id", "$2")+` RETURNING id)
 SELECT d.id, (SELECT storage_key FROM k LIMIT 1) FROM d`, id, userID).Scan(&deleted, &key)
 	if err != nil {
 		return nil, mapErr(err)
@@ -122,10 +124,12 @@ SELECT d.id, (SELECT storage_key FROM k LIMIT 1) FROM d`, id, userID).Scan(&dele
 	return key, nil
 }
 
+var visibleToUser = buckets.Visible("p.bucket_id", "$1")
+
 var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 
-const listWhere = `
-WHERE p.user_id = $1
+var listWhere = `
+WHERE ` + visibleToUser + `
   AND ($2::text = '' OR p.product_name ILIKE '%' || $2 || '%' OR p.store_name ILIKE '%' || $2 || '%')
   AND ($3::text = '' OR CASE
         WHEN p.warranty_end_date IS NULL THEN 'none'
@@ -174,14 +178,14 @@ SELECT count(*) FILTER (WHERE warranty_end_date > CURRENT_DATE + 30),
        count(*) FILTER (WHERE warranty_end_date < CURRENT_DATE),
        count(*) FILTER (WHERE warranty_end_date IS NULL),
        count(*)
-FROM purchases WHERE user_id = $1`, userID).
+FROM purchases p WHERE `+visibleToUser, userID).
 		Scan(&s.Counts.Active, &s.Counts.Expiring, &s.Counts.Expired, &s.Counts.Unknown, &s.Counts.Total); err != nil {
 		return Summary{}, mapErr(err)
 	}
 
 	rows, err := r.pool.Query(ctx, `
-SELECT currency, sum(price)::float8 FROM purchases
-WHERE user_id = $1 AND price IS NOT NULL AND warranty_end_date >= CURRENT_DATE
+SELECT currency, sum(price)::float8 FROM purchases p
+WHERE `+visibleToUser+` AND price IS NOT NULL AND warranty_end_date >= CURRENT_DATE
 GROUP BY currency ORDER BY currency`, userID)
 	if err != nil {
 		return Summary{}, mapErr(err)
@@ -201,8 +205,8 @@ GROUP BY currency ORDER BY currency`, userID)
 	next := func(column string) (*SummaryItem, error) {
 		var it SummaryItem
 		var d time.Time
-		err := r.pool.QueryRow(ctx, `SELECT id, product_name, `+column+` FROM purchases
-WHERE user_id = $1 AND `+column+` >= CURRENT_DATE ORDER BY `+column+`, id LIMIT 1`, userID).Scan(&it.ID, &it.ProductName, &d)
+		err := r.pool.QueryRow(ctx, `SELECT id, product_name, `+column+` FROM purchases p
+WHERE `+visibleToUser+` AND `+column+` >= CURRENT_DATE ORDER BY `+column+`, id LIMIT 1`, userID).Scan(&it.ID, &it.ProductName, &d)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}

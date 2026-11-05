@@ -37,27 +37,28 @@ func (s *Scheduler) now() time.Time {
 const planBatch = 500
 
 // Plan creates notification rows for upcoming reminders. Running it repeatedly (or from several
-// processes) never creates duplicates: rows are keyed by purchase + reminder date + offset (not the
+// processes) never creates duplicates: rows are keyed by purchase + person + reminder date + offset (not the
 // channel) with ON CONFLICT DO NOTHING.
 func (s *Scheduler) Plan(ctx context.Context) (int, error) {
 	now := s.now()
 	created := 0
-	last := uuid.Nil
+	last, lastUser := uuid.Nil, uuid.Nil // keyset: purchase, then member, so a page boundary cannot skip a member
 	for {
 		rows, err := s.Pool.Query(ctx, `
-SELECT p.id, p.user_id, p.product_name, p.warranty_end_date, p.return_deadline,
+SELECT p.id, bm.user_id, p.product_name, p.warranty_end_date, p.return_deadline,
        COALESCE(rp.enabled, true),
        COALESCE(rp.days_before, '[30,14,7,3,1]'::jsonb),
        COALESCE(rp.channel, 'push'),
        to_char(rp.quiet_hours_start, 'HH24:MI'), to_char(rp.quiet_hours_end, 'HH24:MI'),
        COALESCE(rp.timezone, 'Asia/Jakarta'), u.language
 FROM purchases p
-JOIN users u ON u.id = p.user_id AND u.deletion_scheduled_at IS NULL
-LEFT JOIN reminder_preferences rp ON rp.user_id = p.user_id
+JOIN bucket_members bm ON bm.bucket_id = p.bucket_id AND bm.notify
+JOIN users u ON u.id = bm.user_id AND u.deletion_scheduled_at IS NULL
+LEFT JOIN reminder_preferences rp ON rp.user_id = bm.user_id
 WHERE (p.warranty_end_date BETWEEN ($1::date - 3) AND ($1::date + 35)
        OR p.return_deadline BETWEEN ($1::date - 3) AND ($1::date + 35))
-  AND p.id > $2
-ORDER BY p.id LIMIT $3`, now, last, planBatch)
+  AND (p.id, bm.user_id) > ($2::uuid, $3::uuid)
+ORDER BY p.id, bm.user_id LIMIT $4`, now, last, lastUser, planBatch)
 		if err != nil {
 			return created, fmt.Errorf("notifications: plan query: %w", err)
 		}
@@ -72,7 +73,7 @@ ORDER BY p.id LIMIT $3`, now, last, planBatch)
 				rows.Close()
 				return created, fmt.Errorf("notifications: plan scan: %w", err)
 			}
-			last = pid // advance the keyset even if this row is skipped below
+			last, lastUser = pid, uid // advance the keyset even if this row is skipped below
 			if we != nil {
 				c.End = *we
 			}

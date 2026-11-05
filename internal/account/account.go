@@ -205,6 +205,11 @@ ON CONFLICT (user_id) DO NOTHING`, d.id, d.requested, s.now()); err != nil {
 		if err := queueIdentityDeletion(ctx, tx, d.subject); err != nil {
 			return 0, err
 		}
+		// The personal bucket goes first: its purchases (and, through the receipts trigger, their files) go with it.
+		// It is not left to the users foreign key, which only clears the bucket's creator.
+		if _, err := tx.Exec(ctx, `DELETE FROM buckets WHERE personal AND created_by = $1`, d.id); err != nil {
+			return 0, fmt.Errorf("account: delete personal bucket: %w", err)
+		}
 		if _, err := tx.Exec(ctx, `DELETE FROM users WHERE id = $1`, d.id); err != nil {
 			return 0, fmt.Errorf("account: delete user: %w", err)
 		}
