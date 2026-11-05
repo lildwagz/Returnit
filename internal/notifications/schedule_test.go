@@ -138,6 +138,19 @@ func TestPlanKeyDiffersPerPerson(t *testing.T) {
 	}
 }
 
+func TestDecideCancelsWhenTheBucketWasLeftOrMuted(t *testing.T) {
+	end := date("2026-11-30")
+	now := time.Date(2026, 11, 23, 9, 0, 0, 0, wib)
+	d := Due{Channel: "push", OffsetDays: 7, PlannedEnd: end, CurrentEnd: &end, Prefs: DefaultPrefs(), Unwanted: true}
+	if a, reason, _ := Decide(d, now); a != ActionCancel || reason == "" {
+		t.Fatalf("got %v %q, want a cancel with a reason", a, reason)
+	}
+	d.Unwanted = false
+	if a, _, _ := Decide(d, now); a != ActionSend {
+		t.Fatalf("got %v, want send", a)
+	}
+}
+
 func TestDecide(t *testing.T) {
 	end := date("2026-11-30")
 	now := time.Date(2026, 11, 23, 9, 0, 0, 0, wib)

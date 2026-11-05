@@ -29,21 +29,21 @@ type Deadline struct {
 // Deadlines lists the user's warranty ends and return deadlines from `pastDays` days ago onward (so recent ones that have
 // just passed are included), soonest first. "Today" is the database's calendar day (UTC), the same rule as the list
 // filter and the summary; the app groups the items by its own local date.
-func (s *Service) Deadlines(ctx context.Context, userID uuid.UUID, pastDays int) ([]Deadline, error) {
+func (s *Service) Deadlines(ctx context.Context, userID uuid.UUID, pastDays int, bucket *uuid.UUID) ([]Deadline, error) {
 	if pastDays < 0 || pastDays > MaxPastDays {
 		return nil, verr(fmt.Sprintf("pastDays must be between 0 and %d", MaxPastDays))
 	}
-	return s.repo.Deadlines(ctx, userID, pastDays)
+	return s.repo.Deadlines(ctx, userID, pastDays, bucket)
 }
 
-func (r *PGRepo) Deadlines(ctx context.Context, userID uuid.UUID, pastDays int) ([]Deadline, error) {
+func (r *PGRepo) Deadlines(ctx context.Context, userID uuid.UUID, pastDays int, bucket *uuid.UUID) ([]Deadline, error) {
 	rows, err := r.pool.Query(ctx, `
 SELECT p.id, p.product_name, p.category, d.kind, d.day
 FROM purchases p
 CROSS JOIN LATERAL (VALUES ('warranty'::text, p.warranty_end_date), ('return'::text, p.return_deadline)) AS d(kind, day)
-WHERE `+buckets.Visible("p.bucket_id", "$1")+` AND d.day IS NOT NULL AND d.day >= CURRENT_DATE - $2::int
+WHERE `+buckets.Visible("p.bucket_id", "$1")+` AND ($4::uuid IS NULL OR p.bucket_id = $4) AND d.day IS NOT NULL AND d.day >= CURRENT_DATE - $2::int
 ORDER BY d.day, p.id, d.kind
-LIMIT $3`, userID, pastDays, maxDeadlines)
+LIMIT $3`, userID, pastDays, maxDeadlines, bucket)
 	if err != nil {
 		return nil, mapErr(err)
 	}

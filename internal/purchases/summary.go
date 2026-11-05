@@ -39,6 +39,6 @@ type SummaryItem struct {
 }
 
 // Summary returns the Home overview of one user's purchases.
-func (s *Service) Summary(ctx context.Context, userID uuid.UUID) (Summary, error) {
-	return s.repo.Summary(ctx, userID)
+func (s *Service) Summary(ctx context.Context, userID uuid.UUID, bucket *uuid.UUID) (Summary, error) {
+	return s.repo.Summary(ctx, userID, bucket)
 }
