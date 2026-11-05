@@ -120,6 +120,24 @@ func TestPlanKeyIsStableAndDistinct(t *testing.T) {
 	}
 }
 
+// Two members of the same bucket have the same purchase: each must get their own reminder rows, so the person is part
+// of the key (the key is unique, and ON CONFLICT DO NOTHING would otherwise drop the second member's reminders).
+func TestPlanKeyDiffersPerPerson(t *testing.T) {
+	now := time.Date(2026, 11, 20, 10, 0, 0, 0, wib)
+	first := cand("2026-11-23", DefaultPrefs())
+	second := cand("2026-11-23", DefaultPrefs())
+	second.UserID = "u2"
+	a, b := Plan(first, now), Plan(second, now)
+	if len(a) == 0 || len(a) != len(b) {
+		t.Fatalf("planned %d and %d", len(a), len(b))
+	}
+	for i := range a {
+		if a[i].Key == b[i].Key {
+			t.Fatalf("members share the key %q", a[i].Key)
+		}
+	}
+}
+
 func TestDecide(t *testing.T) {
 	end := date("2026-11-30")
 	now := time.Date(2026, 11, 23, 9, 0, 0, 0, wib)
@@ -192,7 +210,7 @@ func TestPlanReturnDeadline(t *testing.T) {
 	if !got[0].ScheduledAt.Equal(time.Date(2026, 11, 27, 9, 0, 0, 0, wib)) {
 		t.Fatalf("first at %v", got[0].ScheduledAt)
 	}
-	if got[0].Key != "return:p1:2026-11-27:3" || got[1].Key != "return:p1:2026-11-29:1" {
+	if got[0].Key != "return:p1:u1:2026-11-27:3" || got[1].Key != "return:p1:u1:2026-11-29:1" {
 		t.Fatalf("keys: %q %q", got[0].Key, got[1].Key)
 	}
 }
@@ -208,7 +226,7 @@ func TestPlanReturnAndWarrantyDoNotClash(t *testing.T) {
 		}
 		keys[p.Key] = p.Kind
 	}
-	if keys["p1:2026-11-29:1"] != KindWarranty || keys["return:p1:2026-11-29:1"] != KindReturn {
+	if keys["p1:u1:2026-11-29:1"] != KindWarranty || keys["return:p1:u1:2026-11-29:1"] != KindReturn {
 		t.Fatalf("keys: %v", keys)
 	}
 }
