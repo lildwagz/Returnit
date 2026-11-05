@@ -254,7 +254,11 @@ func writeBucketErr(c *gin.Context, err error) {
 	case errors.Is(err, buckets.ErrValidation):
 		c.JSON(http.StatusBadRequest, ErrorBody("validation_error", err.Error(), c))
 	case errors.Is(err, buckets.ErrConflict):
-		c.JSON(http.StatusConflict, ErrorBody("conflict", err.Error(), c))
+		code := buckets.ConflictCode(err) // bucket_full, already_member, bucket_limit, transfer_first
+		if code == "" {
+			code = "conflict"
+		}
+		c.JSON(http.StatusConflict, ErrorBody(code, err.Error(), c))
 	case errors.Is(err, buckets.ErrInviteGone):
 		c.JSON(http.StatusGone, ErrorBody("invite_gone", "this invite is no longer valid", c))
 	default:

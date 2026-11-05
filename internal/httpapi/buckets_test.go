@@ -111,6 +111,15 @@ func TestBucketRoutes(t *testing.T) {
 			t.Errorf("%v: want %d, got %d", tc.err, tc.want, w.Code)
 		}
 	}
+	// Specific conflicts keep their own code, so the app can explain them.
+	for err, code := range map[error]string{buckets.ErrFull: "bucket_full", buckets.ErrAlreadyMember: "already_member",
+		buckets.ErrTooManyBuckets: "bucket_limit", buckets.ErrTransferFirst: "transfer_first"} {
+		fb.err = err
+		w := do(h, "POST", "/api/v1/invites/join", "token-alice", `{"token":"x"}`)
+		if w.Code != 409 || !strings.Contains(w.Body.String(), `"code":"`+code+`"`) {
+			t.Errorf("%v: %d %s", err, w.Code, w.Body)
+		}
+	}
 	fb.err = nil
 
 	// A pasted code is passed through as typed; the service normalises it.

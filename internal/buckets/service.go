@@ -29,6 +29,28 @@ var (
 	ErrInviteGone = errors.New("buckets: invite is no longer valid")
 )
 
+// conflict is an ErrConflict with a code of its own, so the app can say exactly what is wrong in the person's language.
+type conflict struct{ code, msg string }
+
+func (c conflict) Error() string { return "buckets: " + c.msg }
+func (c conflict) Unwrap() error { return ErrConflict }
+
+var (
+	ErrFull           = conflict{"bucket_full", "this bucket is full"}
+	ErrAlreadyMember  = conflict{"already_member", "you are already in this bucket"}
+	ErrTooManyBuckets = conflict{"bucket_limit", "you are in, or have created, the maximum number of buckets"}
+	ErrTransferFirst  = conflict{"transfer_first", "transfer ownership before leaving, or delete the bucket"}
+)
+
+// ConflictCode returns the specific code of a conflict error ("bucket_full" and so on), or "" for a plain ErrConflict.
+func ConflictCode(err error) string {
+	var c conflict
+	if errors.As(err, &c) {
+		return c.code
+	}
+	return ""
+}
+
 const (
 	MaxMembers     = 6  // people in one bucket
 	MaxMemberships = 10 // buckets one person can be in, personal included
@@ -170,11 +192,8 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, name string) (Bu
   (SELECT count(*) FROM buckets WHERE created_by = $1 AND NOT personal)`, userID).Scan(&memberships, &created); err != nil {
 		return Bucket{}, fmt.Errorf("buckets: count: %w", err)
 	}
-	if memberships >= MaxMemberships {
-		return Bucket{}, fmt.Errorf("%w: you are in the maximum of %d buckets", ErrConflict, MaxMemberships)
-	}
-	if created >= MaxCreated {
-		return Bucket{}, fmt.Errorf("%w: you can create at most %d shared buckets", ErrConflict, MaxCreated)
+	if memberships >= MaxMemberships || created >= MaxCreated {
+		return Bucket{}, ErrTooManyBuckets
 	}
 	var id uuid.UUID
 	if err := tx.QueryRow(ctx, `INSERT INTO buckets (name, created_by) VALUES ($1, $2) RETURNING id`, name, userID).Scan(&id); err != nil {
@@ -336,7 +355,7 @@ func (s *Service) RemoveMember(ctx context.Context, actor, id, target uuid.UUID)
 	}
 	if target == actor {
 		if role == roleOwner {
-			return fmt.Errorf("%w: transfer ownership before leaving, or delete the bucket", ErrConflict)
+			return ErrTransferFirst
 		}
 	} else if role != roleOwner {
 		return ErrNotOwner
@@ -534,11 +553,11 @@ WHERE i.token_hash = $1 AND i.revoked_at IS NULL AND i.expires_at > now()`, hash
 	case personal:
 		return Bucket{}, ErrInviteGone
 	case already:
-		return Bucket{}, fmt.Errorf("%w: you are already in this bucket", ErrConflict)
+		return Bucket{}, ErrAlreadyMember
 	case members >= MaxMembers:
-		return Bucket{}, fmt.Errorf("%w: this bucket is full (%d people)", ErrConflict, MaxMembers)
+		return Bucket{}, ErrFull
 	case memberships >= MaxMemberships:
-		return Bucket{}, fmt.Errorf("%w: you are in the maximum of %d buckets", ErrConflict, MaxMemberships)
+		return Bucket{}, ErrTooManyBuckets
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO bucket_members (bucket_id, user_id, role) VALUES ($1, $2, 'member')`, id, userID); err != nil {
 		return Bucket{}, fmt.Errorf("buckets: join insert: %w", err)
