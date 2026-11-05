@@ -44,7 +44,7 @@ a:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radiu
 
 <main id="en" lang="en">
 <h1>ReturnIt Privacy Policy</h1>
-<p class="muted">Last updated: 1 November 2026. Applies to the ReturnIt Android app (<code>com.returnit.app</code>) and its servers.</p>
+<p class="muted">Last updated: 5 November 2026. Applies to the ReturnIt Android app (<code>com.returnit.app</code>) and its servers.</p>
 
 <p>ReturnIt is a warranty tracker. You add what you bought, the warranty or return deadline, and optionally the receipt, and the app reminds you before the dates run out. This page explains what we store about you, why, who helps us process it, how long we keep it and how to delete it.</p>
 
@@ -59,6 +59,7 @@ a:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radiu
 <tr><td><b>Account:</b> your e-mail address and display name, from signing in with e-mail and password or with Google. Passwords are handled by our sign-in service (Keycloak) and are never visible to the app or in our logs.</td><td>To sign you in and to send e-mails you ask for or need (reminders, password reset, account notices).</td></tr>
 <tr><td><b>Purchases you enter:</b> product name, shop, price, purchase date, warranty length, return deadline, notes.</td><td>The core of the app: showing status and days left and planning reminders.</td></tr>
 <tr><td><b>Receipt files:</b> the photos or PDFs you attach (a photo you take, a file you pick, or a file you share to ReturnIt).</td><td>To keep your proof of purchase. Only files you choose are uploaded; the app does not read your gallery.</td></tr>
+<tr><td><b>Shared buckets:</b> the name of a bucket you create or join, who is in it (their display names), who added each purchase, and invite links you make (stored only as a one-way code, never in readable form).</td><td>To let family or housemates keep warranties together. A bucket is shared only with the people you invite.</td></tr>
 <tr><td><b>Settings:</b> app language, reminder days, channels (phone notification or e-mail), quiet hours, time zone.</td><td>To write and time reminders as you asked.</td></tr>
 <tr><td><b>Notifications:</b> the reminders created for you and whether you read them.</td><td>Your in-app inbox.</td></tr>
 <tr><td><b>Phone registration:</b> platform (Android) and a push token for each phone you sign in on.</td><td>To deliver phone notifications.</td></tr>
@@ -81,6 +82,7 @@ a:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radiu
 <li>To send reminders by phone notification and, if you turn it on, by e-mail, in the language you chose.</li>
 <li>To send account e-mails: sign-up, password reset and account-deletion notices.</li>
 <li>To keep the service safe: every uploaded receipt is scanned for malware before it is stored, and requests are rate limited.</li>
+<li>To share a bucket: everyone in a bucket sees its purchases and receipts and can add, change or delete them, and each person gets reminders for the bucket unless they mute it.</li>
 <li>To make a claim package: the PDF you ask for is built on your phone from your own data and is shared only where you send it. We do not receive a copy.</li>
 </ul>
 <p>We do not use your data for advertising, profiling or automated decisions, and we do not sell or rent it.</p>
@@ -100,7 +102,7 @@ a:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radiu
 <li>All traffic uses HTTPS.</li>
 <li>Receipt files are kept in private storage and opened through short-lived signed links.</li>
 <li>Sign-in tokens are kept in the phone's secure store; the optional app lock protects the app when it opens.</li>
-<li>Each person can only reach their own data.</li>
+<li>Each person can only reach their own purchases and the shared buckets they belong to. Invite links expire after 7 days and you can cancel one at any time.</li>
 <li>Servers are in a cloud data centre run by Microsoft Azure; your data may therefore be processed outside your own country.</li>
 </ul>
 
@@ -108,16 +110,18 @@ a:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radiu
 <ul>
 <li><b>While your account is active:</b> your purchases, receipts, settings and notifications are kept until you delete them or the account.</li>
 <li><b>Deleting a purchase or receipt:</b> the record goes at once and the file is removed from storage, normally within seconds.</li>
-<li><b>Deleting your account:</b> erasure is scheduled after a waiting period (normally 7 days) during which you can cancel. Then your account, purchases, receipts, reminders, notifications, phone registrations and sign-in identity are permanently deleted.</li>
+<li><b>Deleting your account:</b> erasure is scheduled after a waiting period (normally 7 days) during which you can cancel. Then your account, personal purchases, receipts, reminders, notifications, phone registrations and sign-in identity are permanently deleted. What you added to a <b>shared bucket</b> stays for the other members, without your name, unless you choose to delete it too when you request deletion. If you own a shared bucket, it passes to the member who has been in it longest, or is deleted if nobody else is in it.</li>
 <li><b>Backups:</b> encrypted backups are kept for up to 35 days; deleted data ages out of them within that time and erased accounts are removed again if a backup is ever restored.</li>
 <li><b>Deletion record:</b> we keep an internal ID (no name or e-mail) with the dates of the deletion, only to re-apply deletions after a restore.</li>
 <li><b>Server logs:</b> kept a few days. Normally they hold no purchase content; during short debugging sessions they may, and then they are treated as personal data and deleted on request.</li>
+<li><b>Shared buckets:</b> what is in a bucket stays until a member deletes it or the owner deletes the bucket. Invite codes are removed 30 days after they expire or are cancelled.</li>
 <li><b>Account e-mails:</b> the address kept for the final "account erased" notice is deleted as soon as that message is sent.</li>
 </ul>
 
 <h2 id="delete">8. Your choices and deleting your data</h2>
-<p><b>Inside the app:</b> Settings → Account → <i>Delete account</i>. You can cancel during the waiting period. You can also delete single purchases and receipts.</p>
+<p><b>Inside the app:</b> Settings → Account → <i>Delete account</i>. You can cancel during the waiting period. You can also delete single purchases and receipts, leave a shared bucket, or delete one you own.</p>
 <p><b>Without the app:</b> e-mail <a href="mailto:azzamrabbaney@gmail.com">azzamrabbaney@gmail.com</a> from the address on your account, with the subject "Delete my ReturnIt account". We will schedule the deletion and confirm by e-mail.</p>
+<p><b>Shared items:</b> anything you put in a shared bucket can be seen by its other members, who may copy it. Deleting your account cannot take back what they have already seen or saved.</p>
 <p><b>Access and export:</b> Settings → Account → export your data (including a list of your receipt files). You can also ask us for a copy, to correct data, or to object to a use, using the e-mail above. You can switch reminders and e-mail off in Settings → Reminders, and withdraw notification permission in Android settings.</p>
 <p>Depending on where you live (for example under Indonesia's Personal Data Protection Law, No. 27 of 2022), you may have further rights. We will answer requests within a reasonable time.</p>
 
@@ -135,7 +139,7 @@ a:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radiu
 
 <main id="id" lang="id">
 <h1>Kebijakan Privasi ReturnIt</h1>
-<p class="muted">Terakhir diperbarui: 1 November 2026. Berlaku untuk aplikasi Android ReturnIt (<code>com.returnit.app</code>) dan servernya.</p>
+<p class="muted">Terakhir diperbarui: 5 November 2026. Berlaku untuk aplikasi Android ReturnIt (<code>com.returnit.app</code>) dan servernya.</p>
 
 <p>ReturnIt adalah pencatat garansi. Anda memasukkan barang yang dibeli, masa garansi atau batas pengembalian, dan bila mau struknya, lalu aplikasi mengingatkan sebelum tanggalnya habis. Halaman ini menjelaskan data apa yang kami simpan, untuk apa, siapa yang membantu memprosesnya, berapa lama disimpan, dan cara menghapusnya.</p>
 
@@ -149,6 +153,7 @@ a:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radiu
 <tr><th>Data</th><th>Tujuan</th></tr>
 <tr><td><b>Akun:</b> alamat e-mail dan nama tampilan, dari masuk dengan e-mail dan kata sandi atau dengan Google. Kata sandi ditangani layanan masuk kami (Keycloak) dan tidak pernah terlihat oleh aplikasi atau tercatat di log.</td><td>Untuk memasukkan Anda dan mengirim e-mail yang Anda minta atau perlukan (pengingat, atur ulang kata sandi, pemberitahuan akun).</td></tr>
 <tr><td><b>Pembelian yang Anda masukkan:</b> nama produk, toko, harga, tanggal beli, lama garansi, batas pengembalian, catatan.</td><td>Inti aplikasi: menampilkan status dan sisa hari serta menjadwalkan pengingat.</td></tr>
+<tr><td><b>Bucket bersama:</b> nama bucket yang Anda buat atau ikuti, siapa saja anggotanya (nama tampilannya), siapa yang menambahkan tiap pembelian, dan tautan undangan yang Anda buat (disimpan hanya sebagai kode satu arah, tidak pernah dalam bentuk yang bisa dibaca).</td><td>Agar keluarga atau teman serumah bisa mengelola garansi bersama. Bucket hanya dibagikan kepada orang yang Anda undang.</td></tr>
 <tr><td><b>Berkas struk:</b> foto atau PDF yang Anda lampirkan (foto yang Anda ambil, berkas yang Anda pilih, atau berkas yang Anda bagikan ke ReturnIt).</td><td>Untuk menyimpan bukti pembelian. Hanya berkas yang Anda pilih yang diunggah; aplikasi tidak membaca galeri Anda.</td></tr>
 <tr><td><b>Pengaturan:</b> bahasa aplikasi, hari pengingat, saluran (notifikasi HP atau e-mail), jam tenang, zona waktu.</td><td>Untuk menulis dan menjadwalkan pengingat sesuai permintaan Anda.</td></tr>
 <tr><td><b>Notifikasi:</b> pengingat yang dibuat untuk Anda dan status sudah dibaca atau belum.</td><td>Kotak masuk di dalam aplikasi.</td></tr>
@@ -172,6 +177,7 @@ a:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radiu
 <li>Mengirim pengingat lewat notifikasi HP dan, bila Anda aktifkan, lewat e-mail, dalam bahasa pilihan Anda.</li>
 <li>Mengirim e-mail akun: pendaftaran, atur ulang kata sandi, dan pemberitahuan penghapusan akun.</li>
 <li>Menjaga keamanan layanan: setiap struk yang diunggah dipindai malware sebelum disimpan, dan jumlah permintaan dibatasi.</li>
+<li>Membagikan bucket: semua anggota bucket melihat pembelian dan struknya serta boleh menambah, mengubah, atau menghapusnya, dan tiap orang menerima pengingat bucket itu kecuali dibisukan.</li>
 <li>Membuat paket klaim: PDF yang Anda minta dibuat di HP dari data Anda sendiri dan hanya dibagikan ke tempat yang Anda pilih. Kami tidak menerima salinannya.</li>
 </ul>
 <p>Kami tidak memakai data Anda untuk iklan, pembuatan profil, atau keputusan otomatis, dan tidak menjual atau menyewakannya.</p>
@@ -191,7 +197,7 @@ a:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radiu
 <li>Semua lalu lintas memakai HTTPS.</li>
 <li>Berkas struk disimpan di penyimpanan privat dan dibuka lewat tautan bertanda tangan yang berumur pendek.</li>
 <li>Token masuk disimpan di penyimpanan aman HP; kunci aplikasi opsional melindungi aplikasi saat dibuka.</li>
-<li>Setiap orang hanya dapat mengakses datanya sendiri.</li>
+<li>Setiap orang hanya dapat mengakses pembeliannya sendiri dan bucket bersama yang diikutinya. Tautan undangan berlaku 7 hari dan dapat Anda batalkan kapan saja.</li>
 <li>Server berada di pusat data cloud milik Microsoft Azure; data Anda dapat diproses di luar negara Anda.</li>
 </ul>
 
@@ -199,7 +205,8 @@ a:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radiu
 <ul>
 <li><b>Selama akun aktif:</b> pembelian, struk, pengaturan, dan notifikasi disimpan sampai Anda menghapusnya atau menghapus akun.</li>
 <li><b>Menghapus pembelian atau struk:</b> catatan langsung hilang dan berkasnya dihapus dari penyimpanan, biasanya dalam hitungan detik.</li>
-<li><b>Menghapus akun:</b> penghapusan dijadwalkan setelah masa tunggu (biasanya 7 hari) yang dapat Anda batalkan. Setelah itu akun, pembelian, struk, pengingat, notifikasi, pendaftaran HP, dan identitas masuk dihapus permanen.</li>
+<li><b>Bucket bersama:</b> isi bucket tetap ada sampai anggota menghapusnya atau pemilik menghapus bucket. Kode undangan dihapus 30 hari setelah kedaluwarsa atau dibatalkan.</li>
+<li><b>Menghapus akun:</b> penghapusan dijadwalkan setelah masa tunggu (biasanya 7 hari) yang dapat Anda batalkan. Setelah itu akun, pembelian pribadi, struk, pengingat, notifikasi, pendaftaran HP, dan identitas masuk dihapus permanen. Yang Anda tambahkan ke <b>bucket bersama</b> tetap ada untuk anggota lain, tanpa nama Anda, kecuali Anda memilih menghapusnya juga saat meminta penghapusan. Kalau Anda pemilik bucket bersama, kepemilikan pindah ke anggota yang paling lama bergabung, atau bucket dihapus bila tidak ada anggota lain.</li>
 <li><b>Cadangan:</b> cadangan terenkripsi disimpan hingga 35 hari; data yang dihapus hilang dari cadangan dalam waktu itu, dan akun yang sudah dihapus dihapus lagi bila cadangan dipulihkan.</li>
 <li><b>Catatan penghapusan:</b> kami menyimpan ID internal (tanpa nama atau e-mail) beserta tanggal penghapusan, hanya untuk menerapkan ulang penghapusan setelah pemulihan.</li>
 <li><b>Log server:</b> disimpan beberapa hari. Biasanya tidak berisi isi pembelian; pada sesi pelacakan masalah yang singkat bisa saja berisi, dan saat itu diperlakukan sebagai data pribadi serta dihapus bila diminta.</li>
@@ -207,8 +214,9 @@ a:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radiu
 </ul>
 
 <h2 id="hapus">8. Pilihan Anda dan penghapusan data</h2>
-<p><b>Di dalam aplikasi:</b> Pengaturan → Akun → <i>Hapus akun</i>. Anda dapat membatalkan selama masa tunggu. Anda juga dapat menghapus pembelian dan struk satu per satu.</p>
+<p><b>Di dalam aplikasi:</b> Pengaturan → Akun → <i>Hapus akun</i>. Anda dapat membatalkan selama masa tunggu. Anda juga dapat menghapus pembelian dan struk satu per satu, keluar dari bucket bersama, atau menghapus bucket yang Anda miliki.</p>
 <p><b>Tanpa aplikasi:</b> kirim e-mail ke <a href="mailto:azzamrabbaney@gmail.com">azzamrabbaney@gmail.com</a> dari alamat yang terdaftar di akun Anda, dengan subjek "Hapus akun ReturnIt saya". Kami akan menjadwalkan penghapusan dan mengonfirmasi lewat e-mail.</p>
+<p><b>Isi bersama:</b> semua yang Anda taruh di bucket bersama dapat dilihat anggota lain, yang bisa menyalinnya. Menghapus akun tidak dapat menarik kembali apa yang sudah mereka lihat atau simpan.</p>
 <p><b>Akses dan ekspor:</b> Pengaturan → Akun → ekspor data Anda (termasuk daftar berkas struk). Anda juga dapat meminta salinan, perbaikan data, atau keberatan atas suatu penggunaan lewat e-mail di atas. Pengingat dan e-mail dapat dimatikan di Pengaturan → Pengingat, dan izin notifikasi dapat dicabut di pengaturan Android.</p>
 <p>Tergantung tempat tinggal Anda (misalnya menurut UU Pelindungan Data Pribadi No. 27 Tahun 2022), Anda mungkin punya hak tambahan. Kami akan menjawab permintaan dalam waktu wajar.</p>
 

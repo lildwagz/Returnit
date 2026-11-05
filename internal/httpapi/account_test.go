@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/returnit/returnit/internal/account"
+	"github.com/returnit/returnit/internal/ratelimit"
 	"github.com/returnit/returnit/internal/users"
 )
 
@@ -22,7 +23,8 @@ type memAccounts struct {
 	now   time.Time
 }
 type memAccount struct {
-	a account.Account
+	a           account.Account
+	eraseShared bool
 }
 
 func (m *memAccounts) Get(_ context.Context, u uuid.UUID) (account.Account, error) {
@@ -43,6 +45,15 @@ func (m *memAccounts) RequestDeletion(_ context.Context, u uuid.UUID) (time.Time
 		r.a.DeletionScheduledFor = &at
 	}
 	return *r.a.DeletionScheduledFor, nil
+}
+
+func (m *memAccounts) SetEraseShared(_ context.Context, u uuid.UUID, erase bool) error {
+	r, ok := m.rows[u]
+	if !ok {
+		return account.ErrNotFound
+	}
+	r.eraseShared = erase
+	return nil
 }
 
 func (m *memAccounts) CancelDeletion(_ context.Context, u uuid.UUID) error {
@@ -180,5 +191,30 @@ func TestIdentityConflictIsAClearError(t *testing.T) {
 	}
 	if strings.Contains(w.Body.String(), "alice") {
 		t.Errorf("the error must not echo identity details: %s", w.Body)
+	}
+}
+
+// The deletion request may carry the choice to erase purchases added to shared buckets; no body means "keep them".
+func TestAccountDeletionEraseSharedChoice(t *testing.T) {
+	alice := uuid.New()
+	mem := &memAccounts{rows: map[uuid.UUID]*memAccount{alice: {}}, grace: 7 * 24 * time.Hour, now: time.Date(2026, 11, 1, 8, 0, 0, 0, time.UTC)}
+	h := newRouterWith(func(d *Deps) {
+		d.Users = &fakeUsers{ids: map[string]uuid.UUID{"alice": alice}}
+		d.Account = mem
+		d.FreshLoginMaxAge = 100 * 365 * 24 * time.Hour
+		d.Limits = ratelimit.Limits{AccountDeletionPerHour: 20}
+	})
+	if w := do(h, "DELETE", "/api/v1/account", "token-alice", ""); w.Code != 202 || mem.rows[alice].eraseShared {
+		t.Fatalf("no body: %d erase=%v", w.Code, mem.rows[alice].eraseShared)
+	}
+	if w := do(h, "DELETE", "/api/v1/account", "token-alice", `{"eraseShared":true}`); w.Code != 202 || !mem.rows[alice].eraseShared {
+		t.Fatalf("erase shared: %d erase=%v", w.Code, mem.rows[alice].eraseShared)
+	}
+	// Asking again can change the choice.
+	if w := do(h, "DELETE", "/api/v1/account", "token-alice", `{"eraseShared":false}`); w.Code != 202 || mem.rows[alice].eraseShared {
+		t.Fatalf("changed back: %d erase=%v", w.Code, mem.rows[alice].eraseShared)
+	}
+	if w := do(h, "DELETE", "/api/v1/account", "token-alice", `not json`); w.Code != 400 {
+		t.Fatalf("bad body: %d", w.Code)
 	}
 }

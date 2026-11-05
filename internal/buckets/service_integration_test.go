@@ -325,3 +325,37 @@ func TestAccountPurgeAndBuckets(t *testing.T) {
 		t.Fatalf("%d of Alice's buckets remain", left)
 	}
 }
+
+// With the choice "erase shared too", the purchases the person added to a shared bucket go with the account.
+func TestAccountPurgeErasesSharedWhenChosen(t *testing.T) {
+	e := newEnv(t)
+	alice, bob := e.user("Alice"), e.user("Bob")
+	home, err := e.svc.Create(e.ctx, alice, "Home")
+	e.must(err)
+	inv, err := e.svc.CreateInvite(e.ctx, alice, home.ID)
+	e.must(err)
+	_, err = e.svc.Join(e.ctx, bob, inv.Token)
+	e.must(err)
+	psvc := purchases.NewService(purchases.NewPGRepo(e.pool), nil)
+	hers, err := psvc.Create(e.ctx, alice, purchases.RawInput{ProductName: "Alice's in Home", PurchaseDate: "2026-01-01", BucketID: &home.ID})
+	e.must(err)
+	his, err := psvc.Create(e.ctx, bob, purchases.RawInput{ProductName: "Bob's in Home", PurchaseDate: "2026-01-01", BucketID: &home.ID})
+	e.must(err)
+
+	acc := account.NewService(e.pool, 7*24*time.Hour)
+	_, err = e.pool.Exec(e.ctx, `UPDATE users SET deletion_requested_at = now() - interval '8 days', deletion_scheduled_at = now() - interval '1 minute' WHERE id = $1`, alice)
+	e.must(err)
+	e.must(acc.SetEraseShared(e.ctx, alice, true))
+	if _, err := acc.PurgeDue(e.ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := psvc.Get(e.ctx, bob, hers.ID); !errors.Is(err, purchases.ErrNotFound) {
+		t.Fatalf("Alice's shared purchase should be erased: %v", err)
+	}
+	if _, err := psvc.Get(e.ctx, bob, his.ID); err != nil {
+		t.Fatalf("Bob's purchase must stay: %v", err)
+	}
+	if b, err := e.svc.Get(e.ctx, bob, home.ID); err != nil || b.Role != "owner" {
+		t.Fatalf("the bucket and Bob's ownership must stay: %+v %v", b, err)
+	}
+}
