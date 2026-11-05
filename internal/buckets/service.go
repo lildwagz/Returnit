@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base32"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -83,7 +84,18 @@ type Bucket struct {
 	MemberCount   int       `json:"memberCount"`
 	PurchaseCount int       `json:"purchaseCount"`
 	CreatedAt     time.Time `json:"createdAt"`
+	// Members holds the first few members (display names only) for the avatars on the list; MemberCount is the total.
+	Members []MemberPreview `json:"members"`
 }
+
+// MemberPreview is one member as shown in the avatar stack.
+type MemberPreview struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// PreviewMembers is how many members a bucket lists in Members.
+const PreviewMembers = 4
 
 // Member shows a co-member by display name only (never the e-mail address).
 type Member struct {
@@ -113,12 +125,26 @@ type queryer interface {
 
 const bucketCols = `b.id, b.name, b.personal, bm.role, bm.notify, b.created_at,
   (SELECT count(*) FROM bucket_members x WHERE x.bucket_id = b.id),
-  (SELECT count(*) FROM purchases p WHERE p.bucket_id = b.id)`
+  (SELECT count(*) FROM purchases p WHERE p.bucket_id = b.id),
+  (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', m.user_id, 'name', m.name) ORDER BY m.rank, m.joined_at, m.user_id), '[]'::jsonb)
+   FROM (SELECT x.user_id, x.joined_at, (x.role = 'owner')::int * -1 AS rank,
+                COALESCE(NULLIF(trim(u.display_name), ''), split_part(u.email, '@', 1)) AS name
+         FROM bucket_members x JOIN users u ON u.id = x.user_id WHERE x.bucket_id = b.id
+         ORDER BY (x.role = 'owner') DESC, x.joined_at, x.user_id LIMIT 4) m)`
 
 func scanBucket(row pgx.Row) (Bucket, error) {
 	var b Bucket
-	err := row.Scan(&b.ID, &b.Name, &b.Personal, &b.Role, &b.Notify, &b.CreatedAt, &b.MemberCount, &b.PurchaseCount)
-	return b, err
+	var preview []byte
+	if err := row.Scan(&b.ID, &b.Name, &b.Personal, &b.Role, &b.Notify, &b.CreatedAt, &b.MemberCount, &b.PurchaseCount, &preview); err != nil {
+		return Bucket{}, err
+	}
+	b.Members = []MemberPreview{}
+	if len(preview) > 0 {
+		if err := json.Unmarshal(preview, &b.Members); err != nil {
+			return Bucket{}, fmt.Errorf("buckets: members preview: %w", err)
+		}
+	}
+	return b, nil
 }
 
 func getFor(ctx context.Context, q queryer, userID, id uuid.UUID) (Bucket, error) {

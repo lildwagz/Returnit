@@ -159,6 +159,18 @@ func TestBucketLifecycle(t *testing.T) {
 		t.Fatalf("members for a stranger: %v", err)
 	}
 
+	// The list carries the first members for the avatars: the owner first, display names only.
+	all, err := e.svc.List(e.ctx, bob)
+	e.must(err)
+	for _, b := range all {
+		if b.ID != home.ID {
+			continue
+		}
+		if len(b.Members) != 2 || b.Members[0].Name != "Alice" || b.Members[1].Name != "Bob" || b.MemberCount != 2 {
+			t.Fatalf("member preview: %+v", b)
+		}
+	}
+
 	// Mute is per person.
 	b, err := e.svc.SetNotify(e.ctx, bob, home.ID, false)
 	e.must(err)
