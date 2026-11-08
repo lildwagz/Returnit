@@ -186,7 +186,21 @@ crontab -e
 
 What a backup contains: the app database and the Keycloak database (encrypted with
 `BACKUP_PASSPHRASE`), a list of erased accounts (`deletion-log-*.csv`, no personal data, kept forever), and
-a copy of the receipt files. Dumps older than `BACKUP_KEEP_DAYS` (35) are removed.
+a copy of the receipt files. The copy is kept twice: as plain files in `backups/receipts/` (stays on the server) and as
+one encrypted archive per night, `receipts-<time>.tar.enc`, which is the one to copy elsewhere. Dumps and archives older
+than `BACKUP_KEEP_DAYS` (35) are removed.
+
+Getting the receipt files back from an archive (the databases come back with `restore.sh`; the files live in storage, not in the
+database):
+
+```sh
+openssl enc -d -aes-256-cbc -pbkdf2 -pass env:BACKUP_PASSPHRASE < backups/receipts-<time>.tar.enc | tar -x -C /tmp/restore
+# then copy /tmp/restore/receipts/ back into the receipts bucket with rclone, as backup.sh copies it out
+```
+
+**Pulled by another machine:** if a second computer copies the encrypted files over SSH with a read-only key (`rrsync -ro`
+on the backup folder), set `BACKUP_PULLED_BY=<its name>` in `.env.prod`; the script then stops warning about the missing
+off-site copy. Never put the passphrase on that machine.
 
 **Off-site copy (required for real protection):** create an rclone config (`rclone config`, on any
 computer) for your storage, ideally with a `crypt` remote so the receipt files are encrypted there too,
