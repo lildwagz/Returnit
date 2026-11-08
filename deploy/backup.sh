@@ -37,15 +37,27 @@ if dc ps --services --status running | grep -qx minio; then
 		-v "$(cd "$dir" && pwd)/receipts:/dest" rclone/rclone:1.68 \
 		sync "src:${S3_BUCKET:-returnit-receipts}" /dest --quiet
 	echo "mirrored receipt files to $dir/receipts"
+	# The mirror above is plain files. This archive is what is meant to leave the server: all receipt files in one file,
+	# encrypted with the same passphrase as the dumps (so a copy on another machine reveals nothing without it).
+	out="$dir/receipts-$ts.tar.enc"
+	tmp="$out.partial"
+	tar -C "$dir" -cf - receipts |
+		openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:BACKUP_PASSPHRASE >"$tmp"
+	[ -s "$tmp" ] || { echo "backup of the receipt files is empty: aborting" >&2; rm -f "$tmp"; exit 1; }
+	mv "$tmp" "$out"
+	echo "wrote $out"
 fi
 
-# Old dumps go; deletion logs stay.
-find "$dir" -maxdepth 1 -name '*.dump.enc' -mtime "+$keep" -delete
+# Old dumps and receipt archives go; deletion logs stay.
+find "$dir" -maxdepth 1 \( -name '*.dump.enc' -o -name 'receipts-*.tar.enc' \) -mtime "+$keep" -delete
 
 if [ -n "${BACKUP_RCLONE_DEST:-}" ]; then
 	docker run --rm -v "$(cd "$dir" && pwd):/src:ro" -v "${BACKUP_RCLONE_CONF:?set BACKUP_RCLONE_CONF}:/config/rclone/rclone.conf:ro" \
 		rclone/rclone:1.68 sync /src "$BACKUP_RCLONE_DEST" --quiet
 	echo "uploaded to $BACKUP_RCLONE_DEST"
+elif [ -n "${BACKUP_PULLED_BY:-}" ]; then
+	# Another machine pulls the encrypted files over SSH (read-only key); it is named here so this is not warned about.
+	echo "off-site copy: pulled by $BACKUP_PULLED_BY"
 else
 	echo "WARNING: no off-site copy configured (BACKUP_RCLONE_DEST). A lost server means lost data." >&2
 fi
