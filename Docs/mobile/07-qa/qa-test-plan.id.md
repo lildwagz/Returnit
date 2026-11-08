@@ -486,6 +486,29 @@ Butuh dua HP (atau satu HP dan emulator) dengan dua akun berbeda, A (pemilik) da
 | B22 | App Link | Dengan aplikasi terpasang, ketuk tautan di WhatsApp | Aplikasi langsung terbuka (tanpa halaman browser); `adb shell pm get-app-links com.returnit.app` menampilkan dl.<domain> terverifikasi. Tanpa aplikasi, halaman /join menjelaskan dan menautkan ke unduhan |
 | B23 | Privasi | Buka /privacy | Bagian bucket bersama (data, penggunaan, retensi, penghapusan) ada di kedua bahasa |
 
+### 3.18 Beranda baru, lonceng, dan daftar pembelian (mobile 1.11.0)
+
+Tanpa perubahan backend. Tab Pengingat dihapus: pengingat dibuka dari lonceng.
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| H1 | Sapaan | Buka Beranda | Avatar berinisial, "Halo, <nama>", tanggal hari ini dalam bahasa aplikasi, dan lonceng di kanan; tanpa emoji |
+| H2 | Lonceng dan lencana | Punya pengingat belum dibaca | Lencana merah berisi jumlah di lonceng (50+ bila lebih dari 50); tanpa pengingat belum dibaca, tidak ada lencana. Pembaca layar mengucapkan "Pengingat, N belum dibaca" |
+| H3 | Layar Pengingat | Ketuk lonceng di Beranda, Pembelian, dan Tenggat | Layar Pengingat terbuka di atas tab dengan tombol Kembali dan ikon pengaturan di kanan; tidak ada tab Pengingat (empat tab) |
+| H4 | Ketuk push | Ketuk notifikasi pengingat saat aplikasi tertutup | Aplikasi terbuka di Pengingat dengan pengingat itu, Kembali ke tab |
+| H5 | Kartu perhatian | Garansi berakhir 12 hari lagi | Kartu hangat dengan ubin jam, "12 hari lagi" besar, nama, tanggal, dan tombol Buka dan Ke kalender selebar penuh; bila tanggalnya lebih dari 30 hari, kartu polos |
+| H6 | Kartu ringkasan | Punya pembelian di semua status | Satu kartu berisi nilai barang, satu bilah berwarna menurut status, dan empat angka yang cocok dengan Pembelian |
+| H7 | Baris pengembalian | Ada batas pengembalian dan hero-nya garansi | Baris "Batas pengembalian terdekat" dengan tanggal dan produk; diketuk membuka pembelian itu |
+| H8 | Belum ada pembelian | Akun baru | Kartu sambutan biru "Mulai dengan satu pembelian" dengan tombol Tambah yang membuka sheet tambah, dan tiga langkah; tanpa ringkasan dan daftar |
+| H9 | Kartu daftar | Buka Pembelian | Tiap kartu punya ubin kategori berwarna, nama, toko dan tanggal, label (harga, struk, pengembalian, bucket), blok hitung mundur berwarna, dan bilah dengan tanggal berakhir |
+| H10 | Segera berakhir dan berakhir | Lihat pembelian yang berakhir 12 hari lagi dan yang sudah berakhir | Yang pertama berlatar hangat dengan bilah kuning hampir penuh; yang kedua lebih pudar dengan bilah merah penuh dan "N hari berlalu" |
+| H11 | Cari dan chip | Ketik di pencarian; pilih Aktif, lalu hapus | Pencarian punya ikon dan tombol hapus; chip status bertitik warna dan berangka, yang terpilih terisi dan bercentang; bilah di atas chip menunjukkan pembagiannya |
+| H12 | Bagian saat diurutkan | Urutkan "berakhir terdekat" | Judul "Segera berakhir", "Aktif", "Sudah berakhir", "Tanpa tanggal" dengan titik warna dan, tanpa filter, jumlahnya; pada urutan "terbaru" tidak ada judul |
+| H13 | Tidak ada hasil | Cari sesuatu yang tidak ada | "Tidak ada hasil" dengan tombol yang menghapus pencarian dan filter |
+| H14 | Mode gelap | Ubah HP ke gelap | Beranda, kartu, chip, lonceng dan lencananya terbaca; kartu hangat tetap berbeda |
+| H15 | Arab | Aplikasi berbahasa Arab | Tata letak dicerminkan; lonceng di kiri, chevron dicerminkan, bilah tetap terisi dari awal |
+| H16 | Teks besar | Font sistem 130 % dan 200 % | Tidak ada yang terpotong di kartu atau hero; blok hitung mundur membesar, tidak terpotong |
+
 ## 4. Perilaku server yang perlu diketahui saat menguji
 
 * **Ubah (PATCH) menimpa semuanya.** Jika sebuah field hilang setelah diubah, berarti aplikasi lupa mengirimnya.
@@ -516,7 +539,7 @@ Tingkat:      blocker (aplikasi tak bisa dipakai) / mayor (fitur rusak) / minor 
 ## 6. Checklist rilis
 
 - [ ] Smoke test lulus di HP asli
-- [ ] Semua kasus di bagian 3.1 sampai 3.17 lulus atau punya pengecualian yang disetujui dan tercatat
+- [ ] Semua kasus di bagian 3.1 sampai 3.18 lulus atau punya pengecualian yang disetujui dan tercatat
 - [ ] Pengingat push (N4) terverifikasi di perangkat asli terhadap staging
 - [ ] Penghapusan akun dengan akun sekali pakai terverifikasi dari awal sampai akhir (C3, C4, C7, C9)
 - [ ] Tidak ada token di log (E7), hanya HTTPS (E10)
