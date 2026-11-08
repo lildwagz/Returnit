@@ -43,11 +43,13 @@ dl.{$DOMAIN} {
 	respond @notread 405
 	@privacy path /privacy
 	rewrite @privacy /privacy.html
+	@idpage path /id
+	rewrite @idpage /id.html
 	# invite link: the page for people without the app (the app itself opens the link), and the file Android uses to
 	# let the app open it directly
 	@join path /join
 	rewrite @join /join.html
-	@public path / /index.html /privacy.html /join.html /.well-known/assetlinks.json /returnit-*.apk /returnit-*.apk.sha256 /assets/*
+	@public path / /index.html /id.html /privacy.html /join.html /.well-known/assetlinks.json /returnit-*.apk /returnit-*.apk.sha256 /assets/*
 	handle @public {
 		root * /srv/updates
 		@apk path *.apk
