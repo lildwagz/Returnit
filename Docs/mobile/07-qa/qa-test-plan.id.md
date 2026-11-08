@@ -508,6 +508,11 @@ Tanpa perubahan backend. Tab Pengingat dihapus: pengingat dibuka dari lonceng.
 | H14 | Mode gelap | Ubah HP ke gelap | Beranda, kartu, chip, lonceng dan lencananya terbaca; kartu hangat tetap berbeda |
 | H15 | Arab | Aplikasi berbahasa Arab | Tata letak dicerminkan; lonceng di kiri, chevron dicerminkan, bilah tetap terisi dari awal |
 | H16 | Teks besar | Font sistem 130 % dan 200 % | Tidak ada yang terpotong di kartu atau hero; blok hitung mundur membesar, tidak terpotong |
+| H17 | Chip garansi | Buka Tambah pembelian | Chip berbunyi 1 bulan, 3, 6, 12, 24, 36 bulan, 5 tahun, Lainnya, Tidak diketahui |
+| H18 | Lama ketikan sendiri | Pilih Lainnya, ketik 18, satuan bulan | Tanggal berakhir tampil (misalnya 18 bulan setelah tanggal beli) dan pembelian tersimpan dengan tanggal itu |
+| H19 | Satuan | Lainnya dengan 90 hari, lalu 1 tahun, lalu 5 tahun | Masing-masing menampilkan tanggal berakhirnya; kartu menampilkan hitung mundur dan bilah yang sesuai |
+| H20 | Lama tidak sah | Lainnya dengan 0, 1,5, huruf, kosong, 51 tahun | Penyimpanan ditolak dengan "Isi angka bulat, minimal 1 dan paling lama 50 tahun" di bawah kolom |
+| H21 | Ubah | Ubah pembelian bergaransi 5 tahun, dan satu yang 18 bulan | Yang pertama memilih "5 tahun"; yang kedua mempertahankan tanggalnya ("Tetap") dan tersimpan tanpa perubahan |
 
 ## 4. Perilaku server yang perlu diketahui saat menguji
 

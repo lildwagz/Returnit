@@ -508,6 +508,11 @@ No backend change. The Pengingat tab is gone: reminders open from the bell.
 | H14 | Dark mode | Switch the phone to dark | Home, the cards, the chips, the bell and its badge are all readable; the warm card stays distinguishable |
 | H15 | Arabic | App in Arabic | The layout mirrors; the bell is on the left, chevrons mirror, the bars still fill from the start |
 | H16 | Large text | System font at 130 % and 200 % | Nothing is cut off on the cards or the hero; the countdown block grows instead of clipping |
+| H17 | Warranty chips | Open Add purchase | The chips read 1 month, 3, 6, 12, 24, 36 months, 5 years, Other, Unknown |
+| H18 | Typed length | Choose Other, type 18, unit months | The end date shows (for example 18 months after the purchase date) and the purchase saves with that end date |
+| H19 | Units | Other with 90 days, then 1 year, then 5 years | Each shows its own end date; the card shows the matching countdown and bar |
+| H20 | Bad lengths | Other with 0, 1.5, a letter, empty, 51 years | Saving is refused with "Enter a whole number, at least 1 and at most 50 years" under the field |
+| H21 | Edit | Edit a purchase with a 5-year warranty, and one with 18 months | The first has "5 years" selected; the second keeps its dates ("Keep") and saves unchanged |
 
 ## 4. Server behaviour to know while testing
 
