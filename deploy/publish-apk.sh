@@ -89,29 +89,67 @@ write_page() {
 	cp "$here/assetlinks.json" "$DIR/.well-known/assetlinks.json"
 	chmod 755 "$DIR/.well-known"
 	chmod 644 "$DIR/join.html" "$DIR/.well-known/assetlinks.json"
-	TEMPLATE="$here/index.template.html" python3 - <<'PY'
-import html, json, os
+	fill_page "$here/index.template.html" index.html en
+	fill_page "$here/index.id.template.html" id.html id
+}
+
+# Fills one language of the page: version, size, date, fingerprint, release notes and the last three older builds.
+fill_page() {
+	TEMPLATE="$1" OUT="$2" LANGUAGE="$3" python3 - <<'PY'
+import glob, html, json, os, re
 cfg = json.load(open(os.environ['JSON']))
 a = cfg['android']
+lang = os.environ['LANGUAGE']
 size = a.get('sizeBytes', 0) / 1048576
+MONTHS = {
+    'en': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    'id': ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+}
+T = {
+    'en': {'new': "What's new in {v}", 'older': 'Older versions', 'olderHelp': 'Only versions the app still accepts are listed. Your data stays when you install over a newer one.'},
+    'id': {'new': 'Yang baru di {v}', 'older': 'Versi sebelumnya', 'olderHelp': 'Hanya versi yang masih diterima aplikasi yang ditampilkan.'},
+}[lang]
+
+def nice(d):  # "2026-11-08" (or a timestamp) -> "8 Nov 2026"
+    m = re.match(r'(\d{4})-(\d{2})-(\d{2})', d or '')
+    return f'{int(m[3])} {MONTHS[lang][int(m[2]) - 1]} {m[1]}' if m else html.escape(d or '-')
+
+def vkey(v):
+    return tuple(int(x) for x in v.split('.'))
+
+latest = a.get('latestVersion', '')
+oldest = a.get('minVersion') or '0'
+older = []
+for f in glob.glob(os.path.join(os.environ['DIR'], 'returnit-*.apk')):
+    m = re.fullmatch(r'returnit-(\d+(?:\.\d+){1,3})\.apk', os.path.basename(f))
+    if m and m[1] != latest and vkey(m[1]) >= vkey(oldest):
+        older.append((vkey(m[1]), m[1], os.path.getsize(f) / 1048576))
+older.sort(reverse=True)
+older_html = ''
+if older[:3]:
+    items = ''.join(f'<li><a href="returnit-{v}.apk" download>{v}</a> · {mb:.0f} MB</li>' for _, v, mb in older[:3])
+    older_html = f'<details><summary>{T["older"]}</summary><p>{T["olderHelp"]}</p><ul class="older">{items}</ul></details>'
+
 notes = [n for n in a.get('releaseNotes', []) if n.strip()]
 notes_html = ''
 if notes:
     items = ''.join(f'<li>{html.escape(n)}</li>' for n in notes)
-    notes_html = f'<section><div class="notes"><h2>What\'s new in {html.escape(a.get("latestVersion", "-"))}</h2><ul>{items}</ul></div></section>'
+    notes_html = f'<section><div class="notes"><h2>{html.escape(T["new"].format(v=latest or "-"))}</h2><ul>{items}</ul></div></section>'
 page = open(os.environ['TEMPLATE'], encoding='utf-8').read()
 for key, value in {
-    '{{VERSION}}': html.escape(a.get('latestVersion', '-')),
+    '{{VERSION}}': html.escape(latest or '-'),
     '{{SIZE}}': f'{size:.0f}',
-    '{{DATE}}': html.escape(a.get('publishedAt', '-')),
+    '{{DATE}}': nice(a.get('publishedAt', '-')),
     '{{SHA}}': html.escape(a.get('sha256', '-')),
     '{{NOTES}}': notes_html,
+    '{{OLDER}}': older_html,
 }.items():
     page = page.replace(key, value)
-tmp = os.path.join(os.environ['DIR'], 'index.html.tmp')
+out = os.path.join(os.environ['DIR'], os.environ['OUT'])
+tmp = out + '.tmp'
 open(tmp, 'w', encoding='utf-8').write(page)
-os.replace(tmp, os.path.join(os.environ['DIR'], 'index.html'))
-os.chmod(os.path.join(os.environ['DIR'], 'index.html'), 0o644)
+os.replace(tmp, out)
+os.chmod(out, 0o644)
 PY
 }
 
