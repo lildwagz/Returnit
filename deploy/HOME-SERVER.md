@@ -17,7 +17,7 @@ Files involved:
 | File | Purpose |
 |---|---|
 | `docker-compose.tunnel.yml` | adds `cloudflared`, takes Caddy off ports 80/443 and gives it `Caddyfile.tunnel` |
-| `Caddyfile.tunnel` | the same sites and rules as `Caddyfile`, on plain-HTTP ports 8081 (api), 8082 (auth), 8083 (dl), 8084 (files) |
+| `Caddyfile.tunnel` | the same sites and rules as `Caddyfile`, on plain-HTTP ports 8081 (api), 8082 (auth), 8083 (dl), 8084 (files), 8085 (bare domain and www, redirect to dl) |
 | `docker-compose.staging.yml` | keeps the worker stopped during a rehearsal, so nobody is reminded twice |
 | `restore-receipts.sh` | puts the receipt files from a `receipts-*.tar.enc` archive back into MinIO |
 
@@ -52,6 +52,7 @@ other script pick it up.
    | `auth.<domain>` | `http://caddy:8082` |
    | `dl.<domain>` | `http://caddy:8083` |
    | `files.<domain>` | `http://caddy:8084` |
+   | `<domain>` and `www.<domain>` | `http://caddy:8085` (redirects everything to `dl.<domain>` until there is a home page) |
 
 4. **Caching > Configuration > Browser Cache TTL: Respect Existing Headers.** The default (4 hours) replaces the
    `no-cache` Caddy sends on the download page and `returnit-latest.apk`, so phones that downloaded the previous

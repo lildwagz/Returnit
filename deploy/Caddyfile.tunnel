@@ -69,6 +69,11 @@
 	}
 }
 
+# The bare domain and www: everything goes to the download site (tunnel routes <domain> and www.<domain> -> caddy:8085).
+:8085 {
+	redir https://dl.{$DOMAIN}{uri} 301
+}
+
 # Receipt downloads (signed links).
 :8084 {
 	import secure
