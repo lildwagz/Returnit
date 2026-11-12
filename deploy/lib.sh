@@ -36,4 +36,8 @@ profiles="$(printf '%s' "${COMPOSE_PROFILES:-}" | tr ',' '\n' | { grep -vx 'scan
 if [ "$MALWARE_SCAN" = on ]; then profiles="${profiles:+$profiles,}scan"; fi
 export COMPOSE_PROFILES="$profiles"
 
-dc() { docker compose --env-file .env.prod -f docker-compose.prod.yml "$@"; }
+# COMPOSE_OVERLAY (in .env.prod): extra compose files, separated by spaces, e.g. docker-compose.tunnel.yml for hosting
+# at home (see HOME-SERVER.md).
+overlay=()
+for f in ${COMPOSE_OVERLAY:-}; do overlay+=(-f "$f"); done
+dc() { docker compose --env-file .env.prod -f docker-compose.prod.yml ${overlay[@]+"${overlay[@]}"} "$@"; }
