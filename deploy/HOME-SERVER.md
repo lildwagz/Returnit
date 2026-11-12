@@ -150,3 +150,19 @@ was not changed.
   encrypted `crypt` remote over Google Drive, Backblaze B2, ...). The files are already encrypted with
   `BACKUP_PASSPHRASE`; keep that passphrase and a copy of `.env.prod` somewhere other than this machine.
 - Prove a restore now and then, as in step 4, on another machine.
+
+## 8. Updating the home server
+
+GitHub cannot reach a machine at home, so the CI deploy job is switched off (it runs only while the repository variable
+`DEPLOY_ENABLED` is `true`; leave it unset, or a merge would restart the old server). CI still tests every push to
+`main` and publishes the image. After a merge, take the digest from that run's publish job log (the line `published ghcr.io/lildwagz/returnit@sha256:...`) and
+roll the home server by hand:
+
+```bash
+cd ~/returnit/deploy
+./release.sh ghcr.io/lildwagz/returnit@sha256:<64 hex> <40-hex commit of main>
+```
+
+It fast-forwards the checkout, runs the migrations, rolls web and worker, and rolls back if they do not come up healthy.
+A change to `Caddyfile.tunnel` alone needs only `git pull` and
+`./up.sh exec -T caddy caddy reload --config /etc/caddy/Caddyfile`.
