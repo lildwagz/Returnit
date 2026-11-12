@@ -53,7 +53,10 @@ other script pick it up.
    | `dl.<domain>` | `http://caddy:8083` |
    | `files.<domain>` | `http://caddy:8084` |
 
-4. If "Sign in with Google" is on: in the Google Cloud console add
+4. **Caching > Configuration > Browser Cache TTL: Respect Existing Headers.** The default (4 hours) replaces the
+   `no-cache` Caddy sends on the download page and `returnit-latest.apk`, so phones that downloaded the previous
+   release install it again. After publishing a release, **Purge Everything** once.
+5. If "Sign in with Google" is on: in the Google Cloud console add
    `https://auth.<domain>/realms/returnit/broker/google/endpoint` to the OAuth client's redirect URIs and the domain to
    the consent screen's authorised domains.
 
@@ -78,6 +81,11 @@ CLOUDFLARE_TUNNEL_TOKEN=<token from step 2>
 ```
 
 and remove `BACKUP_PULLED_BY` if the old server had it (this machine is no longer the one that pulls; see step 7).
+
+E-mail: if the mail service only accepts known IP addresses (Brevo: Security > Authorised IPs), turn that off; a home
+connection's address changes. With your own domain, authenticate it at the mail service (SPF/DKIM/DMARC records in
+Cloudflare) and send from it (`SMTP_FROM=noreply@<domain>`), then run `./sync-keycloak-mail.sh`. Changing any `SMTP_`
+line recreates the Keycloak container: logins fail for about a minute while it starts.
 A fresh server instead: `./init.sh`, then set the three lines above.
 
 Also copy `deploy/updates/` (APKs and the download page) and `deploy/.release/env` (the pinned app image) from the old

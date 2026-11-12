@@ -58,6 +58,10 @@
 		header @apk Content-Type application/vnd.android.package-archive
 		@assets path /assets/*
 		header @assets Cache-Control "public, max-age=604800"
+		# The pages and returnit-latest.apk change with every release under the same name: without this, Cloudflare tells
+		# browsers to keep them for 4 hours and people install the previous version.
+		@fresh not path /assets/*
+		header @fresh Cache-Control "no-cache"
 		file_server
 	}
 	handle {
