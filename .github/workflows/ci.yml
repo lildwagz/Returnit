@@ -188,10 +188,12 @@ jobs:
   # The SSH key can run exactly one command on the server (deploy/release.sh, forced in authorized_keys).
   # Secrets: DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS, DEPLOY_HOST, DEPLOY_USER. Variable: DEPLOY_HEALTH_URL.
   # Add "required reviewers" to the production environment in the repository settings if you want a click first.
+  # Runs only while the repository variable DEPLOY_ENABLED is "true". It is off since production moved to the home
+  # server (deploy/HOME-SERVER.md), which GitHub cannot reach; the old server must not be restarted by a merge.
   deploy:
     name: Deploy to production
     needs: publish
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production

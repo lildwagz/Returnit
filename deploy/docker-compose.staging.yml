@@ -1,0 +1,6 @@
+# Rehearsal of a move to a new server while the old one is still live: the worker (reminder e-mails and push
+# notifications) does NOT start, so people are not reminded twice from two servers. Add it to COMPOSE_OVERLAY only for the
+# rehearsal and remove it at cutover (see HOME-SERVER.md).
+services:
+  worker:
+    profiles: ["cutover"]

@@ -1,0 +1,31 @@
+# Overlay for hosting the production stack on a machine without a public IP (e.g. at home), published through a
+# Cloudflare Tunnel instead of Caddy on ports 80/443. Turn it on in .env.prod:
+#   COMPOSE_OVERLAY=docker-compose.tunnel.yml
+#   CLOUDFLARE_TUNNEL_TOKEN=eyJ...        # from Zero Trust > Networks > Tunnels (never commit it)
+# then ./up.sh up -d.
+#
+# cloudflared opens an outgoing connection to Cloudflare; nothing on this machine listens on the internet. The public
+# hostnames are set on the tunnel in the Cloudflare dashboard, one per Caddy port (Caddyfile.tunnel):
+#   api.<DOMAIN>   -> http://caddy:8081      auth.<DOMAIN>  -> http://caddy:8082
+#   dl.<DOMAIN>    -> http://caddy:8083      files.<DOMAIN> -> http://caddy:8084
+services:
+  caddy:
+    ports: !reset []
+    volumes:
+      - ./Caddyfile.tunnel:/etc/caddy/Caddyfile:ro
+      - ./updates:/srv/updates:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  cloudflared:
+    image: cloudflare/cloudflared:2024.12.2
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN in .env.prod}
+    depends_on: [caddy]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

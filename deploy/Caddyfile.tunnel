@@ -1,0 +1,83 @@
+# Same sites and rules as Caddyfile, but plain HTTP on private ports: Cloudflare Tunnel (docker-compose.tunnel.yml) terminates
+# HTTPS and cloudflared forwards here, one port per public name. Used only with COMPOSE_OVERLAY=docker-compose.tunnel.yml.
+{
+	auto_https off
+	servers {
+		# cloudflared sits on the private network; believe what it says about the client
+		trusted_proxies static 172.30.0.0/24
+	}
+}
+
+(secure) {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+}
+
+# The mobile app talks to this.
+:8081 {
+	import secure
+	request_body {
+		max_size 11MB
+	}
+	reverse_proxy web:8080 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
+# Login server (public realm endpoints only).
+:8082 {
+	import secure
+	@private path /admin /admin/* /realms/master /realms/master/* /realms/returnit/account /realms/returnit/account/* /metrics /metrics/* /health /health/*
+	respond @private 404
+	reverse_proxy keycloak:8080 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
+# APK download page.
+:8083 {
+	import secure
+	@notread not method GET HEAD
+	respond @notread 405
+	@privacy path /privacy
+	rewrite @privacy /privacy.html
+	@idpage path /id
+	rewrite @idpage /id.html
+	@join path /join
+	rewrite @join /join.html
+	@public path / /index.html /id.html /privacy.html /join.html /.well-known/assetlinks.json /returnit-*.apk /returnit-*.apk.sha256 /assets/*
+	handle @public {
+		root * /srv/updates
+		@apk path *.apk
+		header @apk Content-Disposition attachment
+		header @apk Content-Type application/vnd.android.package-archive
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=604800"
+		# The pages and returnit-latest.apk change with every release under the same name: without this, Cloudflare tells
+		# browsers to keep them for 4 hours and people install the previous version.
+		@fresh not path /assets/*
+		header @fresh Cache-Control "no-cache"
+		file_server
+	}
+	handle {
+		respond 404
+	}
+}
+
+# The bare domain and www: everything goes to the download site (tunnel routes <domain> and www.<domain> -> caddy:8085).
+:8085 {
+	redir https://dl.{$DOMAIN}{uri} 301
+}
+
+# Receipt downloads (signed links).
+:8084 {
+	import secure
+	@notread not method GET HEAD
+	respond @notread 405
+	reverse_proxy minio:9000
+}

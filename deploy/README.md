@@ -4,6 +4,9 @@ This folder runs the whole backend on a single Linux server with Docker: HTTPS (
 worker, Postgres, Redis, receipt storage (MinIO), the virus scanner (ClamAV) and the login server
 (Keycloak). Only ports 80 and 443 are open to the internet.
 
+No public IP (a machine at home)? See [HOME-SERVER.md](HOME-SERVER.md): the same stack through a Cloudflare Tunnel,
+and how to move an existing server there.
+
 **Tested:** the full stack was started with these files on a local machine and checked end to end
 (real login with PKCE over HTTPS, purchase, receipt upload through the virus scanner, device
 registration, account deletion rules, hidden admin pages, e-mail sending, and a backup + restore drill).
