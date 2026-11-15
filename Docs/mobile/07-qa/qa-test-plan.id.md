@@ -509,6 +509,25 @@ Tanpa perubahan backend. Tab Pengingat dihapus: pengingat dibuka dari lonceng.
 | H15 | Arab | Aplikasi berbahasa Arab | Tata letak dicerminkan; lonceng di kiri, chevron dicerminkan, bilah tetap terisi dari awal |
 | H16 | Teks besar | Font sistem 130 % dan 200 % | Tidak ada yang terpotong di kartu atau hero; blok hitung mundur membesar, tidak terpotong |
 
+### 3.19 Model dan nomor seri, dokumen berjenis, riwayat servis (mobile 1.13.0, migrasi server 19)
+
+| ID | Kasus | Langkah | Hasil yang diharapkan |
+|---|---|---|---|
+| S1 | Model dan nomor seri | Tambah pembelian, buka Opsi lain, isi Model dan Nomor seri / IMEI, simpan | Detail menampilkan Model dan Nomor seri; nomor seri ditemukan oleh pencarian Pembelian |
+| S2 | Terlalu panjang | Ketik 101 karakter di Model | Penyimpanan ditolak dengan "Maksimal 100 karakter" di bawah kolom, yang digulir dan difokuskan |
+| S3 | Kosongkan saat menyunting | Sunting pembelian, kosongkan kedua kolom, simpan | Keduanya hilang dari detail |
+| S4 | Aplikasi lama | Dengan aplikasi sebelum 1.13 (atau anggota lain yang memakainya), sunting pembelian | Model dan nomor seri tetap ada sesudahnya |
+| S5 | Jenis berkas | Di detail, Tambah berkas, pilih Kartu garansi, ambil foto | Baris berbunyi "Kartu garansi · Foto · ukuran"; Struk terpilih setiap kali sheet dibuka |
+| S6 | Sepuluh berkas | Tambah berkas sampai 10 | Tombol mati dengan "Sudah 10 berkas"; server menolak berkas ke-11 (409) |
+| S7 | API struk lama | Pembelian dengan kartu garansi yang ditambahkan sebelum struk | Aplikasi sebelum 1.13 menampilkan struk (bukan kartu) sebagai struk pembelian |
+| S8 | Catatan servis | Riwayat servis, Tambah: tanggal, tempat, keluhan, hasil, biaya; simpan | Catatan menampilkan tempat, tanggal dan biaya, lalu "keluhan → hasil"; tanggal terbaru di atas |
+| S9 | Sunting dan hapus | Ketuk catatan, ubah hasil, simpan; ketuk lagi, Hapus catatan, konfirmasi | Perubahan tampil; setelah dihapus, daftar kosong lagi |
+| S10 | Bucket bersama | Catatan pada pembelian di bucket bersama, dilihat anggota lain | Mereka melihatnya dengan "Ditambahkan oleh <nama>" dan dapat menyuntingnya; orang di luar bucket tidak mendapat apa pun (404) |
+| S11 | Paket klaim | Buat paket klaim pembelian dengan model, nomor seri, foto kartu garansi, dan dua catatan servis | PDF memuat Model dan Nomor seri di tabel produk, tabel Riwayat servis (biaya hanya bila Harga dinyalakan), dan keterangan foto diawali "Kartu garansi:" |
+| S12 | Ekspor akun | Ekspor data akun | Tiap pembelian memiliki modelNumber, serialNumber, berkas dengan jenisnya, dan services |
+| S13 | Hapus yang dibagikan | Hapus akun dengan memilih menghapus yang ditambahkannya ke bucket bersama | Catatan servis yang ditulisnya di pembelian orang lain hilang; tanpa pilihan itu, catatan tetap ada tanpa nama |
+| S14 | Arab dan teks besar | Aplikasi berbahasa Arab dan teks 200 % | Kolom, chip, dan catatan baru dicerminkan dan membungkus tanpa terpotong |
+
 ## 4. Perilaku server yang perlu diketahui saat menguji
 
 * **Ubah (PATCH) menimpa semuanya.** Jika sebuah field hilang setelah diubah, berarti aplikasi lupa mengirimnya.
@@ -539,7 +558,7 @@ Tingkat:      blocker (aplikasi tak bisa dipakai) / mayor (fitur rusak) / minor 
 ## 6. Checklist rilis
 
 - [ ] Smoke test lulus di HP asli
-- [ ] Semua kasus di bagian 3.1 sampai 3.18 lulus atau punya pengecualian yang disetujui dan tercatat
+- [ ] Semua kasus di bagian 3.1 sampai 3.19 lulus atau punya pengecualian yang disetujui dan tercatat
 - [ ] Pengingat push (N4) terverifikasi di perangkat asli terhadap staging
 - [ ] Penghapusan akun dengan akun sekali pakai terverifikasi dari awal sampai akhir (C3, C4, C7, C9)
 - [ ] Tidak ada token di log (E7), hanya HTTPS (E10)

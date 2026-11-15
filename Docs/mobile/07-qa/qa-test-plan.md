@@ -509,6 +509,25 @@ No backend change. The Pengingat tab is gone: reminders open from the bell.
 | H15 | Arabic | App in Arabic | The layout mirrors; the bell is on the left, chevrons mirror, the bars still fill from the start |
 | H16 | Large text | System font at 130 % and 200 % | Nothing is cut off on the cards or the hero; the countdown block grows instead of clipping |
 
+### 3.19 Model and serial numbers, documents by kind, service history (mobile 1.13.0, server migration 19)
+
+| ID | Case | Steps | Expected |
+|---|---|---|---|
+| S1 | Model and serial | Add a purchase, open More options, fill Model and Serial number / IMEI, save | The detail shows Model and Serial number; the serial is found by the Pembelian search |
+| S2 | Too long | Type 101 characters in Model | Saving is refused with "At most 100 characters" under the field, which is scrolled to and focused |
+| S3 | Clear on edit | Edit the purchase, empty both fields, save | Both disappear from the detail |
+| S4 | Older app | With the app before 1.13 (or another member on it), edit the purchase | Model and serial are still there afterwards |
+| S5 | Document kind | On the detail, Add a file, choose Warranty card, take a photo | The row reads "Warranty card · Photo · size"; Struk is preselected every time the sheet opens |
+| S6 | Ten files | Add files until there are 10 | The button turns off with "Already 10 files"; the server refuses an 11th (409) |
+| S7 | Old receipt API | A purchase with a warranty card added before a receipt | Apps before 1.13 show the receipt (not the card) as the purchase receipt |
+| S8 | Service record | Service history, Add: date, place, problem, result, cost; save | The record shows the place, date and cost, then "problem → result"; newest date on top |
+| S9 | Edit and delete | Tap the record, change the result, save; tap again, Delete the record, confirm | The change shows; after deleting, the list is empty again |
+| S10 | Shared bucket | A record on a purchase in a shared bucket, seen by another member | They see it with "Added by <name>" and can edit it; someone outside the bucket gets nothing (404) |
+| S11 | Claim package | Make the claim package of a purchase with model, serial, a warranty card photo and two service records | The PDF lists Model and Serial in the product table, a Service history table (cost only when Price is on), and the photo caption starts with "Warranty card:" |
+| S12 | Account export | Export the account data | Each purchase has modelNumber, serialNumber, files with their kind, and services |
+| S13 | Erase shared | Delete an account choosing to erase what it added to shared buckets | The service records it wrote on others' purchases are gone; without that choice they stay without a name |
+| S14 | Arabic and large text | App in Arabic and at 200 % text | The new fields, chips and records mirror and wrap without being cut |
+
 ## 4. Server behaviour to know while testing
 
 * **Edit replaces everything.** If a field disappears after editing, the app forgot to send it.
@@ -539,7 +558,7 @@ Severity:     blocker (cannot use app) / major (feature broken) / minor / cosmet
 ## 6. Release checklist
 
 - [ ] Smoke test passes on a real phone
-- [ ] All cases in sections 3.1 to 3.18 pass or have an accepted, documented exception
+- [ ] All cases in sections 3.1 to 3.19 pass or have an accepted, documented exception
 - [ ] Push reminder (N4) verified on a real device against staging
 - [ ] Account deletion with a throwaway account verified end to end (C3, C4, C7, C9)
 - [ ] No tokens in logs (E7), HTTPS only (E10)
