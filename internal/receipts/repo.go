@@ -43,8 +43,8 @@ func lockPurchase(ctx context.Context, tx pgx.Tx, userID, purchaseID uuid.UUID) 
 }
 
 const insertReceipt = `
-INSERT INTO receipts (purchase_id, storage_key, file_name, content_type, size_bytes, uploaded_at)
-VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`
+INSERT INTO receipts (purchase_id, storage_key, file_name, content_type, size_bytes, uploaded_at, kind)
+VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`
 
 // Add stores one more receipt, refusing with ErrLimit when the purchase already has `limit`.
 func (r *PGRepo) Add(ctx context.Context, userID, purchaseID uuid.UUID, rec Record, limit int) (uuid.UUID, error) {
@@ -64,7 +64,7 @@ func (r *PGRepo) Add(ctx context.Context, userID, purchaseID uuid.UUID, rec Reco
 		return uuid.Nil, ErrLimit
 	}
 	var id uuid.UUID
-	if err := tx.QueryRow(ctx, insertReceipt, purchaseID, rec.StorageKey, rec.FileName, rec.ContentType, rec.SizeBytes, rec.UploadedAt).Scan(&id); err != nil {
+	if err := tx.QueryRow(ctx, insertReceipt, purchaseID, rec.StorageKey, rec.FileName, rec.ContentType, rec.SizeBytes, rec.UploadedAt, rec.Kind).Scan(&id); err != nil {
 		return uuid.Nil, fmt.Errorf("receipts: insert: %w", err)
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -86,10 +86,11 @@ func (r *PGRepo) Upsert(ctx context.Context, userID, purchaseID uuid.UUID, rec R
 	}
 	var id uuid.UUID
 	var old string
-	err = tx.QueryRow(ctx, `SELECT id, storage_key FROM receipts WHERE purchase_id = $1 ORDER BY uploaded_at, id LIMIT 1`, purchaseID).Scan(&id, &old)
+	err = tx.QueryRow(ctx, `SELECT id, storage_key FROM receipts WHERE purchase_id = $1 AND kind = 'receipt'
+ORDER BY uploaded_at, id LIMIT 1`, purchaseID).Scan(&id, &old)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
-		if err := tx.QueryRow(ctx, insertReceipt, purchaseID, rec.StorageKey, rec.FileName, rec.ContentType, rec.SizeBytes, rec.UploadedAt).Scan(&id); err != nil {
+		if err := tx.QueryRow(ctx, insertReceipt, purchaseID, rec.StorageKey, rec.FileName, rec.ContentType, rec.SizeBytes, rec.UploadedAt, KindReceipt).Scan(&id); err != nil {
 			return nil, uuid.Nil, fmt.Errorf("receipts: insert: %w", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
@@ -112,14 +113,14 @@ UPDATE receipts SET storage_key = $2, file_name = $3, content_type = $4, size_by
 }
 
 var selectRecord = `
-SELECT r.id, r.storage_key, r.file_name, r.content_type, r.size_bytes, r.uploaded_at
+SELECT r.id, r.storage_key, r.file_name, r.content_type, r.size_bytes, r.uploaded_at, r.kind
 FROM receipts r JOIN purchases p ON p.id = r.purchase_id
 WHERE p.id = $1 AND ` + buckets.Visible("p.bucket_id", "$2")
 
 func (r *PGRepo) scanRecord(ctx context.Context, sql string, args ...any) (Record, error) {
 	var rec Record
 	err := r.pool.QueryRow(ctx, sql, args...).
-		Scan(&rec.ID, &rec.StorageKey, &rec.FileName, &rec.ContentType, &rec.SizeBytes, &rec.UploadedAt)
+		Scan(&rec.ID, &rec.StorageKey, &rec.FileName, &rec.ContentType, &rec.SizeBytes, &rec.UploadedAt, &rec.Kind)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Record{}, ErrNotFound
 	}
@@ -129,9 +130,9 @@ func (r *PGRepo) scanRecord(ctx context.Context, sql string, args ...any) (Recor
 	return rec, nil
 }
 
-// Get returns the oldest receipt of the purchase.
+// Get returns the oldest receipt (kind "receipt") of the purchase.
 func (r *PGRepo) Get(ctx context.Context, userID, purchaseID uuid.UUID) (Record, error) {
-	return r.scanRecord(ctx, selectRecord+` ORDER BY r.uploaded_at, r.id LIMIT 1`, purchaseID, userID)
+	return r.scanRecord(ctx, selectRecord+` AND r.kind = 'receipt' ORDER BY r.uploaded_at, r.id LIMIT 1`, purchaseID, userID)
 }
 
 func (r *PGRepo) GetByID(ctx context.Context, userID, purchaseID, id uuid.UUID) (Record, error) {
@@ -150,12 +151,12 @@ func (r *PGRepo) deleteKey(ctx context.Context, sql string, args ...any) (string
 	return key, nil
 }
 
-// Delete removes the oldest receipt of the purchase.
+// Delete removes the oldest receipt (kind "receipt") of the purchase.
 func (r *PGRepo) Delete(ctx context.Context, userID, purchaseID uuid.UUID) (string, error) {
 	return r.deleteKey(ctx, `
 DELETE FROM receipts WHERE id = (
   SELECT r.id FROM receipts r JOIN purchases p ON p.id = r.purchase_id
-  WHERE p.id = $1 AND `+buckets.Visible("p.bucket_id", "$2")+` ORDER BY r.uploaded_at, r.id LIMIT 1)
+  WHERE p.id = $1 AND `+buckets.Visible("p.bucket_id", "$2")+` AND r.kind = 'receipt' ORDER BY r.uploaded_at, r.id LIMIT 1)
 RETURNING storage_key`, purchaseID, userID)
 }
 

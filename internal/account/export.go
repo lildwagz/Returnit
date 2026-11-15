@@ -25,7 +25,18 @@ type exportReceipt struct {
 	ContentType  string    `json:"contentType"`
 	SizeBytes    int64     `json:"sizeBytes"`
 	UploadedAt   time.Time `json:"uploadedAt"`
+	Kind         string    `json:"kind"`         // receipt, warranty_card, manual or other
 	DownloadPath string    `json:"downloadPath"` // fetch the file with GET (authenticated); see the API docs
+}
+
+// exportService is one entry of a purchase's service history.
+type exportService struct {
+	ServiceDate string    `json:"serviceDate"`
+	Place       *string   `json:"place"`
+	Problem     *string   `json:"problem"`
+	Result      *string   `json:"result"`
+	Cost        *float64  `json:"cost"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type exportPurchase struct {
@@ -39,8 +50,11 @@ type exportPurchase struct {
 	WarrantyEndDate   *purchases.Date `json:"warrantyEndDate"`
 	Category          *string         `json:"category"`
 	Notes             *string         `json:"notes"`
+	ModelNumber       *string         `json:"modelNumber"`
+	SerialNumber      *string         `json:"serialNumber"`
 	Receipt           *exportReceipt  `json:"receipt"` // the oldest receipt (older readers know one per purchase)
 	Receipts          []exportReceipt `json:"receipts"`
+	Services          []exportService `json:"services"` // service history, newest first
 	CreatedAt         time.Time       `json:"createdAt"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
 }
@@ -126,11 +140,17 @@ SELECT id, email, display_name, created_at, deletion_scheduled_at FROM users WHE
 	rows, err := tx.Query(ctx, `
 SELECT p.id, p.product_name, p.store_name, p.purchase_date, p.price::float8, p.currency,
        p.warranty_start_date, p.warranty_end_date, p.category, p.notes, p.created_at, p.updated_at,
-       rc.items
+       rc.items, p.model_number, p.serial_number, sv.items
 FROM purchases p LEFT JOIN LATERAL (
   SELECT jsonb_agg(jsonb_build_object('id', r.id, 'fileName', r.file_name, 'contentType', r.content_type,
-                                      'sizeBytes', r.size_bytes, 'uploadedAt', r.uploaded_at) ORDER BY r.uploaded_at, r.id) AS items
+                                      'sizeBytes', r.size_bytes, 'uploadedAt', r.uploaded_at, 'kind', r.kind)
+                   ORDER BY r.uploaded_at, r.id) AS items
   FROM receipts r WHERE r.purchase_id = p.id) rc ON true
+LEFT JOIN LATERAL (
+  SELECT jsonb_agg(jsonb_build_object('serviceDate', to_char(s.service_date, 'YYYY-MM-DD'), 'place', s.place,
+                                      'problem', s.problem, 'result', s.result, 'cost', s.cost::float8,
+                                      'createdAt', s.created_at) ORDER BY s.service_date DESC, s.created_at DESC) AS items
+  FROM service_records s WHERE s.purchase_id = p.id) sv ON true
 WHERE p.user_id = $1
 ORDER BY p.purchase_date DESC, p.id`, userID)
 	if err != nil {
@@ -141,9 +161,9 @@ ORDER BY p.purchase_date DESC, p.id`, userID)
 		var p exportPurchase
 		var pd time.Time
 		var ws, we *time.Time
-		var items []byte
+		var items, services []byte
 		if err := rows.Scan(&p.ID, &p.ProductName, &p.StoreName, &pd, &p.Price, &p.Currency, &ws, &we,
-			&p.Category, &p.Notes, &p.CreatedAt, &p.UpdatedAt, &items); err != nil {
+			&p.Category, &p.Notes, &p.CreatedAt, &p.UpdatedAt, &items, &p.ModelNumber, &p.SerialNumber, &services); err != nil {
 			rows.Close()
 			return fmt.Errorf("account: export purchases scan: %w", err)
 		}
@@ -163,10 +183,20 @@ ORDER BY p.purchase_date DESC, p.id`, userID)
 			for i := range p.Receipts {
 				p.Receipts[i].DownloadPath = "/api/v1/purchases/" + p.ID.String() + "/receipts/" + p.Receipts[i].ID.String()
 			}
-			if len(p.Receipts) > 0 {
-				oldest := p.Receipts[0]
-				oldest.DownloadPath = "/api/v1/purchases/" + p.ID.String() + "/receipt" // the original API, for readers of this field
-				p.Receipt = &oldest
+			for _, r := range p.Receipts { // oldest first; the original API serves the oldest of kind "receipt"
+				if r.Kind == "receipt" {
+					oldest := r
+					oldest.DownloadPath = "/api/v1/purchases/" + p.ID.String() + "/receipt" // the original API, for readers of this field
+					p.Receipt = &oldest
+					break
+				}
+			}
+		}
+		p.Services = []exportService{}
+		if len(services) > 0 {
+			if err := json.Unmarshal(services, &p.Services); err != nil {
+				rows.Close()
+				return fmt.Errorf("account: export services: %w", err)
 			}
 		}
 		if !first {

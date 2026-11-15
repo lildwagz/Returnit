@@ -32,6 +32,7 @@ import (
 	"github.com/returnit/returnit/internal/ratelimit"
 	"github.com/returnit/returnit/internal/receipts"
 	"github.com/returnit/returnit/internal/reminders"
+	"github.com/returnit/returnit/internal/servicelog"
 	"github.com/returnit/returnit/internal/storage"
 	"github.com/returnit/returnit/internal/users"
 )
@@ -125,6 +126,7 @@ func run(log *slog.Logger) error {
 		Account:          account.NewService(pool, cfg.AccountDeletionGrace),
 		Devices:          devices.NewService(pool),
 		Buckets:          buckets.NewService(pool, receiptSvc),
+		ServiceLog:       servicelog.NewService(servicelog.NewPGRepo(pool)),
 		Language:         &notifications.LanguageService{Pool: pool},
 		Logger:           log,
 		Limiter:          limiter,

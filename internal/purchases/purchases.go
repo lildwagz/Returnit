@@ -35,7 +35,11 @@ type Purchase struct {
 	ReturnDeadline *Date   `json:"returnDeadline"`
 	Category       *string `json:"category"` // one of Categories, or null
 	Notes          *string `json:"notes"`
-	// Receipt is the oldest receipt, kept for apps that know one file per purchase; Receipts lists them all (never null).
+	// ModelNumber and SerialNumber are what a service centre asks for (optional).
+	ModelNumber  *string `json:"modelNumber"`
+	SerialNumber *string `json:"serialNumber"`
+	// Receipt is the oldest file of kind "receipt", kept for apps that know one file per purchase; Receipts lists every
+	// file of the purchase, whatever its kind (never null).
 	Receipt   *ReceiptInfo  `json:"receipt"`
 	Receipts  []ReceiptInfo `json:"receipts"`
 	CreatedAt time.Time     `json:"createdAt"`
@@ -54,6 +58,8 @@ type ReceiptInfo struct {
 	ContentType string    `json:"contentType"`
 	SizeBytes   int64     `json:"sizeBytes"`
 	UploadedAt  time.Time `json:"uploadedAt"`
+	// Kind is receipt, warranty_card, manual or other.
+	Kind string `json:"kind"`
 }
 
 // Input is a validated create/update payload.
@@ -69,6 +75,9 @@ type Input struct {
 	Notes             *string
 	// Category: Set false (field absent in the request) means an update keeps the stored value.
 	Category OptString
+	// ModelNumber, SerialNumber: like Category, absent keeps the stored value (apps before them send neither).
+	ModelNumber  OptString
+	SerialNumber OptString
 	// BucketID: nil means a new purchase goes to the personal bucket and an update keeps the bucket; a value places or
 	// moves the purchase there (the caller must be a member of that bucket).
 	BucketID *uuid.UUID
@@ -86,6 +95,8 @@ type RawInput struct {
 	ReturnDeadline    *string    `json:"returnDeadline"`
 	Notes             *string    `json:"notes"`
 	Category          OptString  `json:"category"`
+	ModelNumber       OptString  `json:"modelNumber"`
+	SerialNumber      OptString  `json:"serialNumber"`
 	BucketID          *uuid.UUID `json:"bucketId"`
 }
 
@@ -243,8 +254,32 @@ func Validate(r RawInput) (Input, error) {
 	if cat.Value != nil && !IsCategory(*cat.Value) {
 		return Input{}, verr("category is not a known category")
 	}
+	model, err := optCode(r.ModelNumber, "modelNumber")
+	if err != nil {
+		return Input{}, err
+	}
+	serial, err := optCode(r.SerialNumber, "serialNumber")
+	if err != nil {
+		return Input{}, err
+	}
 	return Input{ProductName: name, StoreName: r.StoreName, PurchaseDate: pd, Price: r.Price, Currency: cur,
-		WarrantyStartDate: ws, WarrantyEndDate: we, ReturnDeadline: rd, Notes: r.Notes, Category: cat, BucketID: r.BucketID}, nil
+		WarrantyStartDate: ws, WarrantyEndDate: we, ReturnDeadline: rd, Notes: r.Notes, Category: cat,
+		ModelNumber: model, SerialNumber: serial, BucketID: r.BucketID}, nil
+}
+
+// optCode trims a model or serial number; empty means none. At most 100 characters, no line breaks.
+func optCode(o OptString, field string) (OptString, error) {
+	if o.Value == nil {
+		return o, nil
+	}
+	v := strings.TrimSpace(*o.Value)
+	if v == "" {
+		return OptString{Set: o.Set}, nil
+	}
+	if utf8.RuneCountInString(v) > 100 || strings.ContainsAny(v, "\r\n") {
+		return OptString{}, verr(field + " must be at most 100 characters on one line")
+	}
+	return OptString{Set: o.Set, Value: &v}, nil
 }
 
 func optDate(s *string, field string) (*time.Time, error) {
