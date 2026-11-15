@@ -8,12 +8,12 @@ name: returnit-prod
 
 x-restart: &restart
   restart: unless-stopped
-  # Without a limit Docker keeps every log line forever and the disk eventually fills up.
+  # Logs go to the system journal, which deletes them by age (7 days, see HOME-SERVER.md "Logs") and keeps them when a
+  # container is recreated. `./up.sh logs` still works; `journalctl CONTAINER_TAG=returnit-prod-web-1` reads them too.
   logging:
-    driver: json-file
+    driver: journald
     options:
-      max-size: "10m"
-      max-file: "5"
+      tag: "{{.Name}}"
 
 x-app-env: &app-env
   DATABASE_URL: postgres://returnit:${POSTGRES_PASSWORD}@postgres:5432/returnit?sslmode=disable

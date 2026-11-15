@@ -166,3 +166,20 @@ cd ~/returnit/deploy
 It fast-forwards the checkout, runs the migrations, rolls web and worker, and rolls back if they do not come up healthy.
 A change to `Caddyfile.tunnel` alone needs only `git pull` and
 `./up.sh exec -T caddy caddy reload --config /etc/caddy/Caddyfile`.
+
+## 9. Logs
+
+Containers log to the system journal (`logging: driver: journald` in the compose files), so retention is by age and
+survives a container being recreated. Set it once on the machine (as root):
+
+```
+# /etc/systemd/journald.conf.d/20-returnit-retention.conf
+[Journal]
+Storage=persistent
+MaxRetentionSec=7day
+SystemMaxUse=1G
+```
+
+then `systemctl restart systemd-journald`. Logs older than 7 days are deleted, which is what the privacy policy promises.
+Read them as before with `./up.sh logs -f web`, or `journalctl CONTAINER_TAG=returnit-prod-web-1 --since today`.
+Keep `LOG_SQL`, `LOG_REDIS` and `LOG_REQUEST_BODY` off in `.env.prod`; switch one on only for a short debugging session.
