@@ -206,11 +206,12 @@ paths:
       - $ref: '#/components/parameters/PurchaseId'
     post:
       tags: [Purchases]
-      summary: Add one more receipt file (up to 5 per purchase)
+      summary: Add one more file (receipt, warranty card, manual or other; up to 10 per purchase)
       description: >
         Stores the file next to the existing ones. The same checks as the single-receipt upload apply (type sniffing,
-        size, malware scan). A purchase holds at most 5 receipts: the sixth is refused with 409 receipt_limit_reached
-        and nothing is stored. Rate limited like every receipt upload.
+        size, malware scan). A purchase holds at most 10 files of all kinds together: the eleventh is refused with 409
+        receipt_limit_reached and nothing is stored. Rate limited like every receipt upload. The original
+        /purchases/{purchaseId}/receipt endpoints only ever touch files of kind receipt.
       requestBody:
         required: true
         content:
@@ -222,15 +223,20 @@ paths:
                 file:
                   type: string
                   format: binary
+                kind:
+                  type: string
+                  enum: [receipt, warranty_card, manual, other]
+                  default: receipt
+                  description: What the file is. Any other value is refused with 400 validation_error.
       responses:
         '201':
-          description: Receipt added
+          description: File added
           content:
             application/json:
               schema: {$ref: '#/components/schemas/Receipt'}
         '400': {$ref: '#/components/responses/BadRequest'}
         '404': {$ref: '#/components/responses/NotFound'}
-        '409': {description: "The purchase already has 5 receipts (error code receipt_limit_reached)"}
+        '409': {description: "The purchase already has 10 files (error code receipt_limit_reached)"}
         '413': {description: File too large (default limit 10 MiB)}
         '415': {description: "Unsupported media type; content is sniffed, only PDF/JPEG/PNG accepted"}
   /purchases/{purchaseId}/receipts/{receiptId}:
@@ -259,6 +265,72 @@ paths:
     delete:
       tags: [Purchases]
       summary: Delete one receipt file and its metadata
+      responses:
+        '204': {description: Deleted}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /purchases/{purchaseId}/services:
+    parameters:
+      - $ref: '#/components/parameters/PurchaseId'
+    get:
+      tags: [Purchases]
+      summary: The service history of a purchase, newest service date first
+      description: Visits to a service centre and warranty claims. Everyone who can see the purchase can see and change them.
+      responses:
+        '200':
+          description: Service records
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: {$ref: '#/components/schemas/ServiceRecord'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    post:
+      tags: [Purchases]
+      summary: Add a service record (at most 100 per purchase)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ServiceRecordInput'}
+      responses:
+        '201':
+          description: Added
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ServiceRecord'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {description: "The purchase already has 100 records (error code service_limit_reached)"}
+  /purchases/{purchaseId}/services/{serviceId}:
+    parameters:
+      - $ref: '#/components/parameters/PurchaseId'
+      - name: serviceId
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    patch:
+      tags: [Purchases]
+      summary: Replace a service record (every field; a missing one is cleared)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ServiceRecordInput'}
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ServiceRecord'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      tags: [Purchases]
+      summary: Delete a service record
       responses:
         '204': {description: Deleted}
         '404': {$ref: '#/components/responses/NotFound'}
@@ -726,13 +798,15 @@ components:
         returnDeadline: {type: string, format: date, nullable: true, description: "The last day the shop takes the product back. Reminders 3 and 1 day before it, like the warranty reminders (same on/off switch, channel and quiet hours)."}
         category: {type: string, enum: [phone, computer, tv_audio, camera, appliance, kitchen, vehicle, tools, furniture, wearable, other], nullable: true, description: "What kind of product it is (the app shows the name and an icon). Null for purchases without one."}
         notes: {type: string, maxLength: 2000, nullable: true}
+        modelNumber: {type: string, maxLength: 100, nullable: true, description: "Model or type number (for example UA43T6500)."}
+        serialNumber: {type: string, maxLength: 100, nullable: true, description: "Serial number or IMEI, as a service centre asks for it. Searched by q."}
         receipt:
           allOf: [{$ref: '#/components/schemas/Receipt'}]
           nullable: true
-          description: The oldest receipt, or null. Kept for apps that know one receipt per purchase; use receipts.
+          description: The oldest file of kind receipt, or null. Kept for apps that know one receipt per purchase; use receipts.
         receipts:
           type: array
-          description: All receipts of the purchase, oldest first (at most 5). An empty list, never null.
+          description: All files of the purchase whatever their kind, oldest first (at most 10). An empty list, never null.
           items: {$ref: '#/components/schemas/Receipt'}
         createdAt: {type: string, format: date-time}
         updatedAt: {type: string, format: date-time}
@@ -745,6 +819,31 @@ components:
         contentType: {type: string, enum: [application/pdf, image/jpeg, image/png]}
         sizeBytes: {type: integer}
         uploadedAt: {type: string, format: date-time}
+        kind: {type: string, enum: [receipt, warranty_card, manual, other], description: "What the file is; files from before kinds existed are receipt."}
+    ServiceRecord:
+      type: object
+      required: [id, purchaseId, serviceDate, addedByMe, createdAt, updatedAt]
+      properties:
+        id: {type: string, format: uuid}
+        purchaseId: {type: string, format: uuid}
+        serviceDate: {type: string, format: date}
+        place: {type: string, maxLength: 160, nullable: true, description: Service centre or shop}
+        problem: {type: string, maxLength: 1000, nullable: true, description: What was wrong}
+        result: {type: string, maxLength: 1000, nullable: true, description: What was done}
+        cost: {type: number, minimum: 0, nullable: true, description: "In the currency of the purchase; null when free or unknown"}
+        addedBy: {type: string, nullable: true, description: "Display name of the member who added it; null once that account is erased"}
+        addedByMe: {type: boolean}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    ServiceRecordInput:
+      type: object
+      required: [serviceDate]
+      properties:
+        serviceDate: {type: string, format: date}
+        place: {type: string, maxLength: 160, nullable: true}
+        problem: {type: string, maxLength: 1000, nullable: true}
+        result: {type: string, maxLength: 1000, nullable: true}
+        cost: {type: number, minimum: 0, nullable: true}
     PurchaseCreate:
       type: object
       required: [productName, purchaseDate]
@@ -759,6 +858,8 @@ components:
         returnDeadline: {type: string, format: date, description: "Optional; on or after purchaseDate. Not sending it clears it (PATCH replaces everything)."}
         category: {type: string, enum: [phone, computer, tv_audio, camera, appliance, kitchen, vehicle, tools, furniture, wearable, other], nullable: true, description: "Optional. On PATCH, leaving it out keeps the stored category (unlike the other fields, which PATCH replaces); null or an empty string clears it."}
         notes: {type: string, maxLength: 2000}
+        modelNumber: {type: string, maxLength: 100, nullable: true, description: "Optional, one line. On PATCH, leaving it out keeps the stored value (like category); null or blank clears it."}
+        serialNumber: {type: string, maxLength: 100, nullable: true, description: "Optional, one line. On PATCH, leaving it out keeps the stored value (like category); null or blank clears it."}
     PurchaseUpdate:
       allOf:
         - $ref: '#/components/schemas/PurchaseCreate'

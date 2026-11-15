@@ -326,7 +326,7 @@ func TestAddKeepsSeveralReceiptsUpToTheLimit(t *testing.T) {
 	ctx := context.Background()
 	var ids []uuid.UUID
 	for i := 0; i < MaxPerPurchase; i++ {
-		r, err := svc.Add(ctx, u, p, "a.pdf", 10, bytes.NewReader(pdfBytes))
+		r, err := svc.Add(ctx, u, p, "", "a.pdf", 10, bytes.NewReader(pdfBytes))
 		if err != nil {
 			t.Fatalf("add %d: %v", i, err)
 		}
@@ -339,7 +339,7 @@ func TestAddKeepsSeveralReceiptsUpToTheLimit(t *testing.T) {
 		t.Fatalf("records=%d objects=%d", len(repo.all()), len(st.objects))
 	}
 	// One too many: refused, and the file that was just uploaded is not left in the store.
-	if _, err := svc.Add(ctx, u, p, "extra.pdf", 10, bytes.NewReader(pdfBytes)); !errors.Is(err, ErrLimit) {
+	if _, err := svc.Add(ctx, u, p, "", "extra.pdf", 10, bytes.NewReader(pdfBytes)); !errors.Is(err, ErrLimit) {
 		t.Fatalf("sixth receipt: err=%v", err)
 	}
 	if len(st.objects) != MaxPerPurchase || len(st.deleted) != 1 {
@@ -349,7 +349,7 @@ func TestAddKeepsSeveralReceiptsUpToTheLimit(t *testing.T) {
 	if err := svc.DeleteByID(ctx, u, p, ids[2]); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.Add(ctx, u, p, "again.pdf", 10, bytes.NewReader(pdfBytes)); err != nil {
+	if _, err := svc.Add(ctx, u, p, "", "again.pdf", 10, bytes.NewReader(pdfBytes)); err != nil {
 		t.Errorf("add after delete: %v", err)
 	}
 }
@@ -357,8 +357,8 @@ func TestAddKeepsSeveralReceiptsUpToTheLimit(t *testing.T) {
 func TestOriginalUploadReplacesOnlyTheOldest(t *testing.T) {
 	svc, repo, _, u, p := setup(1 << 20)
 	ctx := context.Background()
-	first, _ := svc.Add(ctx, u, p, "one.pdf", 10, bytes.NewReader(pdfBytes))
-	second, _ := svc.Add(ctx, u, p, "two.pdf", 10, bytes.NewReader(pdfBytes))
+	first, _ := svc.Add(ctx, u, p, "", "one.pdf", 10, bytes.NewReader(pdfBytes))
+	second, _ := svc.Add(ctx, u, p, "", "two.pdf", 10, bytes.NewReader(pdfBytes))
 	if _, err := svc.Upload(ctx, u, p, "new.pdf", 10, bytes.NewReader(pdfBytes)); err != nil {
 		t.Fatal(err)
 	}
@@ -371,7 +371,7 @@ func TestOriginalUploadReplacesOnlyTheOldest(t *testing.T) {
 func TestByIDLookupsAreOwnerScoped(t *testing.T) {
 	svc, _, _, u, p := setup(1 << 20)
 	ctx := context.Background()
-	r, _ := svc.Add(ctx, u, p, "a.pdf", 10, bytes.NewReader(pdfBytes))
+	r, _ := svc.Add(ctx, u, p, "", "a.pdf", 10, bytes.NewReader(pdfBytes))
 	if _, _, got, err := svc.SignedURLByID(ctx, u, p, r.ID); err != nil || got.ID != r.ID {
 		t.Fatalf("owner: %v %v", got.ID, err)
 	}

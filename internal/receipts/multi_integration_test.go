@@ -79,7 +79,7 @@ func TestSeveralReceiptsPerPurchase(t *testing.T) {
 	add := func(p purchases.Purchase, name string) receipts.Receipt {
 		t.Helper()
 		b := pdf(name)
-		r, err := rsvc.Add(ctx, alice, p.ID, name, int64(len(b)), bytes.NewReader(b))
+		r, err := rsvc.Add(ctx, alice, p.ID, "", name, int64(len(b)), bytes.NewReader(b))
 		if err != nil {
 			t.Fatalf("add %s: %v", name, err)
 		}
@@ -141,17 +141,19 @@ func TestSeveralReceiptsPerPurchase(t *testing.T) {
 		t.Fatalf("after delete: %d", len(got.Receipts))
 	}
 
-	// The limit, under concurrency: the purchase row lock serialises, so at most 5 ever exist.
-	done := make(chan error, 8)
-	for i := 0; i < 8; i++ {
+	// The limit, under concurrency: the purchase row lock serialises, so at most MaxPerPurchase ever exist.
+	// Two files are already there, so of `tries` concurrent uploads MaxPerPurchase-2 succeed and the rest are refused.
+	const tries = receipts.MaxPerPurchase + 3
+	done := make(chan error, tries)
+	for i := 0; i < tries; i++ {
 		go func(i int) {
 			b := pdf("race")
-			_, err := rsvc.Add(ctx, alice, p.ID, "race.pdf", int64(len(b)), bytes.NewReader(b))
+			_, err := rsvc.Add(ctx, alice, p.ID, "", "race.pdf", int64(len(b)), bytes.NewReader(b))
 			done <- err
 		}(i)
 	}
 	ok, limited := 0, 0
-	for i := 0; i < 8; i++ {
+	for i := 0; i < tries; i++ {
 		switch err := <-done; {
 		case err == nil:
 			ok++
@@ -162,7 +164,7 @@ func TestSeveralReceiptsPerPurchase(t *testing.T) {
 		}
 	}
 	got, _ = psvc.Get(ctx, alice, p.ID)
-	if len(got.Receipts) != receipts.MaxPerPurchase || ok != 3 || limited != 5 {
+	if len(got.Receipts) != receipts.MaxPerPurchase || ok != receipts.MaxPerPurchase-2 || limited != 5 {
 		t.Errorf("race: receipts=%d ok=%d limited=%d", len(got.Receipts), ok, limited)
 	}
 

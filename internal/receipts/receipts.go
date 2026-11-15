@@ -27,12 +27,29 @@ var (
 	ErrUnsupported = errors.New("receipts: unsupported file type")
 	ErrEmpty       = errors.New("receipts: empty file")
 	ErrLimit       = errors.New("receipts: too many receipts for this purchase")
+	ErrKind        = errors.New("receipts: unknown document kind")
 )
 
 const SignedURLTTL = 5 * time.Minute
 
-// MaxPerPurchase is how many receipt files one purchase can hold.
-const MaxPerPurchase = 5
+// MaxPerPurchase is how many files (receipts, warranty cards, manuals, other documents) one purchase can hold.
+const MaxPerPurchase = 10
+
+// KindReceipt is the default kind; the legacy single-receipt API only ever touches files of this kind.
+const KindReceipt = "receipt"
+
+// Kinds are the document kinds a file can have (the database checks the same list).
+var Kinds = []string{KindReceipt, "warranty_card", "manual", "other"}
+
+// ValidKind reports whether k is one of Kinds.
+func ValidKind(k string) bool {
+	for _, v := range Kinds {
+		if v == k {
+			return true
+		}
+	}
+	return false
+}
 
 var allowedTypes = map[string]string{
 	"application/pdf": "pdf",
@@ -46,6 +63,7 @@ type Receipt struct {
 	ContentType string    `json:"contentType"`
 	SizeBytes   int64     `json:"sizeBytes"`
 	UploadedAt  time.Time `json:"uploadedAt"`
+	Kind        string    `json:"kind"`
 }
 
 type Record struct {
@@ -145,7 +163,8 @@ func (s *Service) stage(ctx context.Context, userID, purchaseID uuid.UUID, filen
 		return Record{}, err
 	}
 	return Record{
-		Receipt:    Receipt{FileName: SanitizeFilename(filename, ext), ContentType: ctype, SizeBytes: int64(len(data)), UploadedAt: time.Now().UTC()},
+		Receipt: Receipt{FileName: SanitizeFilename(filename, ext), ContentType: ctype, SizeBytes: int64(len(data)),
+			UploadedAt: time.Now().UTC(), Kind: KindReceipt},
 		StorageKey: key,
 	}, nil
 }
@@ -169,12 +188,20 @@ func (s *Service) Upload(ctx context.Context, userID, purchaseID uuid.UUID, file
 	return rec.Receipt, nil
 }
 
-// Add stores one more receipt for the purchase (at most MaxPerPurchase; ErrLimit beyond that).
-func (s *Service) Add(ctx context.Context, userID, purchaseID uuid.UUID, filename string, declaredSize int64, body io.Reader) (Receipt, error) {
+// Add stores one more file for the purchase (at most MaxPerPurchase; ErrLimit beyond that). kind is one of Kinds;
+// empty means a receipt.
+func (s *Service) Add(ctx context.Context, userID, purchaseID uuid.UUID, kind, filename string, declaredSize int64, body io.Reader) (Receipt, error) {
+	if kind == "" {
+		kind = KindReceipt
+	}
+	if !ValidKind(kind) {
+		return Receipt{}, ErrKind
+	}
 	rec, err := s.stage(ctx, userID, purchaseID, filename, declaredSize, body)
 	if err != nil {
 		return Receipt{}, err
 	}
+	rec.Kind = kind
 	id, err := s.repo.Add(ctx, userID, purchaseID, rec, MaxPerPurchase)
 	if err != nil {
 		s.deleteUnreferenced(rec.StorageKey)

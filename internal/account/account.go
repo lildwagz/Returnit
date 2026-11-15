@@ -279,11 +279,18 @@ WHERE bucket_id = $1 AND user_id = (
 	if err := tx.QueryRow(ctx, `SELECT deletion_erase_shared FROM users WHERE id = $1`, userID).Scan(&erase); err != nil {
 		return fmt.Errorf("account: erase shared choice: %w", err)
 	}
+	// Service records they wrote on purchases of others follow the same choice.
 	if erase {
+		if _, err := tx.Exec(ctx, `DELETE FROM service_records WHERE added_by = $1`, userID); err != nil {
+			return fmt.Errorf("account: erase shared service records: %w", err)
+		}
 		if _, err := tx.Exec(ctx, `DELETE FROM purchases WHERE user_id = $1`, userID); err != nil {
 			return fmt.Errorf("account: erase shared purchases: %w", err)
 		}
 		return nil
+	}
+	if _, err := tx.Exec(ctx, `UPDATE service_records SET added_by = NULL WHERE added_by = $1`, userID); err != nil {
+		return fmt.Errorf("account: release service records: %w", err)
 	}
 	if _, err := tx.Exec(ctx, `UPDATE purchases SET user_id = NULL WHERE user_id = $1`, userID); err != nil {
 		return fmt.Errorf("account: release purchases: %w", err)

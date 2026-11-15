@@ -19,7 +19,7 @@ type ReceiptService interface {
 	Upload(ctx context.Context, userID, purchaseID uuid.UUID, filename string, declaredSize int64, body io.Reader) (receipts.Receipt, error)
 	SignedURL(ctx context.Context, userID, purchaseID uuid.UUID) (string, time.Time, receipts.Receipt, error)
 	Delete(ctx context.Context, userID, purchaseID uuid.UUID) error
-	Add(ctx context.Context, userID, purchaseID uuid.UUID, filename string, declaredSize int64, body io.Reader) (receipts.Receipt, error)
+	Add(ctx context.Context, userID, purchaseID uuid.UUID, kind, filename string, declaredSize int64, body io.Reader) (receipts.Receipt, error)
 	SignedURLByID(ctx context.Context, userID, purchaseID, id uuid.UUID) (string, time.Time, receipts.Receipt, error)
 	DeleteByID(ctx context.Context, userID, purchaseID, id uuid.UUID) error
 }
@@ -27,7 +27,8 @@ type ReceiptService interface {
 // A purchase holds up to receipts.MaxPerPurchase files.
 //   - /purchases/:id/receipt (singular) is the original API: upload replaces the oldest receipt (or adds the first),
 //     download and delete act on the oldest one. Apps built before several receipts keep working.
-//   - /purchases/:id/receipts adds one more; /purchases/:id/receipts/:rid downloads or deletes one named receipt.
+//   - /purchases/:id/receipts adds one more (optional form field "kind": receipt, warranty_card, manual, other;
+//     default receipt); /purchases/:id/receipts/:rid downloads or deletes one named file.
 func registerReceipts(g *gin.RouterGroup, svc ReceiptService, uploadLimit gin.HandlerFunc) {
 	h := receiptHandler{svc}
 	g.POST("/purchases/:id/receipt", uploadLimit, h.upload)
@@ -57,9 +58,13 @@ type receiptHandler struct{ svc ReceiptService }
 // multipartOverhead leaves room for multipart boundaries and the filename header.
 const multipartOverhead = 64 << 10
 
-// upload is the original single-receipt upload (replace the oldest); add stores one more.
+// upload is the original single-receipt upload (replace the oldest); add stores one more, of the kind in the form.
 func (h receiptHandler) upload(c *gin.Context) { h.store(c, h.svc.Upload) }
-func (h receiptHandler) add(c *gin.Context)    { h.store(c, h.svc.Add) }
+func (h receiptHandler) add(c *gin.Context) {
+	h.store(c, func(ctx context.Context, userID, purchaseID uuid.UUID, filename string, size int64, body io.Reader) (receipts.Receipt, error) {
+		return h.svc.Add(ctx, userID, purchaseID, c.PostForm("kind"), filename, size, body)
+	})
+}
 
 type storeFunc func(ctx context.Context, userID, purchaseID uuid.UUID, filename string, declaredSize int64, body io.Reader) (receipts.Receipt, error)
 
@@ -162,7 +167,9 @@ func writeReceiptErr(c *gin.Context, err error) {
 		c.Header("Retry-After", "30")
 		c.JSON(http.StatusServiceUnavailable, ErrorBody("scan_unavailable", "file scanning is temporarily unavailable, try again later", c))
 	case errors.Is(err, receipts.ErrLimit):
-		c.JSON(http.StatusConflict, ErrorBody("receipt_limit_reached", "a purchase can have at most 5 receipts; delete one first", c))
+		c.JSON(http.StatusConflict, ErrorBody("receipt_limit_reached", "a purchase can have at most 10 files; delete one first", c))
+	case errors.Is(err, receipts.ErrKind):
+		c.JSON(http.StatusBadRequest, ErrorBody("validation_error", "kind must be receipt, warranty_card, manual or other", c))
 	case errors.Is(err, receipts.ErrEmpty):
 		c.JSON(http.StatusBadRequest, ErrorBody("bad_request", "file is empty", c))
 	default:

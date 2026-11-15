@@ -21,12 +21,14 @@ func NewPGRepo(p *pgxpool.Pool) *PGRepo { return &PGRepo{pool: p} }
 
 const cols = `p.id, p.product_name, p.store_name, p.purchase_date, p.price::float8, p.currency,
  p.warranty_start_date, p.warranty_end_date, p.return_deadline, p.category, p.notes, p.created_at, p.updated_at,
- rc.items, p.bucket_id, COALESCE(NULLIF(trim(au.display_name), ''), split_part(au.email, '@', 1)), p.user_id`
+ rc.items, p.bucket_id, COALESCE(NULLIF(trim(au.display_name), ''), split_part(au.email, '@', 1)), p.user_id,
+ p.model_number, p.serial_number`
 
 // Receipts as one JSON array per purchase (oldest first), so a purchase is still one row however many it has.
 const from = ` FROM purchases p LEFT JOIN users au ON au.id = p.user_id LEFT JOIN LATERAL (
   SELECT jsonb_agg(jsonb_build_object('id', r.id, 'fileName', r.file_name, 'contentType', r.content_type,
-                                      'sizeBytes', r.size_bytes, 'uploadedAt', r.uploaded_at) ORDER BY r.uploaded_at, r.id) AS items
+                                      'sizeBytes', r.size_bytes, 'uploadedAt', r.uploaded_at, 'kind', r.kind)
+                    ORDER BY r.uploaded_at, r.id) AS items
   FROM receipts r WHERE r.purchase_id = p.id) rc ON true`
 
 // scan reads one purchase row; viewer is the person asking, to tell whether they added it.
@@ -37,7 +39,8 @@ func scan(row pgx.Row, viewer uuid.UUID) (Purchase, error) {
 	var items []byte
 	var adder *uuid.UUID
 	if err := row.Scan(&p.ID, &p.ProductName, &p.StoreName, &pd, &p.Price, &p.Currency,
-		&ws, &we, &rd, &p.Category, &p.Notes, &p.CreatedAt, &p.UpdatedAt, &items, &p.BucketID, &p.AddedBy, &adder); err != nil {
+		&ws, &we, &rd, &p.Category, &p.Notes, &p.CreatedAt, &p.UpdatedAt, &items, &p.BucketID, &p.AddedBy, &adder,
+		&p.ModelNumber, &p.SerialNumber); err != nil {
 		return Purchase{}, err
 	}
 	p.AddedByMe = adder != nil && *adder == viewer
@@ -46,9 +49,12 @@ func scan(row pgx.Row, viewer uuid.UUID) (Purchase, error) {
 		if err := json.Unmarshal(items, &p.Receipts); err != nil {
 			return Purchase{}, fmt.Errorf("purchases: receipts: %w", err)
 		}
-		if len(p.Receipts) > 0 {
-			first := p.Receipts[0]
-			p.Receipt = &first
+		for _, r := range p.Receipts { // oldest first
+			if r.Kind == "receipt" {
+				first := r
+				p.Receipt = &first
+				break
+			}
 		}
 	}
 	p.PurchaseDate = Date{pd}
@@ -98,10 +104,11 @@ func (r *PGRepo) Create(ctx context.Context, userID uuid.UUID, in Input) (Purcha
 	var id uuid.UUID
 	err := r.pool.QueryRow(ctx, `
 INSERT INTO purchases (user_id, product_name, store_name, purchase_date, price, currency,
-  warranty_start_date, warranty_end_date, return_deadline, notes, category, bucket_id)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`, // no bucket: the trigger uses the personal bucket
+  warranty_start_date, warranty_end_date, return_deadline, notes, category, bucket_id, model_number, serial_number)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`, // no bucket: the trigger uses the personal bucket
 		userID, in.ProductName, in.StoreName, in.PurchaseDate, in.Price, in.Currency,
-		in.WarrantyStartDate, in.WarrantyEndDate, in.ReturnDeadline, in.Notes, in.Category.Value, in.BucketID).Scan(&id)
+		in.WarrantyStartDate, in.WarrantyEndDate, in.ReturnDeadline, in.Notes, in.Category.Value, in.BucketID,
+		in.ModelNumber.Value, in.SerialNumber.Value).Scan(&id)
 	if err != nil {
 		return Purchase{}, mapErr(err)
 	}
@@ -121,10 +128,13 @@ func (r *PGRepo) Update(ctx context.Context, userID, id uuid.UUID, in Input) (Pu
 	tag, err := r.pool.Exec(ctx, `
 UPDATE purchases SET product_name=$3, store_name=$4, purchase_date=$5, price=$6, currency=$7,
   warranty_start_date=$8, warranty_end_date=$9, return_deadline=$10, notes=$11,
-  category = CASE WHEN $12 THEN $13 ELSE category END, bucket_id = COALESCE($14, bucket_id), updated_at=now()
+  category = CASE WHEN $12 THEN $13 ELSE category END, bucket_id = COALESCE($14, bucket_id),
+  model_number = CASE WHEN $15 THEN $16 ELSE model_number END,
+  serial_number = CASE WHEN $17 THEN $18 ELSE serial_number END, updated_at=now()
 WHERE id=$1 AND `+buckets.Visible("bucket_id", "$2"),
 		id, userID, in.ProductName, in.StoreName, in.PurchaseDate, in.Price, in.Currency,
-		in.WarrantyStartDate, in.WarrantyEndDate, in.ReturnDeadline, in.Notes, in.Category.Set, in.Category.Value, in.BucketID)
+		in.WarrantyStartDate, in.WarrantyEndDate, in.ReturnDeadline, in.Notes, in.Category.Set, in.Category.Value, in.BucketID,
+		in.ModelNumber.Set, in.ModelNumber.Value, in.SerialNumber.Set, in.SerialNumber.Value)
 	if err != nil {
 		return Purchase{}, mapErr(err)
 	}
@@ -156,7 +166,8 @@ var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 
 var listWhere = `
 WHERE ` + visibleToUser + `
-  AND ($2::text = '' OR p.product_name ILIKE '%' || $2 || '%' OR p.store_name ILIKE '%' || $2 || '%')
+  AND ($2::text = '' OR p.product_name ILIKE '%' || $2 || '%' OR p.store_name ILIKE '%' || $2 || '%'
+       OR p.model_number ILIKE '%' || $2 || '%' OR p.serial_number ILIKE '%' || $2 || '%')
   AND ($3::text = '' OR CASE
         WHEN p.warranty_end_date IS NULL THEN 'none'
         WHEN p.warranty_end_date < CURRENT_DATE THEN 'expired'
