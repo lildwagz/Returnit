@@ -26,8 +26,8 @@
 <link rel="apple-touch-icon" href="assets/icon.png">
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-800.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=3">
-<script src="assets/site.js?v=3" defer></script>
+<link rel="stylesheet" href="assets/site.css?v=4">
+<script src="assets/site.js?v=4" defer></script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"ReturnIt","operatingSystem":"Android 7.0 atau lebih baru","applicationCategory":"UtilitiesApplication","softwareVersion":"{{VERSION}}","fileSize":"{{SIZE}} MB","downloadUrl":"https://dl.returnit.online/returnit-latest.apk","url":"https://dl.returnit.online/id","inLanguage":["en","id","ar"],"offers":{"@type":"Offer","price":"0","priceCurrency":"IDR"}}
 </script>
@@ -113,6 +113,7 @@
           <li><svg class="ico" aria-hidden="true"><use href="#i-tag"/></svg>Gratis, tanpa iklan</li>
           <li><svg class="ico" aria-hidden="true"><use href="#i-phone"/></svg>Android 7.0+</li>
         </ul>
+        <p class="reassure">Masuk dengan e-mail atau Google. Play Protect mungkin memberi peringatan karena ReturnIt belum ada di Google Play: <a href="#install">cara memasang</a> · <a href="#sha-faq">periksa file (SHA-256)</a></p>
         <div class="qr">
           <img src="assets/qr.svg" alt="Kode QR yang membuka halaman ini" width="76" height="76">
           <p><b>Buka di komputer?</b><br>Pindai dengan HP untuk mengunduh.</p>
@@ -120,37 +121,10 @@
       </div>
 
       <div class="stage">
-        <!-- layar Beranda aplikasi, digambar dengan warnanya sendiri (bukan screenshot) -->
-        <div class="phone" aria-hidden="true">
-          <div class="screen">
-            <div class="greet">
-              <span class="av">A</span>
-              <div><b>Halo, Alex</b><small>Kamis, 5 November</small></div>
-              <span class="bell"><svg class="ico"><use href="#i-bell"/></svg><i>2</i></span>
-            </div>
-            <div class="att">
-              <div class="atop">
-                <span class="clock"><svg class="ico"><use href="#i-clock"/></svg></span>
-                <div><small class="k">Perlu perhatian</small><small>Garansi berakhir terdekat</small></div>
-                <div class="num"><b>12</b><small>hari lagi</small></div>
-              </div>
-              <b class="nm">Air fryer</b>
-              <div class="acts"><span class="p">Buka</span><span>Ke kalender</span></div>
-            </div>
-            <div class="sum">
-              <small class="k">Masih bergaransi</small>
-              <b>Rp12.450.000</b>
-              <div class="bar"><i style="flex:9;background:#16A34A"></i><i style="flex:2;background:#D97706"></i><i style="flex:2;background:#DC2626"></i><i style="flex:1;background:#94A3B8"></i></div>
-              <div class="leg"><span><i style="background:#16A34A"></i>Aktif 9</span><span><i style="background:#D97706"></i>Segera berakhir 2</span></div>
-            </div>
-            <div class="row"><div><h4>Headphone peredam bising</h4><p>Toko Elektro · 12 Mar 2026</p></div><div class="cd"><b>214</b><small>hari lagi</small></div></div>
-            <div class="row"><div><h4>Sepatu lari</h4><p>Kembalikan sebelum 9 Nov</p></div><div class="cd w"><b>4</b><small>hari lagi</small></div></div>
-            <div class="fab"><svg class="ico"><use href="#i-plus"/></svg></div>
-          </div>
-        </div>
-        <div class="float f1" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-shield"/></svg></span><div><b>Garansi aktif</b><small>Kulkas · 1.520 hari lagi</small><span class="meter"><i></i></span></div></div></div>
-        <div class="float f2" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-bell-ring"/></svg></span><div><b>Berakhir 3 hari lagi</b><small>Hari ini, 09.00 · Blender</small></div></div></div>
-        <div class="float f3" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-file"/></svg></span><div><b>3 berkas tersimpan</b><small>Struk · Kartu garansi</small></div></div></div>
+        <div class="phone"><img src="assets/screens/id-home.webp" alt="Layar Beranda ReturnIt: batas pengembalian terdekat dan ringkasan garansi" width="540" height="1200" fetchpriority="high"></div>
+        <div class="float f1" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-shield"/></svg></span><div><b>Garansi aktif</b><small>Kulkas · 1.505 hari lagi</small><span class="meter"><i></i></span></div></div></div>
+        <div class="float f2" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-bell-ring"/></svg></span><div><b>Berakhir 7 hari lagi</b><small>Garansi blender · 09.00</small></div></div></div>
+        <div class="float f3" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-file"/></svg></span><div><b>2 berkas tersimpan</b><small>Struk · Kartu garansi</small></div></div></div>
         <div class="float f4" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-file-down"/></svg></span><div><b>Paket klaim</b><small>PDF siap dikirim</small></div></div></div>
       </div>
     </div>
@@ -205,7 +179,7 @@
         <p>Mulai hanya dalam beberapa langkah.</p>
       </div>
       <ol class="steps" data-reveal>
-        <li class="step"><span class="num-badge"><svg class="ico" aria-hidden="true"><use href="#i-plus-circle"/></svg></span><span class="n">01</span><h3>Catat pembelian</h3><p>Isi barang, toko, tanggal, dan lama garansi, lalu lampirkan struknya.</p></li>
+        <li class="step"><span class="num-badge"><svg class="ico" aria-hidden="true"><use href="#i-plus-circle"/></svg></span><span class="n">01</span><h3>Masuk &amp; catat pembelian</h3><p>Masuk dengan e-mail atau Google, lalu isi barang, toko, tanggal, dan lama garansi, serta lampirkan struknya.</p></li>
         <li class="step"><span class="num-badge"><svg class="ico" aria-hidden="true"><use href="#i-bell-ring"/></svg></span><span class="n">02</span><h3>Pantau &amp; diingatkan</h3><p>Lihat sisa hari sekilas dan diingatkan sebelum garansi dan batas pengembalian berakhir.</p></li>
         <li class="step"><span class="num-badge"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg></span><span class="n">03</span><h3>Tetap terlindungi</h3><p>Saat barang rusak, kirim satu PDF klaim berisi semua yang dibutuhkan toko.</p></li>
       </ol>
@@ -267,9 +241,8 @@
         <div class="install-cta"><a class="btn btn-primary" href="returnit-latest.apk" download><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Unduh APK</a><p class="meta"><b>Versi {{VERSION}}</b> · {{SIZE}} MB</p></div>
         </div>
         <div class="side" data-reveal style="--i:1">
+          <div class="card verify" id="sha-faq"><h3>Periksa file unduhan</h3><p>Sebelum memasang, cocokkan sidik jari SHA-256 file dengan yang ini:</p><code class="sha">{{SHA}}</code><p class="hint">Di komputer: <code>certutil -hashfile returnit-latest.apk SHA256</code> (Windows) atau <code>shasum -a 256 returnit-latest.apk</code> (Mac, Linux).</p></div>
           {{NOTES}}
-          <details id="sha-faq"><summary>Periksa file unduhan</summary>
-            <p>Cocokkan sidik jari SHA-256 file yang Anda unduh dengan yang ini:</p><code class="sha">{{SHA}}</code></details>
           {{OLDER}}
         </div>
       </div>
@@ -284,6 +257,8 @@
         <h2 id="faq-title">Perlu diketahui.</h2>
       </div>
       <div class="faq" data-reveal>
+        <details><summary>Apakah saya perlu akun?</summary>
+          <p>Ya. Anda masuk dengan e-mail atau Google. Pembelian disimpan di akun Anda, sehingga tetap aman saat ganti HP dan bisa dibagikan ke keluarga.</p></details>
         <details><summary>Apakah ReturnIt gratis?</summary>
           <p>Ya. ReturnIt gratis diunduh dan dipakai, dan tanpa iklan.</p></details>
         <details><summary>Apakah ReturnIt bisa dipakai tanpa internet?</summary>

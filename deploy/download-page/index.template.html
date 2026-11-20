@@ -26,8 +26,8 @@
 <link rel="apple-touch-icon" href="assets/icon.png">
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-800.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=3">
-<script src="assets/site.js?v=3" defer></script>
+<link rel="stylesheet" href="assets/site.css?v=4">
+<script src="assets/site.js?v=4" defer></script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"ReturnIt","operatingSystem":"Android 7.0 or newer","applicationCategory":"UtilitiesApplication","softwareVersion":"{{VERSION}}","fileSize":"{{SIZE}} MB","downloadUrl":"https://dl.returnit.online/returnit-latest.apk","url":"https://dl.returnit.online/","inLanguage":["en","id","ar"],"offers":{"@type":"Offer","price":"0","priceCurrency":"IDR"}}
 </script>
@@ -113,6 +113,7 @@
           <li><svg class="ico" aria-hidden="true"><use href="#i-tag"/></svg>Free, no ads</li>
           <li><svg class="ico" aria-hidden="true"><use href="#i-phone"/></svg>Android 7.0+</li>
         </ul>
+        <p class="reassure">You sign in with e-mail or Google. Play Protect may warn you because ReturnIt is not on Google Play yet: <a href="#install">how to install</a> · <a href="#sha-faq">verify the file (SHA-256)</a></p>
         <div class="qr">
           <img src="assets/qr.svg" alt="QR code that opens this page" width="76" height="76">
           <p><b>On a computer?</b><br>Scan with your phone to download.</p>
@@ -120,37 +121,10 @@
       </div>
 
       <div class="stage">
-        <!-- the app's Home screen, drawn in its own colours (not a screenshot) -->
-        <div class="phone" aria-hidden="true">
-          <div class="screen">
-            <div class="greet">
-              <span class="av">A</span>
-              <div><b>Hello, Alex</b><small>Thursday, 5 November</small></div>
-              <span class="bell"><svg class="ico"><use href="#i-bell"/></svg><i>2</i></span>
-            </div>
-            <div class="att">
-              <div class="atop">
-                <span class="clock"><svg class="ico"><use href="#i-clock"/></svg></span>
-                <div><small class="k">Needs attention</small><small>Next warranty ending</small></div>
-                <div class="num"><b>12</b><small>days left</small></div>
-              </div>
-              <b class="nm">Air fryer</b>
-              <div class="acts"><span class="p">Open</span><span>To calendar</span></div>
-            </div>
-            <div class="sum">
-              <small class="k">Still under warranty</small>
-              <b>Rp12.450.000</b>
-              <div class="bar"><i style="flex:9;background:#16A34A"></i><i style="flex:2;background:#D97706"></i><i style="flex:2;background:#DC2626"></i><i style="flex:1;background:#94A3B8"></i></div>
-              <div class="leg"><span><i style="background:#16A34A"></i>Active 9</span><span><i style="background:#D97706"></i>Ending soon 2</span></div>
-            </div>
-            <div class="row"><div><h4>Noise-cancelling headphones</h4><p>Electro Store · 12 Mar 2026</p></div><div class="cd"><b>214</b><small>days left</small></div></div>
-            <div class="row"><div><h4>Running shoes</h4><p>Return by 9 Nov</p></div><div class="cd w"><b>4</b><small>days left</small></div></div>
-            <div class="fab"><svg class="ico"><use href="#i-plus"/></svg></div>
-          </div>
-        </div>
-        <div class="float f1" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-shield"/></svg></span><div><b>Warranty active</b><small>Fridge · 1,520 days left</small><span class="meter"><i></i></span></div></div></div>
-        <div class="float f2" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-bell-ring"/></svg></span><div><b>Ends in 3 days</b><small>Today, 09:00 · Blender</small></div></div></div>
-        <div class="float f3" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-file"/></svg></span><div><b>3 files attached</b><small>Receipt · Warranty card</small></div></div></div>
+        <div class="phone"><img src="assets/screens/en-home.webp" alt="ReturnIt Home screen: the nearest return deadline and a summary of warranties" width="540" height="1200" fetchpriority="high"></div>
+        <div class="float f1" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-shield"/></svg></span><div><b>Warranty active</b><small>Fridge · 1,505 days left</small><span class="meter"><i></i></span></div></div></div>
+        <div class="float f2" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-bell-ring"/></svg></span><div><b>Ends in 7 days</b><small>Blender warranty · 09:00</small></div></div></div>
+        <div class="float f3" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-file"/></svg></span><div><b>2 files attached</b><small>Receipt · Warranty card</small></div></div></div>
         <div class="float f4" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-file-down"/></svg></span><div><b>Claim package</b><small>PDF ready to share</small></div></div></div>
       </div>
     </div>
@@ -205,7 +179,7 @@
         <p>Get started in just a few steps.</p>
       </div>
       <ol class="steps" data-reveal>
-        <li class="step"><span class="num-badge"><svg class="ico" aria-hidden="true"><use href="#i-plus-circle"/></svg></span><span class="n">01</span><h3>Add a purchase</h3><p>Enter the product, the shop, the date and the warranty, and attach your receipt.</p></li>
+        <li class="step"><span class="num-badge"><svg class="ico" aria-hidden="true"><use href="#i-plus-circle"/></svg></span><span class="n">01</span><h3>Sign in &amp; add a purchase</h3><p>Sign in with e-mail or Google, then enter the product, the shop, the date and the warranty, and attach your receipt.</p></li>
         <li class="step"><span class="num-badge"><svg class="ico" aria-hidden="true"><use href="#i-bell-ring"/></svg></span><span class="n">02</span><h3>Track &amp; get reminders</h3><p>See the days left at a glance and get reminded before warranties and return deadlines end.</p></li>
         <li class="step"><span class="num-badge"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg></span><span class="n">03</span><h3>Stay protected</h3><p>When something breaks, send one claim PDF with everything the shop needs.</p></li>
       </ol>
@@ -267,9 +241,8 @@
         <div class="install-cta"><a class="btn btn-primary" href="returnit-latest.apk" download><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Download APK</a><p class="meta"><b>Version {{VERSION}}</b> · {{SIZE}} MB</p></div>
         </div>
         <div class="side" data-reveal style="--i:1">
+          <div class="card verify" id="sha-faq"><h3>Verify the download</h3><p>Before you install, compare the SHA-256 fingerprint of the file with this one:</p><code class="sha">{{SHA}}</code><p class="hint">On a computer: <code>certutil -hashfile returnit-latest.apk SHA256</code> (Windows) or <code>shasum -a 256 returnit-latest.apk</code> (Mac, Linux).</p></div>
           {{NOTES}}
-          <details id="sha-faq"><summary>Verify the download</summary>
-            <p>Compare the SHA-256 fingerprint of the file you downloaded with this one:</p><code class="sha">{{SHA}}</code></details>
           {{OLDER}}
         </div>
       </div>
@@ -284,6 +257,8 @@
         <h2 id="faq-title">Good to know.</h2>
       </div>
       <div class="faq" data-reveal>
+        <details><summary>Do I need an account?</summary>
+          <p>Yes. You sign in with e-mail or Google. Your purchases are kept with your account, so they stay safe when you change phones and can be shared with family.</p></details>
         <details><summary>Is ReturnIt free?</summary>
           <p>Yes. ReturnIt is free to download and use, and it has no ads.</p></details>
         <details><summary>Does ReturnIt work offline?</summary>

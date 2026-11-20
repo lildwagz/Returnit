@@ -121,7 +121,7 @@ a:focus-visible,button:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .trust{display:flex;flex-wrap:wrap;gap:10px 22px;margin:26px 0 0;padding:0;list-style:none}
 .trust li{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--ink)}
 .trust .ico{width:18px;height:18px;color:var(--brand)}
-.reassure{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:14px;color:var(--muted);max-width:540px}
+.reassure{margin-top:20px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;line-height:1.55;color:var(--muted);max-width:540px}
 .qr{display:none}
 @media (min-width:960px) and (hover:hover) and (pointer:fine){
   .qr{display:flex;align-items:center;gap:14px;margin-top:20px;padding:10px 16px 10px 10px;width:fit-content;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow-sm)}
@@ -133,47 +133,8 @@ a:focus-visible,button:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 /* the stage: a phone showing the app's Home, with four cards floating around it */
 .stage{position:relative;display:grid;place-items:center;min-height:600px}
 .stage::before{content:"";position:absolute;width:440px;height:440px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--brand) 18%,transparent),transparent 68%);z-index:-1}
-.phone{width:300px;border-radius:44px;padding:10px;background:#0F172A;box-shadow:var(--shadow-lg),0 0 0 1px rgba(255,255,255,.06) inset}
-.phone .screen{border-radius:35px;background:var(--app-bg);color:var(--app-navy);padding:30px 13px 66px;min-height:560px;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:10px;font-family:var(--head)}
-.phone .screen::before{content:"";position:absolute;top:10px;left:50%;width:70px;height:18px;margin-left:-35px;border-radius:12px;background:#0F172A}
-.screen small{display:block;font-size:11px;line-height:1.3;color:var(--app-muted)}
-.screen .k{text-transform:uppercase;letter-spacing:.05em;font-weight:700}
-.greet{display:flex;align-items:center;gap:9px}
-.greet>div{flex:1;min-width:0}
-.greet b{display:block;font-size:16px;line-height:1.2}
-.av{width:34px;height:34px;border-radius:50%;background:var(--app-blue);color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center;flex:none}
-.bell{position:relative;width:34px;height:34px;border-radius:50%;background:#fff;border:1px solid var(--app-line);display:grid;place-items:center;flex:none}
-.bell .ico{width:16px;height:16px}
-.bell i{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:8px;border:2px solid var(--app-bg);background:#DC2626;color:#fff;font:700 10px/12px var(--head);font-style:normal;text-align:center}
-.att{border-radius:18px;background:#FFF7ED;border:1px solid #D97706;padding:11px 12px;display:flex;flex-direction:column;gap:7px}
-.atop{display:flex;align-items:center;gap:9px}
-.atop>div:nth-child(2){flex:1;min-width:0}
-.clock{width:30px;height:30px;border-radius:10px;background:#D97706;color:#fff;display:grid;place-items:center;flex:none}
-.clock .ico{width:15px;height:15px}
-.att .k,.num,.num small{color:#B45309}
-.num{text-align:end;line-height:1}
-.num b{display:block;font-size:28px}
-.num small{font-weight:700}
-.att .nm{font-size:14px}
-.acts{display:flex;gap:6px}
-.acts span{flex:1;text-align:center;font-size:11px;font-weight:700;border:1px solid var(--app-line);background:#EFF4FA;border-radius:9px;padding:6px 4px}
-.acts .p{background:var(--app-blue);border-color:var(--app-blue);color:#fff}
-.sum{border-radius:16px;background:#fff;border:1px solid var(--app-line);padding:11px 12px;display:flex;flex-direction:column;gap:6px}
-.sum b{font-size:19px;line-height:1.15}
-.bar{display:flex;gap:2px;height:7px;border-radius:4px;overflow:hidden}
-.bar i{display:block}
-.leg{display:flex;gap:12px;font-size:10.5px;color:var(--app-muted)}
-.leg span{display:flex;align-items:center;gap:5px}
-.leg i{width:7px;height:7px;border-radius:50%}
-.row{display:flex;align-items:center;gap:9px;border-radius:16px;background:#fff;border:1px solid var(--app-line);padding:10px 11px}
-.row>div:first-child{flex:1;min-width:0}
-.row h4{margin:0 0 2px;font-size:13px}
-.row p{font-size:10.5px;color:var(--app-muted)}
-.cd{width:46px;height:46px;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;flex:none;background:#DCFCE7;color:#15803D}
-.cd b{font-size:17px}.cd small{font-size:9px;font-weight:700;margin-top:2px;color:inherit}
-.cd.w{background:#FEF3C7;color:#B45309}
-.fab{position:absolute;right:14px;bottom:14px;width:40px;height:40px;border-radius:50%;background:var(--app-blue);color:#fff;display:grid;place-items:center;box-shadow:0 6px 14px rgba(37,99,235,.35)}
-.fab .ico{width:20px;height:20px}
+.phone{width:280px;border-radius:44px;padding:10px;background:#0F172A;box-shadow:var(--shadow-lg),0 0 0 1px rgba(255,255,255,.06) inset}
+.phone img{display:block;width:100%;height:auto;border-radius:35px;background:var(--app-bg)}
 
 .float{position:absolute;z-index:2}
 .chip{display:flex;align-items:center;gap:12px;width:max-content;max-width:250px;padding:12px 14px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-md)}
@@ -282,6 +243,10 @@ section{padding:clamp(72px,9vw,120px) 0;position:relative}
 .notes h2{font:700 16px/1.35 var(--head);margin:0 0 8px;letter-spacing:-.01em}
 .notes ul{margin:0;padding-inline-start:20px;color:var(--muted);font-size:15px}
 .notes li{margin:4px 0}
+.verify{border-color:var(--brand-line);background:linear-gradient(160deg,var(--surface) 50%,var(--brand-soft))}
+#sha-faq:target{box-shadow:0 0 0 2px var(--brand)}
+.hint{margin-top:10px;font-size:13px!important}
+.hint code{font:500 12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 5px;border-radius:5px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);word-break:break-all}
 .sha{display:block;margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);font:500 12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-all;color:var(--ink)}
 ul.older{margin:10px 0 0;padding-inline-start:20px;font-size:15px}
 ul.older li{margin:4px 0}
@@ -393,8 +358,11 @@ footer{border-top:1px solid var(--line);background:var(--surface);padding:56px 0
   .cta-row{flex-direction:column;align-items:stretch;width:100%}
   .cta-row .btn{width:100%}
   .stage{min-height:520px}
-  .phone{width:250px;border-radius:38px;padding:8px}
-  .phone .screen{min-height:480px;border-radius:31px;padding:28px 11px 62px;gap:8px}
+  .phone{width:240px;border-radius:38px;padding:8px}
+  .phone img{border-radius:31px}
+  /* phones: the download button and the text are there at once; the cards only fade in, without the floating loop */
+  .hero .copy>*,.hero .cta-row>*{animation:none}
+  .float .chip{animation:none}
   .chip{max-width:190px;padding:9px 11px;gap:9px}
   .chip .ci{width:32px;height:32px;border-radius:9px}
   .chip b{font-size:13px}.chip small{font-size:11.5px}
