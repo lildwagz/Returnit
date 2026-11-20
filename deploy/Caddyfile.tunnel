@@ -71,7 +71,8 @@
 
 # The bare domain and www: everything goes to the download site (tunnel routes <domain> and www.<domain> -> caddy:8085).
 :8085 {
-	redir https://dl.{$DOMAIN}{uri} 301
+	# 302, not 301: browsers keep a 301 almost forever, and the bare domain will get its own page
+	redir https://dl.{$DOMAIN}{uri} 302
 }
 
 # Receipt downloads (signed links).

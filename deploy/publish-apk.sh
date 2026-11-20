@@ -71,8 +71,9 @@ os.chmod(path, 0o644)
 PY
 }
 
-# The download page: plain HTML and CSS, no scripts. The look lives in download-page/index.template.html (with its
-# logo and fonts in download-page/assets); this fills in the version, size, date, fingerprint and release notes.
+# The download page: plain HTML, one stylesheet and a small optional script (download-page/assets/site.css, site.js). The
+# text lives in download-page/index.template.html and index.id.template.html; this fills in the version, size, date,
+# fingerprint and release notes.
 write_page() {
 	local here
 	here="$(dirname "${BASH_SOURCE[0]}")/download-page"
