@@ -3,261 +3,350 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ReturnIt untuk Android</title>
-<meta name="description" content="ReturnIt menyimpan garansi, batas pengembalian, dan struk Anda di satu tempat, lalu mengingatkan sebelum habis. Unduh aplikasi Android-nya.">
-<meta name="theme-color" content="#2563EB" media="(prefers-color-scheme: light)">
+<title>ReturnIt: pengingat garansi untuk Android</title>
+<meta name="description" content="Simpan struk, pantau garansi, dan jangan lewatkan batas pengembalian. ReturnIt mengingatkan sebelum habis dan membuat PDF klaim sekali ketuk. Gratis untuk Android.">
+<link rel="canonical" href="https://dl.returnit.online/id">
+<link rel="alternate" hreflang="en" href="https://dl.returnit.online/">
+<link rel="alternate" hreflang="id" href="https://dl.returnit.online/id">
+<link rel="alternate" hreflang="x-default" href="https://dl.returnit.online/">
+<meta name="theme-color" content="#F6F8FB" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0B1220" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
-<meta property="og:title" content="ReturnIt untuk Android">
-<meta property="og:description" content="ReturnIt menyimpan garansi, batas pengembalian, dan struk Anda di satu tempat, lalu mengingatkan sebelum habis. Unduh aplikasi Android-nya.">
-<meta property="og:image" content="https://dl.20-255-48-53.sslip.io/assets/og.png">
+<meta property="og:site_name" content="ReturnIt">
+<meta property="og:title" content="ReturnIt: garansi tercatat, klaim jadi mudah">
+<meta property="og:description" content="Simpan struk, pantau garansi, dan jangan lewatkan batas pengembalian. Gratis untuk Android.">
+<meta property="og:url" content="https://dl.returnit.online/id">
+<meta property="og:image" content="https://dl.returnit.online/assets/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://dl.20-255-48-53.sslip.io/id">
-<meta property="og:site_name" content="ReturnIt">
+<meta property="og:locale" content="id_ID">
+<meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="assets/icon.png">
-<link rel="alternate" hreflang="en" href="https://dl.20-255-48-53.sslip.io/">
-<link rel="alternate" hreflang="id" href="https://dl.20-255-48-53.sslip.io/id">
-<style>
-@font-face{font-family:"Plus Jakarta Sans";font-weight:500;src:url("assets/fonts/PlusJakartaSans_500Medium.ttf") format("truetype");font-display:swap}
-@font-face{font-family:"Plus Jakarta Sans";font-weight:700;src:url("assets/fonts/PlusJakartaSans_700Bold.ttf") format("truetype");font-display:swap}
-:root{
-  --primary:#2563EB;--primary-dark:#1D4ED8;--navy:#17324D;--muted:#526071;--line:#E2E8F0;
-  --btn-bg:#2563EB;--btn-bg-hover:#1D4ED8;
-  --bg:#F8FAFC;--card:#fff;--soft:#EFF4FA;--ok-bg:#DCFCE7;--ok:#15803D;--warn-bg:#FEF3C7;--warn:#B45309;
-  --logo:url("assets/logo.png");
-}
-@media (prefers-color-scheme:dark){
-  :root{--primary:#60A5FA;--primary-dark:#93C5FD;--navy:#F1F5F9;--muted:#94A3B8;--line:#263552;
-    --btn-bg:#2563EB;--btn-bg-hover:#1D4ED8;
-    --bg:#0B1220;--card:#131E33;--soft:#0F1930;--ok-bg:#12351F;--ok:#4ADE80;--warn-bg:#3B2A0B;--warn:#FBBF24;
-    --logo:url("assets/logo-dark.png")}
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-weight:500;color:var(--navy);
-  background:radial-gradient(900px 420px at 50% -120px,rgba(37,99,235,.18),transparent 70%),var(--bg);line-height:1.6}
-a{color:var(--primary)}
-.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
-header{padding:26px 0 0;display:flex;align-items:center;justify-content:space-between;gap:16px}
-.lang{font-size:14px;font-weight:700;text-decoration:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;min-height:40px;display:inline-flex;align-items:center;white-space:nowrap;flex:none}
-.logo{display:block;width:190px;height:51px;background:var(--logo) left center/contain no-repeat}
-.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:48px 0 32px}
-.eyebrow{display:inline-block;background:var(--soft);border:1px solid var(--line);color:var(--primary);font-weight:700;font-size:13px;
-  padding:5px 12px;border-radius:999px;margin:0 0 18px}
-h1{font-size:clamp(32px,5.2vw,52px);line-height:1.1;letter-spacing:-.02em;margin:0 0 16px;font-weight:700}
-.lead{font-size:18px;color:var(--muted);margin:0 0 26px;max-width:520px}
-.btn{display:inline-flex;align-items:center;gap:10px;background:var(--btn-bg);color:#fff;text-decoration:none;font-weight:700;
-  padding:15px 26px;border-radius:14px;box-shadow:0 10px 26px rgba(37,99,235,.32);transition:transform .15s,background .15s}
-.btn:hover{background:var(--btn-bg-hover);transform:translateY(-1px)}
-.btn svg{width:20px;height:20px;fill:currentColor}
-.meta{margin:14px 0 0;font-size:14px;color:var(--muted)}
-.meta b{color:var(--navy)}
-.reassure{margin:12px 0 0;font-size:14px;color:var(--muted);max-width:520px}
-details:target{border-color:var(--btn-bg);box-shadow:0 0 0 2px var(--btn-bg)}
-.pills{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 0;padding:0;list-style:none}
-.pills li{font-size:13px;font-weight:700;color:var(--muted);border:1px solid var(--line);background:var(--card);padding:5px 12px;border-radius:999px}
-
-/* the phone: an imitation of the 1.11 Home (greeting, attention card, summary card), tokens only */
-.phone{justify-self:center;width:290px;border-radius:38px;padding:11px;background:#0F172A;border:1px solid var(--line);box-shadow:0 30px 70px rgba(23,50,77,.30)}
-.screen{border-radius:28px;background:var(--bg);padding:16px 12px 62px;min-height:455px;overflow:hidden;position:relative;display:flex;flex-direction:column;gap:9px}
-.screen small{font-size:11px;color:var(--muted);line-height:1.3;display:block}
-.screen .k{text-transform:uppercase;letter-spacing:.05em;font-weight:700}
-.greet{display:flex;align-items:center;gap:9px}
-.greet b{display:block;font-size:16px;line-height:1.2}
-.greet>div{flex:1;min-width:0}
-.av{width:34px;height:34px;border-radius:50%;background:#2563EB;color:#fff;font-weight:700;display:grid;place-items:center;font-size:14px;flex:none}
-.bell{position:relative;width:34px;height:34px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;flex:none;color:var(--navy)}
-.bell svg{width:16px;height:16px}
-.bell i{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:8px;background:#DC2626;color:#fff;font:700 10px/16px "Plus Jakarta Sans",sans-serif;text-align:center;font-style:normal;border:2px solid var(--bg);padding:0 3px}
-.att{border-radius:18px;background:var(--warn-bg);border:1px solid var(--warn);padding:11px 12px;display:flex;flex-direction:column;gap:7px}
-.atop{display:flex;align-items:center;gap:9px}
-.atop>div:nth-child(2){flex:1;min-width:0}
-.clock{width:30px;height:30px;border-radius:10px;background:#D97706;color:#fff;display:grid;place-items:center;flex:none}
-.clock svg{width:15px;height:15px}
-.att .k{color:var(--warn)}
-.num{text-align:end;line-height:1;color:var(--warn)}
-.num b{display:block;font-size:28px}
-.num small{color:var(--warn);font-weight:700}
-.att .nm{font-size:14px}
-.acts{display:flex;gap:6px}
-.acts span{flex:1;text-align:center;font-size:11px;font-weight:700;border:1px solid var(--line);background:var(--soft);border-radius:9px;padding:6px 4px;color:var(--navy)}
-.acts span.p{background:#2563EB;border-color:#2563EB;color:#fff}
-.sum{border-radius:16px;background:var(--card);border:1px solid var(--line);padding:11px 12px;display:flex;flex-direction:column;gap:6px}
-.sum b{font-size:19px;line-height:1.15}
-.bar{display:flex;gap:2px;height:7px;border-radius:4px;overflow:hidden}
-.bar i{display:block}
-.leg{display:flex;gap:12px;font-size:10.5px;color:var(--muted)}
-.leg span{display:flex;align-items:center;gap:5px}
-.leg i{width:7px;height:7px;border-radius:50%;display:block}
-.item{display:flex;align-items:center;gap:9px;border-radius:16px;background:var(--card);border:1px solid var(--line);padding:10px 11px}
-.item h3{font-size:13px;margin:0 0 2px}
-.item p{margin:0;font-size:10.5px;color:var(--muted)}
-.item>div:first-child{flex:1;min-width:0}
-.cd{width:46px;height:46px;border-radius:13px;background:var(--ok-bg);color:var(--ok);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;flex:none}
-.cd b{font-size:17px}.cd small{font-size:9px;color:var(--ok);font-weight:700;margin-top:2px}
-.fab{position:absolute;right:14px;bottom:12px;width:38px;height:38px;border-radius:50%;background:#2563EB;color:#fff;display:grid;place-items:center;font-size:21px;line-height:1;font-weight:700;box-shadow:0 6px 14px rgba(37,99,235,.35)}
-ul.older{margin:8px 0 0;padding-left:20px;font-size:14px}ul.older li{margin:4px 0}
-
-section{padding:36px 0}
-h2.title{font-size:28px;letter-spacing:-.01em;margin:0 0 6px;font-weight:700}
-.section-lead{color:var(--muted);margin:0 0 24px;max-width:620px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
-.card .ico{width:42px;height:42px;border-radius:12px;background:var(--soft);display:grid;place-items:center;margin-bottom:12px;color:var(--primary)}
-.card .ico svg{width:22px;height:22px}
-.card h3{margin:0 0 4px;font-size:16px}
-.card p{margin:0;color:var(--muted);font-size:14px}
-.notes{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 26px}
-.notes h2{margin:0 0 8px;font-size:20px}
-.notes ul{margin:0;padding-left:20px}.notes li{margin:5px 0}
-.steps{counter-reset:s;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;padding:0;list-style:none;margin:0}
-.steps li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 20px 20px 66px;position:relative}
-.steps li::before{content:counter(s);position:absolute;left:18px;top:18px;width:34px;height:34px;border-radius:50%;background:var(--btn-bg);color:#fff;
-  font-weight:700;display:grid;place-items:center}
-.steps b{display:block;margin-bottom:2px}
-.steps span{color:var(--muted);font-size:14px}
-.faq{display:grid;gap:10px}
-details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px}
-summary{cursor:pointer;font-weight:700}
-details p{margin:10px 0 0;color:var(--muted);font-size:14px}
-code{display:block;margin-top:8px;padding:10px 12px;border-radius:10px;background:var(--soft);border:1px solid var(--line);word-break:break-all;font-size:12px}
-.cta{text-align:center;background:linear-gradient(135deg,var(--btn-bg),var(--btn-bg-hover));border-radius:24px;padding:40px 20px;color:#fff;margin:10px 0 40px}
-.cta h2{margin:0 0 6px;font-size:26px}
-.cta p{margin:0 0 20px;opacity:.9}
-.cta .btn{background:#fff;color:#1D4ED8;box-shadow:none}
-footer{border-top:1px solid var(--line);padding:22px 0 40px;color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between}
-/* QR for desktop visitors (phones can tap the button, so the QR is hidden there) */
-.qr{display:none}
-@media (min-width:821px) and (hover:hover) and (pointer:fine){
-  .qr{display:flex;align-items:center;gap:14px;margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;width:fit-content}
-  .qr img{border-radius:8px}
-  .qr p{margin:0;font-size:14px;line-height:1.4;font-weight:700;color:var(--muted)}
-}
-/* keyboard focus: a branded ring drawn outside the control, so it must contrast with what is behind it:
-   the page (--primary in both themes) or, in the blue call-to-action box, white */
-a:focus-visible,.btn:focus-visible,summary:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radius:8px}
-.cta .btn:focus-visible{outline-color:#fff}
-@media (max-width:820px){
-  .hero{grid-template-columns:1fr;padding-top:30px;gap:30px}
-  /* order on phones: text first (eyebrow, h1, lead, button, meta, reassurance, pills), mockup after */
-  .phone{width:250px}.screen{min-height:430px;padding:16px 11px 62px}
-  .logo{width:150px;height:40px}
-  .lead{font-size:16px;margin-bottom:20px}
-}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
-</style>
+<link rel="apple-touch-icon" href="assets/icon.png">
+<link rel="preload" href="assets/fonts/plus-jakarta-sans-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/inter-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/site.css?v=3">
+<script src="assets/site.js?v=3" defer></script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"ReturnIt","operatingSystem":"Android 7.0 atau lebih baru","applicationCategory":"UtilitiesApplication","softwareVersion":"{{VERSION}}","fileSize":"{{SIZE}} MB","downloadUrl":"https://dl.returnit.online/returnit-latest.apk","url":"https://dl.returnit.online/id","inLanguage":["en","id","ar"],"offers":{"@type":"Offer","price":"0","priceCurrency":"IDR"}}
+</script>
 </head>
 <body>
-<div class="wrap">
-  <header><span class="logo" role="img" aria-label="ReturnIt"></span><a class="lang" href="/" hreflang="en" lang="en">English</a></header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-bell-ring" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></symbol>
+  <symbol id="i-file-down" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-archive" viewBox="0 0 24 24"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.73 5.08A10.74 10.74 0 0 1 21.94 11.65a1 1 0 0 1 0 .7 10.75 10.75 0 0 1-1.44 2.49"/><path d="M14.08 14.16a3 3 0 0 1-4.24-4.24"/><path d="M17.48 17.5a10.75 10.75 0 0 1-15.42-5.15 1 1 0 0 1 0-.7 10.75 10.75 0 0 1 4.45-5.14"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-plus-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 6h.01"/><path d="M6 18h.01"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+</svg>
 
+<a class="skip" href="#main">Langsung ke isi</a>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="Beranda ReturnIt">
+      <picture><source srcset="assets/logo-dark.png" media="(prefers-color-scheme: dark)"><img src="assets/logo.png" alt="ReturnIt" width="127" height="34"></picture>
+    </a>
+    <nav aria-label="Utama">
+      <ul class="nav-links">
+        <li><a href="#features">Fitur</a></li>
+        <li><a href="#how">Cara kerja</a></li>
+        <li><a href="#screens">Tampilan</a></li>
+        <li><a href="#faq">Tanya jawab</a></li>
+      </ul>
+    </nav>
+    <div class="nav-end">
+      <a class="lang" href="./" hreflang="en" lang="en"><svg class="ico" aria-hidden="true"><use href="#i-globe"/></svg><span>English</span><span class="sr-only" lang="id"> (ganti bahasa)</span></a>
+      <a class="btn btn-primary btn-sm" href="returnit-latest.apk" download><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Unduh APK</a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu" aria-label="Menu">
+        <svg class="ico bars" aria-hidden="true"><use href="#i-menu"/></svg><svg class="ico x" aria-hidden="true"><use href="#i-x"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="menu" id="menu">
+    <ul>
+      <li><a href="#features">Fitur</a></li>
+      <li><a href="#how">Cara kerja</a></li>
+      <li><a href="#screens">Tampilan</a></li>
+      <li><a href="#faq">Tanya jawab</a></li>
+    </ul>
+    <a class="btn btn-primary" href="returnit-latest.apk" download><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Unduh APK</a>
+  </div>
+</header>
+
+<main id="main">
+  <!-- 1. Hero -->
   <div class="hero">
-    <div>
-      <p class="eyebrow">Pelacak garansi untuk Android</p>
-      <h1>Tak ada lagi garansi yang terlewat.</h1>
-      <p class="lead">ReturnIt menyimpan garansi, batas pengembalian, dan struk Anda di satu tempat, lalu mengingatkan sebelum habis, supaya Anda bisa klaim selagi masih sempat.</p>
-      <a class="btn" href="returnit-latest.apk" download>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a1 1 0 0 1 1 1v8.6l2.8-2.8a1 1 0 1 1 1.4 1.4l-4.5 4.5a1 1 0 0 1-1.4 0L6.8 11.2a1 1 0 1 1 1.4-1.4L11 12.6V4a1 1 0 0 1 1-1zM5 18a1 1 0 0 1 1 1v1h12v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z"/></svg>
-        Unduh APK
-      </a>
-      <p class="reassure">Berkasnya diperiksa. Peringatan Play Protect itu wajar untuk aplikasi di luar Google Play. <a href="#install">Cara memasang</a> · <a href="#sha-faq">Periksa sidik jari</a></p>
-      <p class="meta"><b>Versi {{VERSION}}</b> · {{SIZE}} MB · Android 7.0 ke atas · terbit {{DATE}}</p>
-      <ul class="pills"><li>Privasi dijaga</li><li>Ekspor atau hapus kapan saja</li><li>Bahasa Indonesia · English · العربية</li></ul>
-      <div class="qr">
-        <img src="assets/qr.svg" alt="Kode QR yang membuka halaman ini" width="132" height="132">
-        <p>Di komputer?<br>Pindai dengan HP Anda.</p>
-      </div>
-    </div>
-
-    <div class="phone" aria-hidden="true">
-      <div class="screen">
-        <div class="greet">
-          <span class="av">A</span>
-          <div><b>Halo, Alex</b><small>Kamis, 5 November</small></div>
-          <span class="bell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><i>2</i></span>
+    <div class="wrap hero-grid">
+      <div class="copy">
+        <span class="eyebrow"><i aria-hidden="true"></i>Pengingat garansi untuk Android</span>
+        <h1>Garansi tercatat, <em>klaim</em> jadi mudah.</h1>
+        <p class="lead">Simpan struk, pantau garansi, dan jangan lewatkan batas pengembalian. Semua yang Anda perlukan untuk melindungi barang yang Anda beli, di satu tempat.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="returnit-latest.apk" download><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Unduh untuk Android</a>
+          <a class="btn btn-ghost" href="#how">Lihat cara kerjanya<svg class="ico" aria-hidden="true"><use href="#i-arrow"/></svg></a>
         </div>
-        <div class="att">
-          <div class="atop">
-            <span class="clock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-            <div><small class="k">Perlu perhatian</small><small>Garansi berakhir berikutnya</small></div>
-            <div class="num"><b>12</b><small>hari lagi</small></div>
+        <p class="meta"><b>Versi {{VERSION}}</b> · {{SIZE}} MB · terbit {{DATE}}</p>
+        <ul class="trust">
+          <li><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg>Privasi sejak awal</li>
+          <li><svg class="ico" aria-hidden="true"><use href="#i-tag"/></svg>Gratis, tanpa iklan</li>
+          <li><svg class="ico" aria-hidden="true"><use href="#i-phone"/></svg>Android 7.0+</li>
+        </ul>
+        <div class="qr">
+          <img src="assets/qr.svg" alt="Kode QR yang membuka halaman ini" width="76" height="76">
+          <p><b>Buka di komputer?</b><br>Pindai dengan HP untuk mengunduh.</p>
+        </div>
+      </div>
+
+      <div class="stage">
+        <!-- layar Beranda aplikasi, digambar dengan warnanya sendiri (bukan screenshot) -->
+        <div class="phone" aria-hidden="true">
+          <div class="screen">
+            <div class="greet">
+              <span class="av">A</span>
+              <div><b>Halo, Alex</b><small>Kamis, 5 November</small></div>
+              <span class="bell"><svg class="ico"><use href="#i-bell"/></svg><i>2</i></span>
+            </div>
+            <div class="att">
+              <div class="atop">
+                <span class="clock"><svg class="ico"><use href="#i-clock"/></svg></span>
+                <div><small class="k">Perlu perhatian</small><small>Garansi berakhir terdekat</small></div>
+                <div class="num"><b>12</b><small>hari lagi</small></div>
+              </div>
+              <b class="nm">Air fryer</b>
+              <div class="acts"><span class="p">Buka</span><span>Ke kalender</span></div>
+            </div>
+            <div class="sum">
+              <small class="k">Masih bergaransi</small>
+              <b>Rp12.450.000</b>
+              <div class="bar"><i style="flex:9;background:#16A34A"></i><i style="flex:2;background:#D97706"></i><i style="flex:2;background:#DC2626"></i><i style="flex:1;background:#94A3B8"></i></div>
+              <div class="leg"><span><i style="background:#16A34A"></i>Aktif 9</span><span><i style="background:#D97706"></i>Segera berakhir 2</span></div>
+            </div>
+            <div class="row"><div><h4>Headphone peredam bising</h4><p>Toko Elektro · 12 Mar 2026</p></div><div class="cd"><b>214</b><small>hari lagi</small></div></div>
+            <div class="row"><div><h4>Sepatu lari</h4><p>Kembalikan sebelum 9 Nov</p></div><div class="cd w"><b>4</b><small>hari lagi</small></div></div>
+            <div class="fab"><svg class="ico"><use href="#i-plus"/></svg></div>
           </div>
-          <b class="nm">Air fryer</b>
-          <div class="acts"><span class="p">Buka</span><span>Ke kalender</span></div>
         </div>
-        <div class="sum">
-          <small class="k">Masih bergaransi</small>
-          <b>Rp12.450.000</b>
-          <div class="bar"><i style="flex:9;background:#16A34A"></i><i style="flex:2;background:#D97706"></i><i style="flex:2;background:#DC2626"></i><i style="flex:1;background:#94A3B8"></i></div>
-          <div class="leg"><span><i style="background:#16A34A"></i>Aktif 9</span><span><i style="background:#D97706"></i>Segera berakhir 2</span></div>
-        </div>
-        <div class="item">
-          <div><h3>Headphone peredam bising</h3><p>Electro Store · 12 Mar 2026</p></div>
-          <div class="cd"><b>214</b><small>hari lagi</small></div>
-        </div>
-        <div class="fab">+</div>
+        <div class="float f1" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-shield"/></svg></span><div><b>Garansi aktif</b><small>Kulkas · 1.520 hari lagi</small><span class="meter"><i></i></span></div></div></div>
+        <div class="float f2" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-bell-ring"/></svg></span><div><b>Berakhir 3 hari lagi</b><small>Hari ini, 09.00 · Blender</small></div></div></div>
+        <div class="float f3" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-file"/></svg></span><div><b>3 berkas tersimpan</b><small>Struk · Kartu garansi</small></div></div></div>
+        <div class="float f4" aria-hidden="true"><div class="chip"><span class="ci"><svg class="ico"><use href="#i-file-down"/></svg></span><div><b>Paket klaim</b><small>PDF siap dikirim</small></div></div></div>
       </div>
     </div>
   </div>
 
-  <section>
-    <h2 class="title">Semua tentang satu pembelian, di satu tempat</h2>
-    <p class="section-lead">Simpan yang Anda butuhkan untuk klaim, dan biarkan aplikasi yang menjaga tanggalnya.</p>
-    <div class="grid">
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><h3>Pelacak garansi</h3><p>Pilih lama dari 1 bulan sampai 5 tahun, atau ketik sendiri. Lihat tanggal berakhir, sisa hari, dan status yang jelas: aktif, segera berakhir, atau kedaluwarsa.</p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></div><h3>Batas pengembalian</h3><p>Catat hari terakhir toko menerima barang kembali dan diingatkan sebelumnya. Tambahkan tanggal apa pun ke kalender dengan satu ketukan.</p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div><h3>Pengingat yang sesuai Anda</h3><p>Pilih harinya, lewat notifikasi HP atau e-mail, dan jam tenang. Ketuk “Ingatkan lagi” untuk menunda.</p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><h3>Struk sebagai bukti</h3><p>Lampirkan foto atau PDF struk. Berkasnya diperiksa dari malware dan disimpan secara privat.</p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 12 18 15 15"/><line x1="12" y1="11" x2="12" y2="18"/></svg></div><h3>Paket klaim</h3><p>Buat satu PDF berisi data pembelian, status garansi, dan foto struk, siap diberikan ke toko atau pusat servis. Dibuat di HP Anda, tidak diunggah.</p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><h3>Garansi bersama keluarga</h3><p>Buat bucket bersama untuk rumah, undang keluarga lewat tautan, dan semua melihat garansi yang sama serta diingatkan.</p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><h3>Kunci aplikasi</h3><p>Minta sidik jari, wajah, atau PIN HP saat aplikasi dibuka, supaya struk Anda tetap milik Anda.</p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><h3>Data Anda, keputusan Anda</h3><p>Ekspor pembelian sebagai berkas CSV, atau hapus akun beserta isinya kapan pun Anda mau.</p></div>
+  <!-- 2. Trust -->
+  <section class="band" aria-labelledby="trust-title">
+    <div class="wrap">
+      <div class="head" data-reveal>
+        <span class="kicker">Privasi</span>
+        <h2 id="trust-title">Data Anda, kendali Anda.</h2>
+        <p>ReturnIt dirancang agar data pembelian Anda tetap dalam kendali Anda.</p>
+      </div>
+      <div class="trust-grid">
+        <div class="trust-item" data-reveal style="--i:0"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-eye-off"/></svg></span><h3>Tanpa iklan dan pelacak</h3><p>Tanpa iklan, analitik, atau alat pelacak, dan data Anda tidak pernah dijual.</p></div>
+        <div class="trust-item" data-reveal style="--i:1"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg></span><h3>Berkas dipindai dan privat</h3><p>Setiap struk yang diunggah dipindai malware dan disimpan secara privat.</p></div>
+        <div class="trust-item" data-reveal style="--i:2"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg></span><h3>Kunci aplikasi</h3><p>Minta sidik jari, wajah, atau PIN HP setiap kali aplikasi dibuka.</p></div>
+        <div class="trust-item" data-reveal style="--i:3"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-archive"/></svg></span><h3>Ekspor &amp; hapus</h3><p>Unduh daftar pembelian sebagai CSV, atau hapus akun kapan saja.</p></div>
+      </div>
     </div>
   </section>
 
-  {{NOTES}}
-
-  <section id="install">
-    <h2 class="title">Pasang dalam tiga langkah</h2>
-    <p class="section-lead">ReturnIt belum ada di Google Play, jadi Anda memasang berkasnya sendiri. Hanya butuh satu menit.</p>
-    <ol class="steps">
-      <li><b>Unduh</b><span>Ketuk “Unduh APK” dan tunggu berkasnya selesai.</span></li>
-      <li><b>Izinkan pemasangan</b><span>Buka berkasnya. Bila Android bertanya, izinkan “Pasang aplikasi tidak dikenal” untuk browser Anda saja.</span></li>
-      <li><b>Buka ReturnIt</b><span>Masuk dengan e-mail atau Google, lalu tambahkan pembelian pertama Anda.</span></li>
-    </ol>
-  </section>
-
-  <section>
-    <h2 class="title">Perlu diketahui</h2>
-    <div class="faq">
-      <details><summary>Google Play Protect menampilkan peringatan. Amankah?</summary>
-        <p>Peringatan itu muncul karena aplikasinya belum ada di Google Play. Kalau Anda mengunduhnya dari halaman ini, pilih “Tetap pasang”. Anda bisa memeriksa berkasnya lebih dulu dengan sidik jari di bawah.</p></details>
-      <details><summary>HP apa yang bisa memakainya?</summary>
-        <p>Android 7.0 ke atas dengan prosesor 64-bit (arm64), yang mencakup hampir semua HP buatan 2018 ke atas. HP 32-bit yang sangat lama dan emulator x86 tidak didukung oleh versi ini.</p></details>
-      <details><summary>Apakah ada versi iPhone?</summary>
-        <p>Belum. Untuk saat ini ReturnIt hanya tersedia untuk Android.</p></details>
-      <details><summary>Bagaimana cara pembaruannya?</summary>
-        <p>Kembali ke halaman ini dan pasang berkas baru di atas yang lama; data Anda tetap ada. Bila sebuah versi diwajibkan, aplikasi akan memberi tahu dan menautkan ke sini.</p></details>
-      <details id="sha-faq"><summary>Bagaimana cara memeriksa unduhannya?</summary>
-        <p>Bandingkan sidik jari SHA-256 berkas yang diunduh dengan yang ini:</p><code>{{SHA}}</code></details>
-      {{OLDER}}
+  <!-- 3. Features -->
+  <section id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <div class="head" data-reveal>
+        <span class="kicker">Fitur</span>
+        <h2 id="features-title">Semua untuk melindungi barang Anda.</h2>
+        <p>Perangkat lengkap untuk memantau, mengatur, dan memanfaatkan garansi setiap barang.</p>
+      </div>
+      <div class="features">
+        <article class="feature wide" data-reveal style="--i:0"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg></span><h3>Pantau garansi</h3><p>Pilih lama garansi 1 bulan sampai 5 tahun, atau ketik sendiri. Lihat tanggal berakhir, sisa hari, dan status yang jelas: aktif, segera berakhir, atau sudah berakhir. Simpan model dan nomor seri yang ditanyakan service center.</p><div class="mini" aria-hidden="true"><span class="s"><i style="background:var(--ok)"></i>Aktif · 214 hari</span><span class="s"><i style="background:var(--warn)"></i>Segera berakhir · 12 hari</span><span class="s"><i style="background:#94A3B8"></i>Berakhir</span></div></article>
+        <article class="feature" data-reveal style="--i:1"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-undo"/></svg></span><h3>Batas pengembalian</h3><p>Catat hari terakhir toko menerima pengembalian, diingatkan sebelumnya, dan tambahkan tanggalnya ke kalender.</p></article>
+        <article class="feature" data-reveal style="--i:2"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-bell-ring"/></svg></span><h3>Pengingat pintar</h3><p>Notifikasi HP atau e-mail di hari yang Anda pilih, dengan jam tenang dan “Ingatkan lagi”.</p></article>
+        <article class="feature" data-reveal style="--i:0"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-file"/></svg></span><h3>Struk &amp; dokumen</h3><p>Foto atau PDF struk, kartu garansi, dan buku manual, sampai 10 berkas per barang.</p></article>
+        <article class="feature" data-reveal style="--i:1"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-wrench"/></svg></span><h3>Riwayat servis</h3><p>Catat setiap servis dan klaim: tempat, keluhan, hasil, dan biayanya.</p></article>
+        <article class="feature wide" data-reveal style="--i:2"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-file-down"/></svg></span><h3>Paket klaim</h3><p>Satu PDF berisi data barang, status garansi, struk, dan riwayat servis, siap dikirim ke toko atau service center. Dibuat di HP Anda dan tidak pernah diunggah.</p><div class="pdf" aria-hidden="true"><span class="tag">PDF</span><div><b>Klaim – Kulkas 2 pintu.pdf</b><small>Barang · Garansi · Struk · Riwayat servis</small></div></div></article>
+        <article class="feature" data-reveal style="--i:0"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg></span><h3>Bucket keluarga</h3><p>Bagikan bucket “Rumah” lewat tautan. Semua melihat garansi yang sama dan ikut diingatkan.</p></article>
+        <article class="feature" data-reveal style="--i:1"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg></span><h3>Kunci aplikasi</h3><p>Sidik jari, wajah, atau PIN HP saat aplikasi dibuka dan setelah lama ditinggalkan.</p></article>
+        <article class="feature" data-reveal style="--i:2"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-archive"/></svg></span><h3>Ekspor &amp; hapus</h3><p>Unduh daftar pembelian sebagai file CSV, atau hapus akun beserta seluruh isinya.</p></article>
+        <article class="feature" data-reveal style="--i:3"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-globe"/></svg></span><h3>Tiga bahasa</h3><p>Bahasa Indonesia, English, dan العربية, dengan tata letak kanan-ke-kiri untuk bahasa Arab.</p></article>
+      </div>
     </div>
   </section>
 
-  <div class="cta">
-    <h2>Siap menjaga garansi Anda?</h2>
-    <p>Versi {{VERSION}} · {{SIZE}} MB · Android 7.0+</p>
-    <a class="btn" href="returnit-latest.apk" download>Unduh APK</a>
+  <!-- 4. How it works -->
+  <section id="how" class="band" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="head center" data-reveal>
+        <span class="kicker">Cara kerja</span>
+        <h2 id="how-title">Sederhana. Cepat. Tepat.</h2>
+        <p>Mulai hanya dalam beberapa langkah.</p>
+      </div>
+      <ol class="steps" data-reveal>
+        <li class="step"><span class="num-badge"><svg class="ico" aria-hidden="true"><use href="#i-plus-circle"/></svg></span><span class="n">01</span><h3>Catat pembelian</h3><p>Isi barang, toko, tanggal, dan lama garansi, lalu lampirkan struknya.</p></li>
+        <li class="step"><span class="num-badge"><svg class="ico" aria-hidden="true"><use href="#i-bell-ring"/></svg></span><span class="n">02</span><h3>Pantau &amp; diingatkan</h3><p>Lihat sisa hari sekilas dan diingatkan sebelum garansi dan batas pengembalian berakhir.</p></li>
+        <li class="step"><span class="num-badge"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg></span><span class="n">03</span><h3>Tetap terlindungi</h3><p>Saat barang rusak, kirim satu PDF klaim berisi semua yang dibutuhkan toko.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 5. Tampilan: aplikasi asli di emulator Android dengan akun demo (assets/screens, WebP 540x1200). -->
+  <section id="screens" aria-labelledby="screens-title">
+    <div class="wrap">
+      <div class="head center" data-reveal>
+        <span class="kicker">Aplikasinya</span>
+        <h2 id="screens-title">Semua yang Anda perlukan, dalam satu aplikasi.</h2>
+        <p>Beranda yang tenang, menampilkan yang perlu perhatian lebih dulu, dan setiap detail hanya sekali ketuk.</p>
+      </div>
+    </div>
+    <div class="wrap">
+      <div class="shots" tabindex="0" role="region" aria-label="Tampilan aplikasi (geser ke samping)">
+        <figure class="shot" data-reveal style="--i:0"><div class="frame"><img src="assets/screens/id-home.webp" alt="Beranda ReturnIt: batas pengembalian terdekat, ringkasan garansi, dan pembelian terbaru" width="540" height="1200" loading="lazy" decoding="async"></div><figcaption>Beranda<span>Yang perlu perhatian lebih dulu</span></figcaption></figure>
+        <figure class="shot" data-reveal style="--i:1"><div class="frame"><img src="assets/screens/id-purchases.webp" alt="Daftar pembelian dengan sisa hari, harga, dan filter bucket, status, serta kategori" width="540" height="1200" loading="lazy" decoding="async"></div><figcaption>Pembelian<span>Cari, saring, dan urutkan</span></figcaption></figure>
+        <figure class="shot" data-reveal style="--i:2"><div class="frame"><img src="assets/screens/id-details.webp" alt="Detail pembelian kulkas: model, nomor seri, struk, kartu garansi, dan riwayat servis" width="540" height="1200" loading="lazy" decoding="async"></div><figcaption>Detail pembelian<span>Berkas dan riwayat servis</span></figcaption></figure>
+        <figure class="shot" data-reveal style="--i:3"><div class="frame"><img src="assets/screens/id-deadlines.webp" alt="Tenggat dikelompokkan: dalam 7 hari, dalam 30 hari, dan nanti" width="540" height="1200" loading="lazy" decoding="async"></div><figcaption>Tenggat<span>Semua yang segera berakhir</span></figcaption></figure>
+        <figure class="shot" data-reveal style="--i:4"><div class="frame"><img src="assets/screens/id-claim.webp" alt="Pratinjau PDF klaim garansi berisi data barang dan riwayat servis" width="540" height="1200" loading="lazy" decoding="async"></div><figcaption>Paket klaim<span>Satu PDF untuk toko</span></figcaption></figure>
+        <figure class="shot" data-reveal style="--i:5"><div class="frame"><img src="assets/screens/id-family.webp" alt="Mengundang keluarga ke bucket Home lewat tautan yang berlaku 7 hari" width="540" height="1200" loading="lazy" decoding="async"></div><figcaption>Bucket keluarga<span>Dibagikan lewat tautan</span></figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Privacy philosophy -->
+  <section class="dark" aria-labelledby="philosophy-title">
+    <div class="wrap">
+      <div class="head" data-reveal>
+        <span class="kicker">Prinsip kami</span>
+        <h2 id="philosophy-title">Barang Anda. Data Anda. Kendali Anda.</h2>
+        <p>Kami hanya menyimpan yang Anda masukkan, menjelaskan terus terang di mana data disimpan, dan memudahkan Anda membawanya pergi.</p>
+      </div>
+      <div class="pillars">
+        <div class="pillar" data-reveal style="--i:0"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-server"/></svg></span><h3>Di mana data disimpan</h3><p>Pembelian dan struk disimpan di server kami sendiri di Indonesia, dikelola oleh pengembang, dan sampai ke Anda lewat HTTPS melalui Cloudflare. Karena itulah pengingat bisa dikirim lewat e-mail dan bucket keluarga tetap sinkron.</p></div>
+        <div class="pillar" data-reveal style="--i:1"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-eye-off"/></svg></span><h3>Yang tidak kami lakukan</h3><p>Tanpa iklan, tanpa alat analitik atau pelaporan crash, dan tidak menjual data Anda. PDF klaim dibuat di HP Anda, bukan di server kami.</p></div>
+        <div class="pillar" data-reveal style="--i:2"><span class="ci"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg></span><h3>Pergi kapan saja</h3><p>Ekspor daftar pembelian sebagai CSV dari Pengaturan, atau hapus akun beserta seluruh isinya dari dalam aplikasi.</p></div>
+      </div>
+      <p class="pillar-foot" data-reveal>Apa saja yang kami simpan dan berapa lama: <a href="privacy#id">baca kebijakan privasi</a>.</p>
+    </div>
+  </section>
+
+  <!-- 7. Unduh & pasang (diisi oleh publish-apk.sh) -->
+  <section id="install" aria-labelledby="install-title">
+    <div class="wrap">
+      <div class="head" data-reveal>
+        <span class="kicker">Unduh</span>
+        <h2 id="install-title">Pasang dalam tiga langkah.</h2>
+        <p>ReturnIt belum ada di Google Play, jadi Anda memasang filenya sendiri. Hanya butuh satu menit.</p>
+      </div>
+      <div class="install">
+        <div data-reveal><ol class="install-steps">
+          <li><b>Unduh</b><span>Ketuk “Unduh APK” dan tunggu sampai file selesai diunduh.</span></li>
+          <li><b>Izinkan pemasangan</b><span>Buka filenya. Jika Android meminta, izinkan “Instal aplikasi tidak dikenal” khusus untuk browser Anda. Peringatan Play Protect wajar untuk aplikasi di luar Google Play: pilih “Tetap instal”.</span></li>
+          <li><b>Buka ReturnIt</b><span>Masuk dengan e-mail atau Google, lalu catat pembelian pertama Anda.</span></li>
+        </ol>
+        <div class="install-cta"><a class="btn btn-primary" href="returnit-latest.apk" download><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Unduh APK</a><p class="meta"><b>Versi {{VERSION}}</b> · {{SIZE}} MB</p></div>
+        </div>
+        <div class="side" data-reveal style="--i:1">
+          {{NOTES}}
+          <details id="sha-faq"><summary>Periksa file unduhan</summary>
+            <p>Cocokkan sidik jari SHA-256 file yang Anda unduh dengan yang ini:</p><code class="sha">{{SHA}}</code></details>
+          {{OLDER}}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. FAQ -->
+  <section id="faq" class="band" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="head center" data-reveal>
+        <span class="kicker">Tanya jawab</span>
+        <h2 id="faq-title">Perlu diketahui.</h2>
+      </div>
+      <div class="faq" data-reveal>
+        <details><summary>Apakah ReturnIt gratis?</summary>
+          <p>Ya. ReturnIt gratis diunduh dan dipakai, dan tanpa iklan.</p></details>
+        <details><summary>Apakah ReturnIt bisa dipakai tanpa internet?</summary>
+          <p>ReturnIt memerlukan koneksi internet. Pembelian Anda disimpan di server kami, sehingga tetap aman walau HP hilang atau diganti, pengingat bisa sampai lewat e-mail, dan bucket keluarga tetap sinkron.</p></details>
+        <details><summary>Di mana data pembelian saya disimpan?</summary>
+          <p>Di server kami sendiri di Indonesia, dikelola oleh pengembang. Data dikirim lewat HTTPS dan melewati Cloudflare. Struk dipindai malware dan disimpan secara privat, dan PDF paket klaim dibuat di HP Anda.</p>
+          <p><a href="privacy#id">Kebijakan privasi</a> menjelaskan semua yang kami simpan dan berapa lama.</p></details>
+        <details><summary>Bisakah saya mengekspor data?</summary>
+          <p>Bisa. Di aplikasi, buka Pengaturan lalu pilih Ekspor CSV di bagian akun untuk mengunduh daftar pembelian. Penghapusan akun juga ada di sana.</p></details>
+        <details><summary>Bagaimana cara memasang ReturnIt?</summary>
+          <p>Unduh APK, buka filenya, lalu izinkan “Instal aplikasi tidak dikenal” untuk browser Anda jika Android meminta. Lihat <a href="#install">Pasang dalam tiga langkah</a>.</p></details>
+        <details><summary>Google Play Protect menampilkan peringatan. Apakah aman?</summary>
+          <p>Peringatan muncul karena aplikasi ini belum ada di Google Play. Jika Anda mengunduhnya dari halaman ini, pilih “Tetap instal”. Anda bisa memeriksa filenya dulu dengan <a href="#sha-faq">sidik jari SHA-256</a>.</p></details>
+        <details><summary>Bagaimana cara memperbarui ReturnIt?</summary>
+          <p>Unduh file baru dari halaman ini dan pasang di atas versi lama; data Anda tetap ada. Jika pembaruan diwajibkan, aplikasi akan memberi tahu dan mengarahkan ke sini.</p></details>
+        <details><summary>Apakah ReturnIt mendukung HP Android lama?</summary>
+          <p>ReturnIt memerlukan Android 7.0 atau lebih baru dengan prosesor 64-bit (arm64), yang mencakup hampir semua HP keluaran sejak 2018. HP 32-bit yang sangat lama dan emulator x86 tidak didukung.</p></details>
+        <details><summary>Bagaimana cara membuat paket klaim garansi?</summary>
+          <p>Buka sebuah pembelian lalu ketuk “Buat paket klaim”. Pilih apakah harga, catatan, dan foto struk ikut disertakan, lalu kirim PDF-nya ke toko atau service center.</p></details>
+        <details><summary>Apakah ada versi iPhone?</summary>
+          <p>Belum. Untuk saat ini ReturnIt hanya tersedia untuk Android.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Final call to action -->
+  <div class="final-wrap band" style="border-top:0">
+    <div class="wrap">
+      <div class="final dark" data-reveal>
+        <h2>Lindungi setiap barang yang Anda beli.</h2>
+        <p>Mulai pantau garansi, rapikan struk, dan atur tenggat penting bersama ReturnIt.</p>
+        <a class="btn btn-light" href="returnit-latest.apk" download><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Unduh ReturnIt untuk Android</a>
+        <p class="meta"><b>Versi {{VERSION}}</b> · {{SIZE}} MB · Android 7.0+ · terbit {{DATE}}</p>
+      </div>
+    </div>
   </div>
+</main>
 
-  <footer>
-    <span>ReturnIt · pelacak garansi dengan struk sebagai bukti</span>
-    <span>Versi {{VERSION}} · {{DATE}}</span>
-    <span>Ada pertanyaan? <a href="mailto:support@returnit.online">support@returnit.online</a></span>
-    <span><a href="privacy#id">Kebijakan privasi</a></span>
-  </footer>
-</div>
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div class="about">
+        <picture><source srcset="assets/logo-dark.png" media="(prefers-color-scheme: dark)"><img src="assets/logo.png" alt="ReturnIt" width="127" height="34" loading="lazy"></picture>
+        <p>Pengingat garansi untuk Android, dengan struk sebagai bukti. Diingatkan sebelum garansi dan batas pengembalian berakhir.</p>
+      </div>
+      <nav aria-label="Produk">
+        <h3>Produk</h3>
+        <ul><li><a href="#features">Fitur</a></li><li><a href="#how">Cara kerja</a></li><li><a href="#screens">Tampilan</a></li><li><a href="#faq">Tanya jawab</a></li></ul>
+      </nav>
+      <nav aria-label="Unduh">
+        <h3>Unduh</h3>
+        <ul><li><a href="returnit-latest.apk" download>Unduh APK</a></li><li><a href="#install">Cara memasang</a></li><li><a href="#sha-faq">Periksa file</a></li></ul>
+      </nav>
+      <nav aria-label="Bantuan">
+        <h3>Bantuan</h3>
+        <ul><li><a href="privacy#id">Kebijakan privasi</a></li><li><a href="mailto:support@returnit.online">support@returnit.online</a></li><li><a href="./" hreflang="en" lang="en">English</a></li></ul>
+      </nav>
+    </div>
+    <div class="legal">
+      <span>© 2026 ReturnIt</span>
+      <span>Versi {{VERSION}} · {{DATE}}</span>
+    </div>
+  </div>
+</footer>
 </body>
 </html>

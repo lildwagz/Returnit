@@ -140,7 +140,7 @@ cd ~/returnit/deploy
 ./publish-apk.sh status
 ```
 
-The page is English and comes from `download-page/index.template.html` (logo and fonts in `download-page/assets`, served at `/assets/`). If you change the `Caddyfile`, recreate Caddy (`./up.sh up -d --force-recreate caddy`): after a `git pull` its container can still read the old file.
+The page comes from `download-page/index.template.html` (English, at `/`) and `download-page/index.id.template.html` (Indonesian, at `/id`); both share `download-page/assets/site.css` and `site.js` with the logo and fonts, served at `/assets/`. Assets are cached for a week, so after changing `site.css` or `site.js` raise the `?v=` number where both templates load them. The screenshot gallery holds placeholders until real screenshots are added (see the comment above it in the templates). If you change the `Caddyfile`, recreate Caddy (`./up.sh up -d --force-recreate caddy`): after a `git pull` its container can still read the old file.
 
 The script refuses: an APK that is not an APK, a published version whose content would change, and a minimum above the
 newest published build (nobody could update). It keeps the newest 10 builds. After raising the minimum, check
