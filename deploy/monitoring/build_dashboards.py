@@ -22,9 +22,10 @@ def named(expr):
     return f'({expr} * on (id) group_left (name) {NAMES})'
 
 
-# Caddy may record a request once per handler in the chain; count only the handlers that answer (or the server
-# level). Each port is a named server (Caddyfile.tunnel): api, auth, dl, files, apex, monitor.
-CADDY = 'handler=~"reverse_proxy|file_server|static_response|",server!~"srv[0-9]+"'
+# Caddy records a request once per handler it passes. Every site runs `headers` (import secure) except the bare-domain
+# redirect, which only has static_response, so counting those two counts each request once. Each port is a named
+# server (Caddyfile.tunnel): api, auth, dl, files, apex, monitor.
+CADDY = 'handler=~"headers|static_response",server!~"srv[0-9]+"'
 
 
 class Board:
