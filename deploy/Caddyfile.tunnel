@@ -6,6 +6,11 @@
 		# cloudflared sits on the private network; believe what it says about the client
 		trusted_proxies static 172.30.0.0/24
 	}
+	# Request counts and latencies per site (api, auth, dl, files) for Prometheus. The numbers are served only on the
+	# private port 9180 that docker-compose.monitoring.yml adds (monitoring/caddy-metrics.caddy); nothing is published.
+	metrics {
+		per_host
+	}
 }
 
 (secure) {

@@ -1,14 +1,109 @@
-# Scrapes every 60 s: small on purpose (2-core Celeron). Both targets are on the private compose network only.
+# Scrapes every 60 s: small on purpose (2-core Celeron). Every target is on the private compose network, except
+# node_exporter, which runs in the host network on the bridge address 172.30.0.1 (see docker-compose.monitoring.yml).
 global:
   scrape_interval: 60s
   evaluation_interval: 60s
 
 scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # The machine: CPU, memory, disk, network per interface, temperature, battery, OOM kills.
   - job_name: node
     static_configs:
-      - targets: ["node-exporter:9100"]
+      - targets: ["172.30.0.1:9100"]
+
+  # Every container: CPU, memory against its limit, network, restarts, OOM kills.
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # Requests, status codes and latency per site (Caddyfile.tunnel: metrics per_host).
+  - job_name: caddy
+    static_configs:
+      - targets: ["caddy:9180"]
 
   # Worker health server (WORKER_HEALTH_ADDR, default :8081): queues, overdue reminders, pending deletions, e-mails.
   - job_name: returnit-worker
     static_configs:
       - targets: ["worker:8081"]
+
+  - job_name: postgres
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  - job_name: redis
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+
+  # MINIO_PROMETHEUS_AUTH_TYPE=public is set by docker-compose.monitoring.yml (private network only).
+  - job_name: minio
+    metrics_path: /minio/v2/metrics/cluster
+    static_configs:
+      - targets: ["minio:9000"]
+
+  # Uptime from this machine: the public addresses go out through Cloudflare and back through the tunnel, so they test
+  # the whole path. A dead machine cannot report itself: keep an outside check (UptimeRobot) as well.
+  - job_name: blackbox-http
+    metrics_path: /probe
+    params: {module: [http_2xx]}
+    static_configs:
+      - targets: ["https://api.returnit.online/health/ready"]
+        labels: {name: "API (public)"}
+      - targets: ["https://auth.returnit.online/realms/returnit/.well-known/openid-configuration"]
+        labels: {name: "Login (public)"}
+      - targets: ["https://dl.returnit.online/"]
+        labels: {name: "Website EN"}
+      - targets: ["https://dl.returnit.online/id"]
+        labels: {name: "Website ID"}
+      - targets: ["http://web:8080/health/ready"]
+        labels: {name: "API (internal)"}
+    relabel_configs: &probe
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+
+  - job_name: blackbox-redirect
+    metrics_path: /probe
+    params: {module: [http_3xx]}
+    static_configs:
+      - targets: ["https://returnit.online/"]
+        labels: {name: "returnit.online redirect"}
+    relabel_configs: *probe
+
+  - job_name: blackbox-apk
+    metrics_path: /probe
+    params: {module: [http_head_2xx]}
+    static_configs:
+      - targets: ["https://dl.returnit.online/returnit-latest.apk"]
+        labels: {name: "APK download"}
+    relabel_configs: *probe
+
+  - job_name: blackbox-tcp
+    metrics_path: /probe
+    params: {module: [tcp_connect]}
+    static_configs:
+      - targets: ["postgres:5432"]
+        labels: {name: "Postgres"}
+      - targets: ["redis:6379"]
+        labels: {name: "Redis"}
+      - targets: ["minio:9000"]
+        labels: {name: "MinIO"}
+      - targets: ["keycloak:8080"]
+        labels: {name: "Keycloak"}
+    relabel_configs: *probe
+
+  # Home network: the router (Wi-Fi link) and the internet beyond it. 192.168.100.1 is this home's router.
+  - job_name: blackbox-icmp
+    metrics_path: /probe
+    params: {module: [icmp]}
+    static_configs:
+      - targets: ["192.168.100.1"]
+        labels: {name: "Home router"}
+      - targets: ["1.1.1.1"]
+        labels: {name: "Internet (1.1.1.1)"}
+    relabel_configs: *probe
