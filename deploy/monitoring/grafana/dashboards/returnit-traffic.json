@@ -44,7 +44,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\"}[5m]))",
+          "expr": "sum(rate(caddy_http_request_duration_seconds_count{handler=~\"headers|static_response\",server!~\"srv[0-9]+\"}[5m]))",
           "legendFormat": "__auto"
         }
       ],
@@ -103,7 +103,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * sum(rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\",code=~\"5..\"}[5m])) / clamp_min(sum(rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\"}[5m])), 1e-9)",
+          "expr": "100 * sum(rate(caddy_http_request_duration_seconds_count{handler=~\"headers|static_response\",server!~\"srv[0-9]+\",code=~\"5..\"}[5m])) / clamp_min(sum(rate(caddy_http_request_duration_seconds_count{handler=~\"headers|static_response\",server!~\"srv[0-9]+\"}[5m])), 1e-9)",
           "legendFormat": "__auto"
         }
       ],
@@ -171,7 +171,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * sum(rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\",code=~\"4..\"}[5m])) / clamp_min(sum(rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\"}[5m])), 1e-9)",
+          "expr": "100 * sum(rate(caddy_http_request_duration_seconds_count{handler=~\"headers|static_response\",server!~\"srv[0-9]+\",code=~\"4..\"}[5m])) / clamp_min(sum(rate(caddy_http_request_duration_seconds_count{handler=~\"headers|static_response\",server!~\"srv[0-9]+\"}[5m])), 1e-9)",
           "legendFormat": "__auto"
         }
       ],
@@ -311,7 +311,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (server) (rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\"}[5m]))",
+          "expr": "sum by (server) (rate(caddy_http_request_duration_seconds_count{handler=~\"headers|static_response\",server!~\"srv[0-9]+\"}[5m]))",
           "legendFormat": "{{server}}"
         }
       ],
@@ -376,7 +376,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (code) (rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\"}[5m]))",
+          "expr": "sum by (code) (rate(caddy_http_request_duration_seconds_count{handler=~\"headers|static_response\",server!~\"srv[0-9]+\"}[5m]))",
           "legendFormat": "{{code}}"
         }
       ],
@@ -441,7 +441,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.5, sum by (le, server) (rate(caddy_http_request_duration_seconds_bucket{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\"}[5m])))",
+          "expr": "histogram_quantile(0.5, sum by (le, server) (rate(caddy_http_request_duration_seconds_bucket{handler=~\"headers|static_response\",server!~\"srv[0-9]+\"}[5m])))",
           "legendFormat": "{{server}}"
         }
       ],
@@ -506,7 +506,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum by (le, server) (rate(caddy_http_request_duration_seconds_bucket{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le, server) (rate(caddy_http_request_duration_seconds_bucket{handler=~\"headers|static_response\",server!~\"srv[0-9]+\"}[5m])))",
           "legendFormat": "{{server}}"
         }
       ],
@@ -571,7 +571,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (server) (rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\",code=~\"5..\"}[5m]))",
+          "expr": "sum by (server) (rate(caddy_http_request_duration_seconds_count{handler=~\"headers|static_response\",server!~\"srv[0-9]+\",code=~\"5..\"}[5m]))",
           "legendFormat": "{{server}}"
         }
       ],
@@ -636,7 +636,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (server) (rate(caddy_http_response_size_bytes_sum{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\"}[5m]))",
+          "expr": "sum by (server) (rate(caddy_http_response_size_bytes_sum{handler=~\"headers|static_response\",server!~\"srv[0-9]+\"}[5m]))",
           "legendFormat": "{{server}}"
         }
       ],

@@ -87,6 +87,10 @@ services:
     command:
       - --docker_only=true
       - --raw_cgroup_prefix_whitelist=/system.slice/docker-
+      # the Docker and containerd handlers claim these cgroups and then fail; pointing them nowhere leaves the cgroups
+      # to the raw handler
+      - --docker=unix:///nonexistent/docker.sock
+      - --containerd=/nonexistent/containerd.sock
       - --housekeeping_interval=30s
       - --store_container_labels=false
       - --disable_metrics=advtcp,app,cpuLoad,cpu_topology,cpuset,disk,diskIO,hugetlb,memory_numa,percpu,perf_event,process,referenced_memory,resctrl,sched,tcp,udp
