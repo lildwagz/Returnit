@@ -1,0 +1,14 @@
+# Scrapes every 60 s: small on purpose (2-core Celeron). Both targets are on the private compose network only.
+global:
+  scrape_interval: 60s
+  evaluation_interval: 60s
+
+scrape_configs:
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Worker health server (WORKER_HEALTH_ADDR, default :8081): queues, overdue reminders, pending deletions, e-mails.
+  - job_name: returnit-worker
+    static_configs:
+      - targets: ["worker:8081"]

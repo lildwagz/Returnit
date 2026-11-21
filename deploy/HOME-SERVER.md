@@ -183,3 +183,34 @@ SystemMaxUse=1G
 then `systemctl restart systemd-journald`. Logs older than 7 days are deleted, which is what the privacy policy promises.
 Read them as before with `./up.sh logs -f web`, or `journalctl CONTAINER_TAG=returnit-prod-web-1 --since today`.
 Keep `LOG_SQL`, `LOG_REDIS` and `LOG_REQUEST_BODY` off in `.env.prod`; switch one on only for a short debugging session.
+
+## 10. Monitoring dashboard (Grafana at `monitor.<DOMAIN>`)
+
+Optional. `docker-compose.monitoring.yml` adds Prometheus (15 days of metrics, at most 1 GB), node_exporter (CPU, memory,
+disk, load of this machine) and Grafana with a ready dashboard "ReturnIt server" that also shows the worker's own
+metrics (overdue reminders, queue tasks, failing jobs). Together they use about 0.3 to 0.5 GB of memory (hard limits:
+Prometheus 400 MB, Grafana 256 MB). Alerts still come from `monitor.sh`; Grafana is for looking back.
+
+1. **Cloudflare Access first** (Zero Trust > Access > Applications > Add an application > Self-hosted):
+   application domain `monitor.<DOMAIN>`, one policy "Allow" with *Emails* = the addresses that may look, login method
+   One-time PIN (or Google). Nobody reaches Grafana without passing this.
+2. **Tunnel hostname** (Zero Trust > Networks > Tunnels > the tunnel > Public hostname > Add):
+   `monitor.<DOMAIN>` -> `HTTP` `caddy:8086`.
+3. **Settings** in `deploy/.env.prod`:
+   ```
+   COMPOSE_OVERLAY='docker-compose.tunnel.yml docker-compose.monitoring.yml'
+   GRAFANA_ADMIN_PASSWORD=...        # openssl rand -base64 24; keep it in the password manager
+   ```
+4. **Start it** (Caddy must be recreated once to read the new site on port 8086):
+   ```
+   ./up.sh up -d
+   ./up.sh up -d --force-recreate caddy
+   ./up.sh ps prometheus node-exporter grafana
+   ```
+5. Open `https://monitor.<DOMAIN>`, pass the Cloudflare login, then sign in to Grafana as `admin`. The dashboard is
+   under Dashboards > ReturnIt. It is read-only (it comes from `monitoring/grafana/dashboards/returnit.json`; change
+   that file and recreate Grafana to update it).
+
+Prometheus and node_exporter are only on the private compose network. Grafana sends nothing out (usage reports,
+update checks and the news feed are off). To remove the stack: take the file out of `COMPOSE_OVERLAY`, run
+`./up.sh up -d --remove-orphans`, and delete the hostname and the Access application in Cloudflare.
