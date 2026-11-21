@@ -12,8 +12,19 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'grafana', 'dashb
 UPDOWN = [{'type': 'value', 'options': {'0': {'text': 'DOWN', 'color': 'red', 'index': 0},
                                         '1': {'text': 'UP', 'color': 'green', 'index': 1}}}]
 APP = 'name=~"returnit-prod-.*"'
-# Caddy may record a request once per handler in the chain; count only the handlers that answer (or the server level)
-CADDY = 'handler=~"reverse_proxy|file_server|static_response|"'
+# cAdvisor sees containers as cgroups (Docker 29); container-info maps the cgroup id to the name.
+CG = 'id=~"/system.slice/docker-.*"'
+NAMES = f'returnit_container_info{{{APP}}}'
+
+
+def named(expr):
+    """Adds the container name to a cAdvisor series (joined on the cgroup id)."""
+    return f'({expr} * on (id) group_left (name) {NAMES})'
+
+
+# Caddy may record a request once per handler in the chain; count only the handlers that answer (or the server
+# level). Each port is a named server (Caddyfile.tunnel): api, auth, dl, files, apex, monitor.
+CADDY = 'handler=~"reverse_proxy|file_server|static_response|",server!~"srv[0-9]+"'
 
 
 class Board:
@@ -114,12 +125,11 @@ b.stat('OOM kills (24 h)', 'increase(node_vmstat_oom_kill[24h])', thresholds=[(1
        desc='Processes the kernel killed for lack of memory, on the whole machine.')
 b.stat('Memory used', MEM, unit='percent', thresholds=[(80, 'orange'), (92, 'red')])
 b.stat('Disk used', DISK, unit='percent', thresholds=[(80, 'orange'), (90, 'red')])
-b.stat('Battery', 'node_power_supply_capacity{power_supply="BAT0"}', unit='percent', base='red',
-       thresholds=[(30, 'orange'), (60, 'green')], desc='The laptop battery keeps the server running in a power cut.')
+b.stat('Unhealthy containers', f'count(returnit_container_healthy{{{APP}}} == 0) or vector(0)', thresholds=[(1, 'red')], decimals=0)
 b.row('Speed and traffic')
 b.graph('Response time (public, end to end)', 'probe_duration_seconds{job=~"blackbox-(http|redirect|apk)",name!="API (internal)"}',
         unit='s', legend='{{name}}')
-b.graph('Requests per second by site', f'sum by (host) (rate({REQ}[5m]))', unit='reqps', legend='{{host}}')
+b.graph('Requests per second by site', f'sum by (server) (rate({REQ}[5m]))', unit='reqps', legend='{{server}}')
 b.graph('Responses by status class', [f'sum(rate({REQ}[5m])) by (code)'], unit='reqps', legend='{{code}}', stack=True)
 b.graph('Queue tasks by state', 'sum by (state) (returnit_queue_tasks)', legend='{{state}}')
 b.row('Collectors')
@@ -159,28 +169,35 @@ b.graph('Network errors and drops', ['sum by (device) (rate(node_network_receive
 b.graph('Ping: router and internet', 'probe_icmp_duration_seconds{phase="rtt"}', unit='s', legend='{{name}}',
         desc='A slow or failing router ping points at the Wi-Fi; a slow internet ping with a fast router points at the ISP.')
 b.row('Temperature and power')
-b.graph('Temperatures', 'node_hwmon_temp_celsius', unit='celsius', legend='{{chip}} {{sensor}}')
+b.graph('Temperatures', 'node_hwmon_temp_celsius{chip!~".*asus.*"} > -50 < 150', unit='celsius', legend='{{chip}} {{sensor}}',
+        desc='The ASUS WMI sensor and an unused thermal zone report impossible values and are left out.')
 b.graph('Battery and mains', ['node_power_supply_capacity{power_supply="BAT0"}', '100 * node_power_supply_online{power_supply="AC0"}'],
         unit='percent', legend=['battery %', 'mains (100 = on)'], minv=0, maxv=100)
 b.write()
 
 # 3. Containers
-b = Board('returnit-containers', 'ReturnIt containers', 'Every container of the stack: CPU, memory, network, restarts, OOM kills.')
+b = Board('returnit-containers', 'ReturnIt containers', 'Every container of the stack: CPU, memory, restarts, health, OOM kills.')
 b.row('Problems')
-b.stat('OOM kills (24 h)', f'sum(increase(container_oom_events_total{{{APP}}}[24h]))', w=6, thresholds=[(1, 'red')], decimals=0)
-b.stat('Restarts (24 h)', f'sum(changes(container_start_time_seconds{{{APP}}}[24h]))', w=6, thresholds=[(1, 'orange'), (5, 'red')], decimals=0)
-b.stat('Containers running', f'count(container_last_seen{{{APP}}})', w=6)
-b.stat('Memory of all containers', f'sum(container_memory_working_set_bytes{{{APP}}})', w=6, unit='bytes')
+b.stat('OOM kills (24 h)', f'sum(increase(container_oom_events_total{{{CG}}}[24h])) + sum(returnit_container_oom_killed{{{APP}}})', w=4,
+       thresholds=[(1, 'red')], decimals=0, desc='Kernel OOM events in container cgroups, plus containers whose last exit was an OOM kill.')
+b.stat('Restarts by Docker', f'sum(returnit_container_restart_count{{{APP}}})', w=4, thresholds=[(1, 'orange'), (5, 'red')], decimals=0,
+       desc='Restarts done by the restart policy since each container was created (a crash loop shows up here).')
+b.stat('Unhealthy', f'count(returnit_container_healthy{{{APP}}} == 0) or vector(0)', w=4, thresholds=[(1, 'red')], decimals=0)
+b.stat('Running', f'sum(returnit_container_running{{{APP}}})', w=4)
+b.stat('Stopped', f'count(returnit_container_running{{{APP},name!~".*migrate.*"}} == 0) or vector(0)', w=4, thresholds=[(1, 'orange')], decimals=0,
+       desc='Containers that exist but are not running (the one-off migrate job is left out).')
+b.stat('Memory of all containers', 'sum(' + named(f'container_memory_working_set_bytes{{{CG}}}') + ')', w=4, unit='bytes')
+b.stat('Health checks', f'returnit_container_healthy{{{APP}}}', w=24, h=4, legend='{{name}}', base='red', thresholds=[(1, 'green')],
+       mappings=[{'type': 'value', 'options': {'0': {'text': 'UNHEALTHY', 'color': 'red', 'index': 0}, '1': {'text': 'HEALTHY', 'color': 'green', 'index': 1}}}])
 b.row('Per container')
-b.graph('CPU (1.0 = one full core)', f'sum by (name) (rate(container_cpu_usage_seconds_total{{{APP}}}[5m]))', unit='percentunit', legend='{{name}}')
-b.graph('Memory', f'container_memory_working_set_bytes{{{APP}}}', unit='bytes', legend='{{name}}')
-b.panel('bargauge', 'Memory against limit (limited containers)', f'100 * container_memory_working_set_bytes{{{APP}}} / (container_spec_memory_limit_bytes{{{APP}}} > 0 < 1e15)',
+b.graph('CPU (1.0 = one full core)', 'sum by (name) (' + named(f'rate(container_cpu_usage_seconds_total{{{CG}}}[5m])') + ')', unit='percentunit', legend='{{name}}')
+b.graph('Memory', named(f'container_memory_working_set_bytes{{{CG}}}'), unit='bytes', legend='{{name}}')
+b.panel('bargauge', 'Memory against limit (limited containers)',
+        '100 * ' + named(f'container_memory_working_set_bytes{{{CG}}}') + ' / ' + named(f'(container_spec_memory_limit_bytes{{{CG}}} > 0 < 1e15)'),
         w=12, h=8, unit='percent', minv=0, maxv=100, legend='{{name}}', thresholds=[(80, 'orange'), (95, 'red')])
-b.graph('OOM kills per container', f'increase(container_oom_events_total{{{APP}}}[1h])', legend='{{name}}', decimals=0)
-b.graph('Network in', f'sum by (name) (rate(container_network_receive_bytes_total{{{APP}}}[5m]))', unit='Bps', legend='{{name}}')
-b.graph('Network out', f'sum by (name) (rate(container_network_transmit_bytes_total{{{APP}}}[5m]))', unit='Bps', legend='{{name}}')
-b.graph('Restarts', f'changes(container_start_time_seconds{{{APP}}}[1h])', legend='{{name}}', decimals=0)
-b.graph('Running for', f'time() - container_start_time_seconds{{{APP}}}', unit='s', legend='{{name}}')
+b.graph('OOM events per container', named(f'increase(container_oom_events_total{{{CG}}}[1h])'), legend='{{name}}', decimals=0)
+b.graph('Restarts by Docker', f'returnit_container_restart_count{{{APP}}}', legend='{{name}}', decimals=0)
+b.graph('Running for', named(f'time() - container_start_time_seconds{{{CG}}}'), unit='s', legend='{{name}}')
 b.write()
 
 # 4. Traffic through Caddy
@@ -192,12 +209,12 @@ b.stat('Client errors (4xx)', f'100 * sum(rate(caddy_http_request_duration_secon
        w=6, unit='percent', decimals=1, thresholds=[(10, 'orange'), (25, 'red')], desc='Many 401/404 can mean a broken app version or someone probing.')
 b.stat('In flight', 'sum(caddy_http_requests_in_flight)', w=6)
 b.row('Per site')
-b.graph('Requests per second', f'sum by (host) (rate({REQ}[5m]))', unit='reqps', legend='{{host}}')
+b.graph('Requests per second', f'sum by (server) (rate({REQ}[5m]))', unit='reqps', legend='{{server}}')
 b.graph('Status codes', f'sum by (code) (rate({REQ}[5m]))', unit='reqps', legend='{{code}}', stack=True)
-b.graph('Latency p50', f'histogram_quantile(0.5, sum by (le, host) (rate(caddy_http_request_duration_seconds_bucket{{{CADDY}}}[5m])))', unit='s', legend='{{host}}')
-b.graph('Latency p95', f'histogram_quantile(0.95, sum by (le, host) (rate(caddy_http_request_duration_seconds_bucket{{{CADDY}}}[5m])))', unit='s', legend='{{host}}')
-b.graph('5xx per site', f'sum by (host) (rate(caddy_http_request_duration_seconds_count{{{CADDY},code=~"5.."}}[5m]))', unit='reqps', legend='{{host}}')
-b.graph('Bytes sent per site', f'sum by (host) (rate(caddy_http_response_size_bytes_sum{{{CADDY}}}[5m]))', unit='Bps', legend='{{host}}')
+b.graph('Latency p50', f'histogram_quantile(0.5, sum by (le, server) (rate(caddy_http_request_duration_seconds_bucket{{{CADDY}}}[5m])))', unit='s', legend='{{server}}')
+b.graph('Latency p95', f'histogram_quantile(0.95, sum by (le, server) (rate(caddy_http_request_duration_seconds_bucket{{{CADDY}}}[5m])))', unit='s', legend='{{server}}')
+b.graph('5xx per site', f'sum by (server) (rate(caddy_http_request_duration_seconds_count{{{CADDY},code=~"5.."}}[5m]))', unit='reqps', legend='{{server}}')
+b.graph('Bytes sent per site', f'sum by (server) (rate(caddy_http_response_size_bytes_sum{{{CADDY}}}[5m]))', unit='Bps', legend='{{server}}')
 b.write()
 
 # 5. Uptime (blackbox)
@@ -242,10 +259,9 @@ b.stat('Evicted keys (24 h)', 'increase(redis_evicted_keys_total[24h])', w=5, th
 b.graph('Commands per second', 'rate(redis_commands_processed_total[5m])', unit='ops', legend='commands')
 b.graph('Memory', 'redis_memory_used_bytes', unit='bytes', legend='used')
 b.row('MinIO (receipt files)')
-b.stat('Stored', 'sum(minio_bucket_usage_total_bytes)', w=6, unit='bytes')
-b.stat('Files', 'sum(minio_bucket_usage_object_total)', w=6)
-b.stat('Free space', 'max(minio_cluster_capacity_usable_free_bytes)', w=6, unit='bytes')
-b.stat('S3 errors (24 h)', 'sum(increase(minio_s3_requests_errors_total[24h]))', w=6, thresholds=[(1, 'orange')], decimals=0)
-b.graph('S3 requests per second', 'sum by (api) (rate(minio_s3_requests_total[5m]))', unit='reqps', legend='{{api}}')
+b.stat('Stored', 'max(minio_cluster_usage_total_bytes)', w=8, unit='bytes')
+b.stat('Files', 'max(minio_cluster_usage_object_total)', w=8)
+b.stat('Free space', 'max(minio_cluster_capacity_usable_free_bytes)', w=8, unit='bytes')
 b.graph('Stored per bucket', 'minio_bucket_usage_total_bytes', unit='bytes', legend='{{bucket}}')
+b.graph('Files per bucket', 'minio_bucket_usage_object_total', legend='{{bucket}}', decimals=0)
 b.write()

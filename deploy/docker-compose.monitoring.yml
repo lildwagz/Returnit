@@ -6,7 +6,8 @@
 #
 # What is collected (all on the private network; only Grafana is published, through Caddy port 8086):
 #   node_exporter   the machine: CPU, memory, disk, network per interface, temperature, battery, OOM kills
-#   cAdvisor        every container: CPU, memory against its limit, network, restarts, OOM kills
+#   cAdvisor        every container: CPU, memory against its limit, start time, OOM events (read from the cgroups)
+#   container-info  container names, restart counts, OOM-killed and health from `docker inspect` (textfile)
 #   Caddy           requests, status codes and latency per site (Caddyfile.tunnel metrics, port 9180)
 #   blackbox        uptime and response time of the public sites, internal services, router and internet
 #   postgres / redis exporters, MinIO's own metrics, the worker's /metrics
@@ -57,18 +58,35 @@ services:
       - --path.rootfs=/rootfs
       - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+|snap/.+)($$|/)
       - --collector.netdev.device-exclude=^(veth.*|lo)$$
+      - --collector.textfile.directory=/textfile
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro,rslave
+      - monitoring-textfile:/textfile:ro
     mem_limit: 64m
 
-  # Per-container numbers, trimmed to CPU, memory, network and OOM events to stay light on this CPU.
+  # Writes container names, restart counts, OOM-killed and health for node_exporter (monitoring/container-info.sh).
+  # The Docker socket gives the same access cAdvisor already has; it only runs `docker ps` and `docker inspect`.
+  container-info:
+    <<: *monitoring
+    image: docker:29.1-cli
+    command: ["sh", "/container-info.sh"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./monitoring/container-info.sh:/container-info.sh:ro
+      - monitoring-textfile:/out
+    mem_limit: 32m
+
+  # Per-container numbers, trimmed to CPU, memory and OOM events to stay light on this CPU. Under Docker 29 (containerd
+  # image store) cAdvisor cannot identify Docker containers, so it reads their cgroups directly (raw prefix below);
+  # container-info supplies the names.
   cadvisor:
     <<: *monitoring
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: ghcr.io/google/cadvisor:v0.53.0
     command:
       - --docker_only=true
+      - --raw_cgroup_prefix_whitelist=/system.slice/docker-
       - --housekeeping_interval=30s
       - --store_container_labels=false
       - --disable_metrics=advtcp,app,cpuLoad,cpu_topology,cpuset,disk,diskIO,hugetlb,memory_numa,percpu,perf_event,process,referenced_memory,resctrl,sched,tcp,udp
@@ -134,3 +152,4 @@ services:
 volumes:
   prometheus-data:
   grafana-data:
+  monitoring-textfile:

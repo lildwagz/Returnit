@@ -1,7 +1,7 @@
 {
   "uid": "returnit-containers",
   "title": "ReturnIt containers",
-  "description": "Every container of the stack: CPU, memory, network, restarts, OOM kills.",
+  "description": "Every container of the stack: CPU, memory, restarts, health, OOM kills.",
   "tags": [
     "returnit"
   ],
@@ -44,14 +44,14 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(container_oom_events_total{name=~\"returnit-prod-.*\"}[24h]))",
+          "expr": "sum(increase(container_oom_events_total{id=~\"/system.slice/docker-.*\"}[24h])) + sum(returnit_container_oom_killed{name=~\"returnit-prod-.*\"})",
           "legendFormat": "__auto"
         }
       ],
       "gridPos": {
         "x": 0,
         "y": 1,
-        "w": 6,
+        "w": 4,
         "h": 4
       },
       "fieldConfig": {
@@ -76,6 +76,7 @@
         },
         "overrides": []
       },
+      "description": "Kernel OOM events in container cgroups, plus containers whose last exit was an OOM kill.",
       "options": {
         "reduceOptions": {
           "calcs": [
@@ -95,7 +96,7 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Restarts (24 h)",
+      "title": "Restarts by Docker",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -107,14 +108,14 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(changes(container_start_time_seconds{name=~\"returnit-prod-.*\"}[24h]))",
+          "expr": "sum(returnit_container_restart_count{name=~\"returnit-prod-.*\"})",
           "legendFormat": "__auto"
         }
       ],
       "gridPos": {
-        "x": 6,
+        "x": 4,
         "y": 1,
-        "w": 6,
+        "w": 4,
         "h": 4
       },
       "fieldConfig": {
@@ -143,6 +144,7 @@
         },
         "overrides": []
       },
+      "description": "Restarts done by the restart policy since each container was created (a crash loop shows up here).",
       "options": {
         "reduceOptions": {
           "calcs": [
@@ -162,7 +164,7 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Containers running",
+      "title": "Unhealthy",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -174,14 +176,77 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "count(container_last_seen{name=~\"returnit-prod-.*\"})",
+          "expr": "count(returnit_container_healthy{name=~\"returnit-prod-.*\"} == 0) or vector(0)",
+          "legendFormat": "__auto"
+        }
+      ],
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Running",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(returnit_container_running{name=~\"returnit-prod-.*\"})",
           "legendFormat": "__auto"
         }
       ],
       "gridPos": {
         "x": 12,
         "y": 1,
-        "w": 6,
+        "w": 4,
         "h": 4
       },
       "fieldConfig": {
@@ -218,7 +283,71 @@
       }
     },
     {
-      "id": 5,
+      "id": 6,
+      "type": "stat",
+      "title": "Stopped",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "count(returnit_container_running{name=~\"returnit-prod-.*\",name!~\".*migrate.*\"} == 0) or vector(0)",
+          "legendFormat": "__auto"
+        }
+      ],
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "description": "Containers that exist but are not running (the one-off migrate job is left out).",
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 7,
       "type": "stat",
       "title": "Memory of all containers",
       "datasource": {
@@ -232,14 +361,14 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(container_memory_working_set_bytes{name=~\"returnit-prod-.*\"})",
+          "expr": "sum((container_memory_working_set_bytes{id=~\"/system.slice/docker-.*\"} * on (id) group_left (name) returnit_container_info{name=~\"returnit-prod-.*\"}))",
           "legendFormat": "__auto"
         }
       ],
       "gridPos": {
-        "x": 18,
+        "x": 20,
         "y": 1,
-        "w": 6,
+        "w": 4,
         "h": 4
       },
       "fieldConfig": {
@@ -277,20 +406,99 @@
       }
     },
     {
-      "id": 6,
+      "id": 8,
+      "type": "stat",
+      "title": "Health checks",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "returnit_container_healthy{name=~\"returnit-prod-.*\"}",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "UNHEALTHY",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "HEALTHY",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 9,
       "type": "row",
       "title": "Per container",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 5,
+        "y": 9,
         "w": 24,
         "h": 1
       },
       "panels": []
     },
     {
-      "id": 7,
+      "id": 10,
       "type": "timeseries",
       "title": "CPU (1.0 = one full core)",
       "datasource": {
@@ -304,13 +512,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{name=~\"returnit-prod-.*\"}[5m]))",
+          "expr": "sum by (name) ((rate(container_cpu_usage_seconds_total{id=~\"/system.slice/docker-.*\"}[5m]) * on (id) group_left (name) returnit_container_info{name=~\"returnit-prod-.*\"}))",
           "legendFormat": "{{name}}"
         }
       ],
       "gridPos": {
         "x": 0,
-        "y": 6,
+        "y": 10,
         "w": 12,
         "h": 8
       },
@@ -355,7 +563,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 11,
       "type": "timeseries",
       "title": "Memory",
       "datasource": {
@@ -369,13 +577,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "container_memory_working_set_bytes{name=~\"returnit-prod-.*\"}",
+          "expr": "(container_memory_working_set_bytes{id=~\"/system.slice/docker-.*\"} * on (id) group_left (name) returnit_container_info{name=~\"returnit-prod-.*\"})",
           "legendFormat": "{{name}}"
         }
       ],
       "gridPos": {
         "x": 12,
-        "y": 6,
+        "y": 10,
         "w": 12,
         "h": 8
       },
@@ -420,7 +628,7 @@
       }
     },
     {
-      "id": 9,
+      "id": 12,
       "type": "bargauge",
       "title": "Memory against limit (limited containers)",
       "datasource": {
@@ -434,13 +642,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * container_memory_working_set_bytes{name=~\"returnit-prod-.*\"} / (container_spec_memory_limit_bytes{name=~\"returnit-prod-.*\"} > 0 < 1e15)",
+          "expr": "100 * (container_memory_working_set_bytes{id=~\"/system.slice/docker-.*\"} * on (id) group_left (name) returnit_container_info{name=~\"returnit-prod-.*\"}) / ((container_spec_memory_limit_bytes{id=~\"/system.slice/docker-.*\"} > 0 < 1e15) * on (id) group_left (name) returnit_container_info{name=~\"returnit-prod-.*\"})",
           "legendFormat": "{{name}}"
         }
       ],
       "gridPos": {
         "x": 0,
-        "y": 14,
+        "y": 18,
         "w": 12,
         "h": 8
       },
@@ -486,204 +694,9 @@
       }
     },
     {
-      "id": 10,
-      "type": "timeseries",
-      "title": "OOM kills per container",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "increase(container_oom_events_total{name=~\"returnit-prod-.*\"}[1h])",
-          "legendFormat": "{{name}}"
-        }
-      ],
-      "gridPos": {
-        "x": 12,
-        "y": 14,
-        "w": 12,
-        "h": 8
-      },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "decimals": 0,
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 11,
-      "type": "timeseries",
-      "title": "Network in",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (name) (rate(container_network_receive_bytes_total{name=~\"returnit-prod-.*\"}[5m]))",
-          "legendFormat": "{{name}}"
-        }
-      ],
-      "gridPos": {
-        "x": 0,
-        "y": 22,
-        "w": 12,
-        "h": 8
-      },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "Bps",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 12,
-      "type": "timeseries",
-      "title": "Network out",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (name) (rate(container_network_transmit_bytes_total{name=~\"returnit-prod-.*\"}[5m]))",
-          "legendFormat": "{{name}}"
-        }
-      ],
-      "gridPos": {
-        "x": 12,
-        "y": 22,
-        "w": 12,
-        "h": 8
-      },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "Bps",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
       "id": 13,
       "type": "timeseries",
-      "title": "Restarts",
+      "title": "OOM events per container",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -695,13 +708,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "changes(container_start_time_seconds{name=~\"returnit-prod-.*\"}[1h])",
+          "expr": "(increase(container_oom_events_total{id=~\"/system.slice/docker-.*\"}[1h]) * on (id) group_left (name) returnit_container_info{name=~\"returnit-prod-.*\"})",
           "legendFormat": "{{name}}"
         }
       ],
       "gridPos": {
-        "x": 0,
-        "y": 30,
+        "x": 12,
+        "y": 18,
         "w": 12,
         "h": 8
       },
@@ -748,6 +761,71 @@
     {
       "id": 14,
       "type": "timeseries",
+      "title": "Restarts by Docker",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "returnit_container_restart_count{name=~\"returnit-prod-.*\"}",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
       "title": "Running for",
       "datasource": {
         "type": "prometheus",
@@ -760,13 +838,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "time() - container_start_time_seconds{name=~\"returnit-prod-.*\"}",
+          "expr": "(time() - container_start_time_seconds{id=~\"/system.slice/docker-.*\"} * on (id) group_left (name) returnit_container_info{name=~\"returnit-prod-.*\"})",
           "legendFormat": "{{name}}"
         }
       ],
       "gridPos": {
         "x": 12,
-        "y": 30,
+        "y": 26,
         "w": 12,
         "h": 8
       },
