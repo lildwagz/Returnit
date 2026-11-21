@@ -42,7 +42,7 @@ other script pick it up.
 1. Add the domain to Cloudflare (Free plan) and change the nameservers at the registrar to the two Cloudflare gives.
    Wait until the domain shows **Active**. Turn on two-factor login at the registrar and at Cloudflare, and automatic
    renewal of the domain: whoever controls the domain controls the app.
-2. **Zero Trust > Networks > Tunnels > Create a tunnel**, type Cloudflared, name `returnit`. Copy only the token from
+1. **Zero Trust > Networks > Tunnels > Create a tunnel**, type Cloudflared, name `returnit`. Copy only the token from
    the install command (do not run that command; the container below runs the connector).
 3. In the tunnel, add four **public hostnames** (Cloudflare creates the DNS records):
 
@@ -54,7 +54,7 @@ other script pick it up.
    | `files.<domain>` | `http://caddy:8084` |
    | `<domain>` and `www.<domain>` | `http://caddy:8085` (redirects everything to `dl.<domain>` until there is a home page) |
 
-4. **Caching > Configuration > Browser Cache TTL: Respect Existing Headers.** The default (4 hours) replaces the
+3. **Caching > Configuration > Browser Cache TTL: Respect Existing Headers.** The default (4 hours) replaces the
    `no-cache` Caddy sends on the download page and `returnit-latest.apk`, so phones that downloaded the previous
    release install it again. After publishing a release, **Purge Everything** once.
 5. If "Sign in with Google" is on: in the Google Cloud console add
@@ -191,33 +191,26 @@ disk, load of this machine) and Grafana with a ready dashboard "ReturnIt server"
 metrics (overdue reminders, queue tasks, failing jobs). Together they use about 0.3 to 0.5 GB of memory (hard limits:
 Prometheus 400 MB, Grafana 256 MB). Alerts still come from `monitor.sh`; Grafana is for looking back.
 
-1. **A password for the page** (Caddy asks it before Grafana shows anything). Make one, keep it in the password
-   manager, and turn it into a bcrypt hash:
-   ```
-   P=$(openssl rand -base64 18); echo "$P"          # the password you will type
-   docker run --rm caddy:2-alpine caddy hash-password --plaintext "$P"
-   ```
-2. **Tunnel hostname** (Zero Trust > Networks > Tunnels > the tunnel > Public hostname > Add):
+1. **Tunnel hostname** (Zero Trust > Networks > Tunnels > the tunnel > Public hostname > Add):
    `monitor.<DOMAIN>` -> `HTTP` `caddy:8086`.
-3. **Settings** in `deploy/.env.prod`:
+2. **Settings** in `deploy/.env.prod`:
    ```
    COMPOSE_OVERLAY='docker-compose.tunnel.yml docker-compose.monitoring.yml'
    GRAFANA_ADMIN_PASSWORD=...        # openssl rand -base64 24; keep it in the password manager
-   MONITOR_USER=monitor
-   MONITOR_PASSWORD_HASH='$2a$14$...'   # the hash from step 1, in single quotes (it contains $)
    ```
-4. **Start it** (Caddy must be recreated once to read the new site on port 8086):
+3. **Start it** (Caddy must be recreated once to read the new site on port 8086):
    ```
    ./up.sh up -d
    ./up.sh up -d --force-recreate caddy
    ./up.sh ps prometheus node-exporter grafana
    ```
-5. Open `https://monitor.<DOMAIN>`: the browser asks the Caddy password (user `monitor`), then sign in to Grafana as
-   `admin`. The dashboard is under Dashboards > ReturnIt. It is read-only (it comes from `monitoring/grafana/dashboards/returnit.json`; change
-   that file and recreate Grafana to update it).
+4. Open `https://monitor.<DOMAIN>` and sign in to Grafana as `admin`. The dashboard is under Dashboards > ReturnIt. It
+   is read-only (it comes from `monitoring/grafana/dashboards/returnit.json`; change that file and recreate Grafana to
+   update it). Forgot the admin password? `docker exec returnit-prod-grafana-1 grafana cli admin reset-admin-password '<new>'`.
 
-Prometheus and node_exporter are only on the private compose network. Grafana sends nothing out (usage reports,
-update checks and the news feed are off). The page is public but needs two passwords; use long random ones. For
-stronger protection put Cloudflare Access in front instead (Zero Trust > Access > Applications, self-hosted,
-`monitor.<DOMAIN>`, allow your e-mail). To remove the stack: take the file out of `COMPOSE_OVERLAY`, run
-`./up.sh up -d --remove-orphans`, and delete the hostname in Cloudflare.
+Prometheus and node_exporter are only on the private compose network. Grafana sends nothing out (usage reports, update
+checks and the news feed are off). The page is public and protected by Grafana's login, which locks an account for a
+while after repeated wrong passwords; keep the admin password long and random. For stronger protection put Cloudflare
+Access in front (Zero Trust > Access > Applications, self-hosted, `monitor.<DOMAIN>`, allow your e-mail). To remove the
+stack: take the file out of `COMPOSE_OVERLAY`, run `./up.sh up -d --remove-orphans`, and delete the hostname in
+Cloudflare.

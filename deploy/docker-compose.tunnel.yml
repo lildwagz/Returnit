@@ -8,7 +8,7 @@
 # hostnames are set on the tunnel in the Cloudflare dashboard, one per Caddy port (Caddyfile.tunnel):
 #   api.<DOMAIN>   -> http://caddy:8081      auth.<DOMAIN>  -> http://caddy:8082
 #   dl.<DOMAIN>    -> http://caddy:8083      files.<DOMAIN> -> http://caddy:8084
-#   monitor.<DOMAIN> -> http://caddy:8086   (only with docker-compose.monitoring.yml, password-protected)
+#   monitor.<DOMAIN> -> http://caddy:8086   (only with docker-compose.monitoring.yml, Grafana login)
 services:
   caddy:
     ports: !reset []
