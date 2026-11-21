@@ -1122,14 +1122,14 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(minio_bucket_usage_total_bytes)",
+          "expr": "max(minio_cluster_usage_total_bytes)",
           "legendFormat": "__auto"
         }
       ],
       "gridPos": {
         "x": 0,
         "y": 35,
-        "w": 6,
+        "w": 8,
         "h": 4
       },
       "fieldConfig": {
@@ -1181,14 +1181,14 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(minio_bucket_usage_object_total)",
+          "expr": "max(minio_cluster_usage_object_total)",
           "legendFormat": "__auto"
         }
       ],
       "gridPos": {
-        "x": 6,
+        "x": 8,
         "y": 35,
-        "w": 6,
+        "w": 8,
         "h": 4
       },
       "fieldConfig": {
@@ -1244,9 +1244,9 @@
         }
       ],
       "gridPos": {
-        "x": 12,
+        "x": 16,
         "y": 35,
-        "w": 6,
+        "w": 8,
         "h": 4
       },
       "fieldConfig": {
@@ -1285,71 +1285,8 @@
     },
     {
       "id": 23,
-      "type": "stat",
-      "title": "S3 errors (24 h)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(increase(minio_s3_requests_errors_total[24h]))",
-          "legendFormat": "__auto"
-        }
-      ],
-      "gridPos": {
-        "x": 18,
-        "y": 35,
-        "w": 6,
-        "h": 4
-      },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 1
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 24,
       "type": "timeseries",
-      "title": "S3 requests per second",
+      "title": "Stored per bucket",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1361,8 +1298,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (api) (rate(minio_s3_requests_total[5m]))",
-          "legendFormat": "{{api}}"
+          "expr": "minio_bucket_usage_total_bytes",
+          "legendFormat": "{{bucket}}"
         }
       ],
       "gridPos": {
@@ -1385,7 +1322,7 @@
           "color": {
             "mode": "palette-classic"
           },
-          "unit": "reqps",
+          "unit": "bytes",
           "custom": {
             "lineWidth": 2,
             "fillOpacity": 10,
@@ -1412,9 +1349,9 @@
       }
     },
     {
-      "id": 25,
+      "id": 24,
       "type": "timeseries",
-      "title": "Stored per bucket",
+      "title": "Files per bucket",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1426,7 +1363,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "minio_bucket_usage_total_bytes",
+          "expr": "minio_bucket_usage_object_total",
           "legendFormat": "{{bucket}}"
         }
       ],
@@ -1450,7 +1387,7 @@
           "color": {
             "mode": "palette-classic"
           },
-          "unit": "bytes",
+          "decimals": 0,
           "custom": {
             "lineWidth": 2,
             "fillOpacity": 10,

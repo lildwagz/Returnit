@@ -2,15 +2,38 @@
 # HTTPS and cloudflared forwards here, one port per public name. Used only with COMPOSE_OVERLAY=docker-compose.tunnel.yml.
 {
 	auto_https off
+	# cloudflared sits on the private network; believe what it says about the client. Each port gets a name, which is
+	# the "server" label of the request metrics (Grafana: ReturnIt traffic).
 	servers {
-		# cloudflared sits on the private network; believe what it says about the client
 		trusted_proxies static 172.30.0.0/24
 	}
-	# Request counts and latencies per site (api, auth, dl, files) for Prometheus. The numbers are served only on the
-	# private port 9180 that docker-compose.monitoring.yml adds (monitoring/caddy-metrics.caddy); nothing is published.
-	metrics {
-		per_host
+	servers :8081 {
+		name api
+		trusted_proxies static 172.30.0.0/24
 	}
+	servers :8082 {
+		name auth
+		trusted_proxies static 172.30.0.0/24
+	}
+	servers :8083 {
+		name dl
+		trusted_proxies static 172.30.0.0/24
+	}
+	servers :8084 {
+		name files
+		trusted_proxies static 172.30.0.0/24
+	}
+	servers :8085 {
+		name apex
+		trusted_proxies static 172.30.0.0/24
+	}
+	servers :8086 {
+		name monitor
+		trusted_proxies static 172.30.0.0/24
+	}
+	# Request counts and latencies for Prometheus, served only on the private port 9180 that
+	# docker-compose.monitoring.yml adds (monitoring/caddy-metrics.caddy); nothing is published.
+	metrics
 }
 
 (secure) {

@@ -191,7 +191,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * sum(rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\",code=~\"5..\"}[5m])) / clamp_min(sum(rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\"}[5m])), 1e-9)",
+          "expr": "100 * sum(rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\",code=~\"5..\"}[5m])) / clamp_min(sum(rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\"}[5m])), 1e-9)",
           "legendFormat": "__auto"
         }
       ],
@@ -646,7 +646,7 @@
     {
       "id": 12,
       "type": "stat",
-      "title": "Battery",
+      "title": "Unhealthy containers",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -658,7 +658,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "node_power_supply_capacity{power_supply=\"BAT0\"}",
+          "expr": "count(returnit_container_healthy{name=~\"returnit-prod-.*\"} == 0) or vector(0)",
           "legendFormat": "__auto"
         }
       ],
@@ -674,27 +674,22 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "green",
                 "value": null
               },
               {
-                "color": "orange",
-                "value": 30
-              },
-              {
-                "color": "green",
-                "value": 60
+                "color": "red",
+                "value": 1
               }
             ]
           },
           "color": {
             "mode": "thresholds"
           },
-          "unit": "percent"
+          "decimals": 0
         },
         "overrides": []
       },
-      "description": "The laptop battery keeps the server running in a power cut.",
       "options": {
         "reduceOptions": {
           "calcs": [
@@ -804,8 +799,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (host) (rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\"}[5m]))",
-          "legendFormat": "{{host}}"
+          "expr": "sum by (server) (rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\"}[5m]))",
+          "legendFormat": "{{server}}"
         }
       ],
       "gridPos": {
@@ -869,7 +864,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\"}[5m])) by (code)",
+          "expr": "sum(rate(caddy_http_request_duration_seconds_count{handler=~\"reverse_proxy|file_server|static_response|\",server!~\"srv[0-9]+\"}[5m])) by (code)",
           "legendFormat": "{{code}}"
         }
       ],

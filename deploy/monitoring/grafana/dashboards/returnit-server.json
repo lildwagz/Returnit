@@ -1354,7 +1354,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "node_hwmon_temp_celsius",
+          "expr": "node_hwmon_temp_celsius{chip!~\".*asus.*\"} > -50 < 150",
           "legendFormat": "{{chip}} {{sensor}}"
         }
       ],
@@ -1392,6 +1392,7 @@
         },
         "overrides": []
       },
+      "description": "The ASUS WMI sensor and an unused thermal zone report impossible values and are left out.",
       "options": {
         "legend": {
           "displayMode": "list",
