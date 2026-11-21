@@ -2,8 +2,9 @@
 # worker's /metrics, Grafana shows them. Turn it on in .env.prod (with the tunnel overlay):
 #   COMPOSE_OVERLAY='docker-compose.tunnel.yml docker-compose.monitoring.yml'
 #   GRAFANA_ADMIN_PASSWORD=...            # openssl rand -base64 24 (never commit it)
-# then ./up.sh up -d and recreate Caddy. Grafana is published as monitor.<DOMAIN> (Caddyfile.tunnel port 8086) and
-# must sit behind Cloudflare Access; Prometheus and node_exporter are never published. See HOME-SERVER.md section 10.
+#   MONITOR_PASSWORD_HASH='$2a$14$...'   # Caddy password in front of Grafana, bcrypt (single quotes: it contains $)
+# then ./up.sh up -d and recreate Caddy. Grafana is published as monitor.<DOMAIN> (Caddy port 8086, monitoring/monitor.caddy)
+# behind that password and its own login; Prometheus and node_exporter are never published. See HOME-SERVER.md section 10.
 x-monitoring: &monitoring
   restart: unless-stopped
   logging:
@@ -12,6 +13,14 @@ x-monitoring: &monitoring
       tag: "{{.Name}}"
 
 services:
+  # Caddy gets the monitor.<DOMAIN> site (port 8086) and the password it checks.
+  caddy:
+    environment:
+      MONITOR_USER: ${MONITOR_USER:-monitor}
+      MONITOR_PASSWORD_HASH: ${MONITOR_PASSWORD_HASH:?set MONITOR_PASSWORD_HASH in .env.prod (HOME-SERVER.md section 10)}
+    volumes:
+      - ./monitoring/monitor.caddy:/etc/caddy/sites/monitor.caddy:ro
+
   prometheus:
     <<: *monitoring
     image: prom/prometheus:v3.5.0

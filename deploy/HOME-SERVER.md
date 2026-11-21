@@ -191,15 +191,20 @@ disk, load of this machine) and Grafana with a ready dashboard "ReturnIt server"
 metrics (overdue reminders, queue tasks, failing jobs). Together they use about 0.3 to 0.5 GB of memory (hard limits:
 Prometheus 400 MB, Grafana 256 MB). Alerts still come from `monitor.sh`; Grafana is for looking back.
 
-1. **Cloudflare Access first** (Zero Trust > Access > Applications > Add an application > Self-hosted):
-   application domain `monitor.<DOMAIN>`, one policy "Allow" with *Emails* = the addresses that may look, login method
-   One-time PIN (or Google). Nobody reaches Grafana without passing this.
+1. **A password for the page** (Caddy asks it before Grafana shows anything). Make one, keep it in the password
+   manager, and turn it into a bcrypt hash:
+   ```
+   P=$(openssl rand -base64 18); echo "$P"          # the password you will type
+   docker run --rm caddy:2-alpine caddy hash-password --plaintext "$P"
+   ```
 2. **Tunnel hostname** (Zero Trust > Networks > Tunnels > the tunnel > Public hostname > Add):
    `monitor.<DOMAIN>` -> `HTTP` `caddy:8086`.
 3. **Settings** in `deploy/.env.prod`:
    ```
    COMPOSE_OVERLAY='docker-compose.tunnel.yml docker-compose.monitoring.yml'
    GRAFANA_ADMIN_PASSWORD=...        # openssl rand -base64 24; keep it in the password manager
+   MONITOR_USER=monitor
+   MONITOR_PASSWORD_HASH='$2a$14$...'   # the hash from step 1, in single quotes (it contains $)
    ```
 4. **Start it** (Caddy must be recreated once to read the new site on port 8086):
    ```
@@ -207,10 +212,12 @@ Prometheus 400 MB, Grafana 256 MB). Alerts still come from `monitor.sh`; Grafana
    ./up.sh up -d --force-recreate caddy
    ./up.sh ps prometheus node-exporter grafana
    ```
-5. Open `https://monitor.<DOMAIN>`, pass the Cloudflare login, then sign in to Grafana as `admin`. The dashboard is
-   under Dashboards > ReturnIt. It is read-only (it comes from `monitoring/grafana/dashboards/returnit.json`; change
+5. Open `https://monitor.<DOMAIN>`: the browser asks the Caddy password (user `monitor`), then sign in to Grafana as
+   `admin`. The dashboard is under Dashboards > ReturnIt. It is read-only (it comes from `monitoring/grafana/dashboards/returnit.json`; change
    that file and recreate Grafana to update it).
 
 Prometheus and node_exporter are only on the private compose network. Grafana sends nothing out (usage reports,
-update checks and the news feed are off). To remove the stack: take the file out of `COMPOSE_OVERLAY`, run
-`./up.sh up -d --remove-orphans`, and delete the hostname and the Access application in Cloudflare.
+update checks and the news feed are off). The page is public but needs two passwords; use long random ones. For
+stronger protection put Cloudflare Access in front instead (Zero Trust > Access > Applications, self-hosted,
+`monitor.<DOMAIN>`, allow your e-mail). To remove the stack: take the file out of `COMPOSE_OVERLAY`, run
+`./up.sh up -d --remove-orphans`, and delete the hostname in Cloudflare.

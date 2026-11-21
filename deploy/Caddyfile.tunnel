@@ -75,13 +75,6 @@
 	redir https://dl.{$DOMAIN}{uri} 302
 }
 
-# Grafana (only with docker-compose.monitoring.yml). The tunnel routes monitor.<DOMAIN> here, and Cloudflare Access must
-# stand in front of it (HOME-SERVER.md section 10). Without the overlay this answers 502.
-:8086 {
-	import secure
-	reverse_proxy grafana:3000
-}
-
 # Receipt downloads (signed links).
 :8084 {
 	import secure
@@ -89,3 +82,7 @@
 	respond @notread 405
 	reverse_proxy minio:9000
 }
+
+# Optional sites mounted by an overlay, e.g. monitor.<DOMAIN> (docker-compose.monitoring.yml mounts
+# monitoring/monitor.caddy). With no overlay the folder is empty and Caddy only logs a warning.
+import /etc/caddy/sites/*.caddy
