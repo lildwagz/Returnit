@@ -49,7 +49,8 @@ class Board:
         self.y += 1
 
     def panel(self, kind, title, exprs, w=12, h=8, unit=None, legend=None, thresholds=None, base='green',
-              mappings=None, minv=None, maxv=None, desc=None, decimals=None, stack=False, instant=False):
+              mappings=None, minv=None, maxv=None, desc=None, decimals=None, stack=False, instant=False,
+              legend_table=None, overrides=None, bars=None):
         exprs = [exprs] if isinstance(exprs, str) else exprs
         legend = [legend] if isinstance(legend, str) else legend
         targets = [{'refId': chr(65 + i), 'datasource': DS, 'expr': e, 'legendFormat': legend[i] if legend else '__auto',
@@ -61,7 +62,7 @@ class Board:
             if v is not None:
                 d[k] = v
         p = {'id': len(self.panels) + 1, 'type': kind, 'title': title, 'datasource': DS, 'targets': targets,
-             'gridPos': self._place(w, h), 'fieldConfig': {'defaults': d, 'overrides': []}}
+             'gridPos': self._place(w, h), 'fieldConfig': {'defaults': d, 'overrides': overrides or []}}
         if desc:
             p['description'] = desc
         if kind == 'stat':
@@ -71,10 +72,14 @@ class Board:
                             'orientation': 'auto', 'wideLayout': True}
         elif kind == 'bargauge':
             p['options'] = {'reduceOptions': {'calcs': ['lastNotNull'], 'fields': '', 'values': False},
-                            'displayMode': 'gradient', 'orientation': 'horizontal', 'showUnfilled': True}
+                            'displayMode': bars or 'gradient', 'orientation': 'horizontal', 'showUnfilled': True,
+                            'valueMode': 'color', 'namePlacement': 'left', 'sizing': 'auto', 'minVizHeight': 16}
         else:
-            p['options'] = {'legend': {'displayMode': 'list', 'placement': 'bottom', 'showLegend': True},
-                            'tooltip': {'mode': 'multi', 'sort': 'desc'}}
+            legend_opts = {'displayMode': 'list', 'placement': 'bottom', 'showLegend': True}
+            if legend_table:  # e.g. ['mean', 'max', 'lastNotNull'], sorted by the second one
+                legend_opts = {'displayMode': 'table', 'placement': 'right', 'showLegend': True, 'calcs': legend_table,
+                               'sortBy': {'mean': 'Mean', 'max': 'Max', 'lastNotNull': 'Last *'}[legend_table[1]], 'sortDesc': True}
+            p['options'] = {'legend': legend_opts, 'tooltip': {'mode': 'multi', 'sort': 'desc'}}
             d['custom'] = {'lineWidth': 2, 'fillOpacity': 25 if stack else 10, 'showPoints': 'never', 'spanNulls': True,
                            'stacking': {'mode': 'normal' if stack else 'none', 'group': 'A'}}
         self.panels.append(p)
@@ -297,10 +302,17 @@ b.probe_table('Internal services (on the server, no Cloudflare)', INT, h=7, cert
 b.probe_table('Network (Wi-Fi to the router, and the internet)', NET, h=4, cert=False,
               desc='A failing router ping points at the Wi-Fi; a failing internet ping with a working router points at the ISP.')
 b.row('Details')
-b.graph('Response time', 'probe_duration_seconds{job=~"blackbox-(http|redirect|apk)"}', unit='s', legend='{{name}}')
-b.graph('Ping', 'probe_icmp_duration_seconds{phase="rtt"}', unit='s', legend='{{name}}')
-b.graph('HTTP status returned', 'probe_http_status_code', legend='{{name}}', decimals=0)
-b.graph('DNS lookup', 'probe_dns_lookup_time_seconds{job=~"blackbox-(http|redirect|apk)"}', unit='s', legend='{{name}}')
+b.graph('Response time per endpoint', [f'probe_duration_seconds{{{PUB}}}', f'probe_duration_seconds{{{INT}}}'], w=24, h=10, unit='s',
+        legend=['{{name}}', '{{name}}'], legend_table=['mean', 'max', 'lastNotNull'],
+        desc='Public endpoints go through Cloudflare and back (colours); internal services are probed on the server (blue).',
+        overrides=[{'matcher': {'id': 'byFrameRefID', 'options': 'B'},
+                    'properties': [{'id': 'color', 'value': {'mode': 'fixed', 'fixedColor': 'blue'}}]}])
+b.panel('bargauge', 'Certificate days left', f'max by (name) ((probe_ssl_earliest_cert_expiry{{{PUB}}} - time()) / 86400)', w=24, h=7,
+        unit='suffix: days', decimals=0, minv=0, maxv=90, legend='{{name}}', bars='basic', base='red', thresholds=[(7, 'orange'), (14, 'green')],
+        desc='Edge certificates of Cloudflare, renewed by Cloudflare. Orange below 14 days, red below 7.')
+b.graph('Ping', 'probe_icmp_duration_seconds{phase="rtt"}', unit='s', legend='{{name}}', legend_table=['mean', 'max', 'lastNotNull'])
+b.graph('DNS lookup', f'probe_dns_lookup_time_seconds{{{PUB}}}', unit='s', legend='{{name}}', legend_table=['mean', 'max', 'lastNotNull'])
+b.graph('HTTP status returned', f'probe_http_status_code{{{PUB}}}', w=24, h=6, legend='{{name}}', decimals=0)
 b.write()
 
 # 6. Data stores
