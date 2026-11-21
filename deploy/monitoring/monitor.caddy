@@ -1,0 +1,13 @@
+# monitor.<DOMAIN> -> Grafana, behind a password checked by Caddy (MONITOR_USER / MONITOR_PASSWORD_HASH in .env.prod),
+# then Grafana's own login. Mounted into Caddy by docker-compose.monitoring.yml; the tunnel routes monitor.<DOMAIN> to
+# http://caddy:8086 (HOME-SERVER.md section 10).
+:8086 {
+	import secure
+	basic_auth {
+		{$MONITOR_USER} {$MONITOR_PASSWORD_HASH}
+	}
+	reverse_proxy grafana:3000 {
+		# the Caddy password must not reach Grafana, which would try it as a Grafana login and refuse the request
+		header_up -Authorization
+	}
+}
