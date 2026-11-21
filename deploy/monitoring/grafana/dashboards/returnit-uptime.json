@@ -1377,7 +1377,7 @@
     {
       "id": 9,
       "type": "timeseries",
-      "title": "Response time",
+      "title": "Response time per endpoint",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1389,15 +1389,24 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "probe_duration_seconds{job=~\"blackbox-(http|redirect|apk)\"}",
+          "expr": "probe_duration_seconds{job=~\"blackbox-(http|redirect|apk)\",name!=\"API (internal)\"}",
+          "legendFormat": "{{name}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "probe_duration_seconds{name=~\"API \\\\(internal\\\\)|Postgres|Redis|MinIO|Keycloak\"}",
           "legendFormat": "{{name}}"
         }
       ],
       "gridPos": {
         "x": 0,
         "y": 25,
-        "w": 12,
-        "h": 8
+        "w": 24,
+        "h": 10
       },
       "fieldConfig": {
         "defaults": {
@@ -1425,13 +1434,37 @@
             }
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
       },
+      "description": "Public endpoints go through Cloudflare and back (colours); internal services are probed on the server (blue).",
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "sortBy": "Max",
+          "sortDesc": true
         },
         "tooltip": {
           "mode": "multi",
@@ -1441,6 +1474,78 @@
     },
     {
       "id": 10,
+      "type": "bargauge",
+      "title": "Certificate days left",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (name) ((probe_ssl_earliest_cert_expiry{job=~\"blackbox-(http|redirect|apk)\",name!=\"API (internal)\"} - time()) / 86400)",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 24,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 7
+              },
+              {
+                "color": "green",
+                "value": 14
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "suffix: days",
+          "min": 0,
+          "max": 90,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "description": "Edge certificates of Cloudflare, renewed by Cloudflare. Orange below 14 days, red below 7.",
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "displayMode": "basic",
+        "orientation": "horizontal",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "auto",
+        "minVizHeight": 16
+      }
+    },
+    {
+      "id": 11,
       "type": "timeseries",
       "title": "Ping",
       "datasource": {
@@ -1459,8 +1564,8 @@
         }
       ],
       "gridPos": {
-        "x": 12,
-        "y": 25,
+        "x": 0,
+        "y": 42,
         "w": 12,
         "h": 8
       },
@@ -1494,74 +1599,16 @@
       },
       "options": {
         "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 11,
-      "type": "timeseries",
-      "title": "HTTP status returned",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "probe_http_status_code",
-          "legendFormat": "{{name}}"
-        }
-      ],
-      "gridPos": {
-        "x": 0,
-        "y": 33,
-        "w": 12,
-        "h": 8
-      },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "decimals": 0,
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "sortBy": "Max",
+          "sortDesc": true
         },
         "tooltip": {
           "mode": "multi",
@@ -1584,13 +1631,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "probe_dns_lookup_time_seconds{job=~\"blackbox-(http|redirect|apk)\"}",
+          "expr": "probe_dns_lookup_time_seconds{job=~\"blackbox-(http|redirect|apk)\",name!=\"API (internal)\"}",
           "legendFormat": "{{name}}"
         }
       ],
       "gridPos": {
         "x": 12,
-        "y": 33,
+        "y": 42,
         "w": 12,
         "h": 8
       },
@@ -1609,6 +1656,78 @@
             "mode": "palette-classic"
           },
           "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "HTTP status returned",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "probe_http_status_code{job=~\"blackbox-(http|redirect|apk)\",name!=\"API (internal)\"}",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 50,
+        "w": 24,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
           "custom": {
             "lineWidth": 2,
             "fillOpacity": 10,

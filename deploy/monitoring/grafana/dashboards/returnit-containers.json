@@ -690,7 +690,11 @@
         },
         "displayMode": "gradient",
         "orientation": "horizontal",
-        "showUnfilled": true
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "auto",
+        "minVizHeight": 16
       }
     },
     {
