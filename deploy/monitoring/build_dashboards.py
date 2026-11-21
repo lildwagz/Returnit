@@ -79,6 +79,70 @@ class Board:
                            'stacking': {'mode': 'normal' if stack else 'none', 'group': 'A'}}
         self.panels.append(p)
 
+    def probe_table(self, title, sel, h, desc=None, cert=True):
+        """One row per probe: status, history (bars, red when down), response time, 24 h uptime, certificate days."""
+        by = 'max by (name)'
+        q = [  # refId, expr, range query?
+            ('A', f'{by} (probe_success{{{sel}}}) + 0.5', True),          # history: 1.5 when up, 0.5 when down
+            ('B', f'{by} (probe_duration_seconds{{{sel}}})', True),        # response time
+            ('C', f'{by} (avg_over_time(probe_success{{{sel}}}[24h])) * 100', False),
+            ('E', f'{by} (probe_success{{{sel}}})', False),                # status now
+        ]
+        if cert:
+            q.append(('D', f'{by} ((probe_ssl_earliest_cert_expiry{{{sel}}} - time()) / 86400)', False))
+        targets = [{'refId': r, 'datasource': DS, 'expr': e, 'legendFormat': '__auto',
+                    **({'range': True, 'instant': False, 'format': 'time_series'} if rng
+                       else {'range': False, 'instant': True, 'format': 'table'})} for r, e, rng in q]
+        rename = {'name': 'Endpoint', 'Value #E': 'Status', 'Trend #A': 'History', 'Trend #B': 'Response',
+                  'Value #C': 'Uptime 24 h'}
+        if cert:
+            rename['Value #D'] = 'Certificate'
+        order = ['Status', 'Endpoint', 'History', 'Response', 'Uptime 24 h'] + (['Certificate'] if cert else [])
+        src = {v: k for k, v in rename.items()}
+
+        def field(name, props):
+            return {'matcher': {'id': 'byName', 'options': name}, 'properties': [{'id': k, 'value': v} for k, v in props]}
+
+        def steps(*pairs):
+            return {'mode': 'absolute', 'steps': [{'color': c, 'value': v} for v, c in pairs]}
+
+        overrides = [
+            field('Status', [('custom.cellOptions', {'type': 'color-text'}), ('custom.width', 90),
+                             ('mappings', [{'type': 'value', 'options': {'0': {'text': '● DOWN', 'color': 'red', 'index': 0},
+                                                                          '1': {'text': '● UP', 'color': 'green', 'index': 1}}}])]),
+            field('Endpoint', [('custom.width', 200)]),
+            field('History', [('custom.cellOptions', {'type': 'sparkline', 'hideValue': True}),
+                              ('custom.drawStyle', 'bars'), ('custom.fillOpacity', 100), ('custom.lineWidth', 0),
+                              ('custom.gradientMode', 'scheme'), ('color', {'mode': 'thresholds'}), ('min', 0), ('max', 1.5),
+                              ('thresholds', steps((None, 'red'), (1, 'green')))]),
+            field('Response', [('custom.cellOptions', {'type': 'sparkline'}), ('unit', 's'), ('custom.width', 220),
+                               ('color', {'mode': 'fixed', 'fixedColor': 'blue'})]),
+            field('Uptime 24 h', [('unit', 'percent'), ('decimals', 2), ('custom.width', 110), ('custom.cellOptions', {'type': 'color-text'}),
+                                  ('color', {'mode': 'thresholds'}), ('thresholds', steps((None, 'red'), (99, 'orange'), (99.9, 'green')))]),
+        ]
+        if cert:
+            overrides.append(field('Certificate', [('unit', 'suffix: days'), ('decimals', 0), ('custom.width', 110),
+                                                   ('custom.cellOptions', {'type': 'color-text'}), ('color', {'mode': 'thresholds'}),
+                                                   ('thresholds', steps((None, 'red'), (7, 'orange'), (14, 'green')))]))
+        p = {'id': len(self.panels) + 1, 'type': 'table', 'title': title, 'datasource': DS, 'targets': targets,
+             'gridPos': self._place(24, h),
+             'transformations': [
+                 {'id': 'timeSeriesTable', 'options': {'A': {'stat': 'lastNotNull', 'timeField': 'Time'},
+                                                       'B': {'stat': 'lastNotNull', 'timeField': 'Time'}}},
+                 {'id': 'merge', 'options': {}},
+                 {'id': 'organize', 'options': {'excludeByName': {'Time': True},
+                                                'renameByName': rename,
+                                                'indexByName': {src[n]: i for i, n in enumerate(order)}}},
+                 {'id': 'sortBy', 'options': {'sort': [{'field': 'Endpoint'}]}},
+             ],
+             'fieldConfig': {'defaults': {'custom': {'align': 'auto', 'cellOptions': {'type': 'auto'}, 'inspect': False},
+                                          'thresholds': steps((None, 'green')), 'color': {'mode': 'thresholds'}},
+                             'overrides': overrides},
+             'options': {'showHeader': True, 'cellHeight': 'sm', 'footer': {'show': False}}}
+        if desc:
+            p['description'] = desc
+        self.panels.append(p)
+
     def stat(self, title, expr, **kw):
         kw.setdefault('w', 4)
         kw.setdefault('h', 4)
@@ -218,22 +282,25 @@ b.graph('5xx per site', f'sum by (server) (rate(caddy_http_request_duration_seco
 b.graph('Bytes sent per site', f'sum by (server) (rate(caddy_http_response_size_bytes_sum{{{CADDY}}}[5m]))', unit='Bps', legend='{{server}}')
 b.write()
 
-# 5. Uptime (blackbox)
+# 5. Uptime (blackbox): one table per group, like a status page
+PUB = 'job=~"blackbox-(http|redirect|apk)",name!="API (internal)"'
+INT = 'name=~"API \\\\(internal\\\\)|Postgres|Redis|MinIO|Keycloak"'
+NET = 'job="blackbox-icmp"'
 b = Board('returnit-uptime', 'ReturnIt uptime', 'Probes from the server every minute: public sites through Cloudflare, internal services, router, internet.')
-b.row('Status')
-b.stat('Every probe', 'probe_success', w=24, h=5, legend='{{name}}', mappings=UPDOWN, base='red', thresholds=[(1, 'green')])
-b.row('Uptime')
-b.panel('bargauge', 'Uptime 24 h', 'avg_over_time(probe_success[24h]) * 100', w=12, h=9, unit='percent', minv=90, maxv=100,
-        decimals=2, legend='{{name}}', base='red', thresholds=[(99, 'orange'), (99.9, 'green')])
-b.panel('bargauge', 'Uptime 7 days', 'avg_over_time(probe_success[7d]) * 100', w=12, h=9, unit='percent', minv=90, maxv=100,
-        decimals=2, legend='{{name}}', base='red', thresholds=[(99, 'orange'), (99.9, 'green')])
-b.row('Timing')
+b.stat('Endpoints failing', 'count(probe_success == 0) or vector(0)', w=6, h=5, thresholds=[(1, 'red')], decimals=0)
+b.stat('Endpoints slow (> 3 s)', 'count(probe_duration_seconds > 3) or vector(0)', w=6, h=5, thresholds=[(1, 'orange')], decimals=0)
+b.stat('Certificates ending < 14 days', 'count((probe_ssl_earliest_cert_expiry - time()) / 86400 < 14) or vector(0)', w=6, h=5,
+       thresholds=[(1, 'orange')], decimals=0, desc='Cloudflare renews the edge certificates by itself; this only warns if it does not.')
+b.panel('stat', 'Endpoints up / watched', ['sum(probe_success)', 'count(probe_success)'], w=6, h=5, legend=['up', 'watched'], decimals=0)
+b.probe_table('Public (through Cloudflare, as users reach it)', PUB, h=8)
+b.probe_table('Internal services (on the server, no Cloudflare)', INT, h=7, cert=False)
+b.probe_table('Network (Wi-Fi to the router, and the internet)', NET, h=4, cert=False,
+              desc='A failing router ping points at the Wi-Fi; a failing internet ping with a working router points at the ISP.')
+b.row('Details')
 b.graph('Response time', 'probe_duration_seconds{job=~"blackbox-(http|redirect|apk)"}', unit='s', legend='{{name}}')
+b.graph('Ping', 'probe_icmp_duration_seconds{phase="rtt"}', unit='s', legend='{{name}}')
 b.graph('HTTP status returned', 'probe_http_status_code', legend='{{name}}', decimals=0)
 b.graph('DNS lookup', 'probe_dns_lookup_time_seconds{job=~"blackbox-(http|redirect|apk)"}', unit='s', legend='{{name}}')
-b.graph('Ping', 'probe_icmp_duration_seconds{phase="rtt"}', unit='s', legend='{{name}}')
-b.graph('Certificate valid for (Cloudflare edge)', '(probe_ssl_earliest_cert_expiry - time()) / 86400', unit='d', legend='{{name}}', decimals=0)
-b.graph('Probe history (1 = up)', 'probe_success', legend='{{name}}', minv=0, maxv=1, decimals=0)
 b.write()
 
 # 6. Data stores
