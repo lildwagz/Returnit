@@ -1,0 +1,34 @@
+# Probe types for the blackbox exporter (targets are in prometheus.yml).
+modules:
+  # page answers 2xx (redirects followed)
+  http_2xx:
+    prober: http
+    timeout: 10s
+    http:
+      preferred_ip_protocol: ip4
+      follow_redirects: true
+  # answers with a redirect (the bare domain -> dl.)
+  http_3xx:
+    prober: http
+    timeout: 10s
+    http:
+      preferred_ip_protocol: ip4
+      follow_redirects: false
+      valid_status_codes: [301, 302, 307, 308]
+  # file is there, without downloading it (the APK)
+  http_head_2xx:
+    prober: http
+    timeout: 10s
+    http:
+      method: HEAD
+      preferred_ip_protocol: ip4
+  # service accepts connections (Postgres, Redis, MinIO, Keycloak)
+  tcp_connect:
+    prober: tcp
+    timeout: 5s
+  # ping: home router (Wi-Fi) and the internet
+  icmp:
+    prober: icmp
+    timeout: 5s
+    icmp:
+      preferred_ip_protocol: ip4

@@ -1,9 +1,16 @@
-# Overlay with a small monitoring stack: Prometheus keeps 15 days of metrics from the server (node_exporter) and from the
-# worker's /metrics, Grafana shows them. Turn it on in .env.prod (with the tunnel overlay):
+# Overlay with the monitoring stack. Prometheus keeps 15 days of metrics; Grafana shows them at monitor.<DOMAIN> behind its
+# own login. Turn it on in .env.prod (with the tunnel overlay):
 #   COMPOSE_OVERLAY='docker-compose.tunnel.yml docker-compose.monitoring.yml'
 #   GRAFANA_ADMIN_PASSWORD=...            # openssl rand -base64 24 (never commit it)
-# then ./up.sh up -d and recreate Caddy. Grafana is published as monitor.<DOMAIN> (Caddy port 8086, monitoring/monitor.caddy)
-# behind Grafana's own login; Prometheus and node_exporter are never published. See HOME-SERVER.md section 10.
+# then follow HOME-SERVER.md section 10 (one firewall rule for node_exporter, validate Caddy, start).
+#
+# What is collected (all on the private network; only Grafana is published, through Caddy port 8086):
+#   node_exporter   the machine: CPU, memory, disk, network per interface, temperature, battery, OOM kills
+#   cAdvisor        every container: CPU, memory against its limit, network, restarts, OOM kills
+#   Caddy           requests, status codes and latency per site (Caddyfile.tunnel metrics, port 9180)
+#   blackbox        uptime and response time of the public sites, internal services, router and internet
+#   postgres / redis exporters, MinIO's own metrics, the worker's /metrics
+# Together about 0.6 to 0.9 GB of memory (hard limits below).
 x-monitoring: &monitoring
   restart: unless-stopped
   logging:
@@ -12,10 +19,16 @@ x-monitoring: &monitoring
       tag: "{{.Name}}"
 
 services:
-  # Caddy gets the monitor.<DOMAIN> site (port 8086).
+  # Caddy gets the monitor.<DOMAIN> site (port 8086) and its metrics port (9180).
   caddy:
     volumes:
       - ./monitoring/monitor.caddy:/etc/caddy/sites/monitor.caddy:ro
+      - ./monitoring/caddy-metrics.caddy:/etc/caddy/sites/caddy-metrics.caddy:ro
+
+  # MinIO serves its metrics without a token, on the private network only.
+  minio:
+    environment:
+      MINIO_PROMETHEUS_AUTH_TYPE: public
 
   prometheus:
     <<: *monitoring
@@ -24,27 +37,76 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=15d
-      - --storage.tsdb.retention.size=1GB
+      - --storage.tsdb.retention.size=2GB
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
-    mem_limit: 400m
+    mem_limit: 600m
 
-  # Server metrics (CPU, memory, disk, load). It sees the host's /proc and /sys read-only; network graphs would show the
-  # container's own interface, so they are left out of the dashboard.
+  # In the host network so it sees the real interfaces (Wi-Fi, Tailscale). It listens only on the compose bridge
+  # address, which Prometheus reaches; the firewall must allow that one port (HOME-SERVER.md section 10).
   node-exporter:
     <<: *monitoring
     image: prom/node-exporter:v1.9.1
+    network_mode: host
+    pid: host
     command:
+      - --web.listen-address=172.30.0.1:9100
       - --path.procfs=/host/proc
       - --path.sysfs=/host/sys
       - --path.rootfs=/rootfs
-      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+)($$|/)
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+|snap/.+)($$|/)
+      - --collector.netdev.device-exclude=^(veth.*|lo)$$
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro,rslave
     mem_limit: 64m
+
+  # Per-container numbers, trimmed to CPU, memory, network and OOM events to stay light on this CPU.
+  cadvisor:
+    <<: *monitoring
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=30s
+      - --store_container_labels=false
+      - --disable_metrics=advtcp,app,cpuLoad,cpu_topology,cpuset,disk,diskIO,hugetlb,memory_numa,percpu,perf_event,process,referenced_memory,resctrl,sched,tcp,udp
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    # OOM kills are read from the kernel log, which needs this device and capability (kernel.dmesg_restrict=1)
+    devices: ["/dev/kmsg"]
+    cap_add: [SYSLOG]
+    mem_limit: 160m
+
+  blackbox:
+    <<: *monitoring
+    image: prom/blackbox-exporter:v0.27.0
+    command: ["--config.file=/etc/blackbox/blackbox.yml"]
+    volumes:
+      - ./monitoring/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    cap_add: [NET_RAW] # ping (router, internet)
+    mem_limit: 64m
+
+  postgres-exporter:
+    <<: *monitoring
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
+    environment:
+      DATA_SOURCE_URI: postgres:5432/returnit?sslmode=disable
+      DATA_SOURCE_USER: returnit
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD}
+    mem_limit: 64m
+
+  redis-exporter:
+    <<: *monitoring
+    image: oliver006/redis_exporter:v1.67.0
+    environment:
+      REDIS_ADDR: redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    mem_limit: 48m
 
   grafana:
     <<: *monitoring

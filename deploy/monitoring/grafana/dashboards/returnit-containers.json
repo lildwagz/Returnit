@@ -1,6 +1,7 @@
 {
-  "uid": "returnit-server",
-  "title": "ReturnIt server",
+  "uid": "returnit-containers",
+  "title": "ReturnIt containers",
+  "description": "Every container of the stack: CPU, memory, network, restarts, OOM kills.",
   "tags": [
     "returnit"
   ],
@@ -8,17 +9,17 @@
   "schemaVersion": 41,
   "version": 1,
   "refresh": "1m",
+  "editable": false,
+  "graphTooltip": 1,
   "time": {
     "from": "now-24h",
     "to": "now"
   },
-  "editable": false,
-  "graphTooltip": 1,
   "panels": [
     {
       "id": 1,
       "type": "row",
-      "title": "Server",
+      "title": "Problems",
       "collapsed": false,
       "gridPos": {
         "x": 0,
@@ -31,7 +32,7 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "CPU",
+      "title": "OOM kills (24 h)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -43,14 +44,14 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])))",
+          "expr": "sum(increase(container_oom_events_total{name=~\"returnit-prod-.*\"}[24h]))",
           "legendFormat": "__auto"
         }
       ],
       "gridPos": {
         "x": 0,
         "y": 1,
-        "w": 5,
+        "w": 6,
         "h": 4
       },
       "fieldConfig": {
@@ -63,19 +64,15 @@
                 "value": null
               },
               {
-                "color": "orange",
-                "value": 70
-              },
-              {
                 "color": "red",
-                "value": 90
+                "value": 1
               }
             ]
           },
           "color": {
             "mode": "thresholds"
           },
-          "unit": "percent"
+          "decimals": 0
         },
         "overrides": []
       },
@@ -89,13 +86,16 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true
       }
     },
     {
       "id": 3,
       "type": "stat",
-      "title": "Memory",
+      "title": "Restarts (24 h)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -107,14 +107,14 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)",
+          "expr": "sum(changes(container_start_time_seconds{name=~\"returnit-prod-.*\"}[24h]))",
           "legendFormat": "__auto"
         }
       ],
       "gridPos": {
-        "x": 5,
+        "x": 6,
         "y": 1,
-        "w": 5,
+        "w": 6,
         "h": 4
       },
       "fieldConfig": {
@@ -128,18 +128,18 @@
               },
               {
                 "color": "orange",
-                "value": 80
+                "value": 1
               },
               {
                 "color": "red",
-                "value": 92
+                "value": 5
               }
             ]
           },
           "color": {
             "mode": "thresholds"
           },
-          "unit": "percent"
+          "decimals": 0
         },
         "overrides": []
       },
@@ -153,13 +153,16 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true
       }
     },
     {
       "id": 4,
       "type": "stat",
-      "title": "Disk /",
+      "title": "Containers running",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -171,14 +174,14 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * (1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})",
+          "expr": "count(container_last_seen{name=~\"returnit-prod-.*\"})",
           "legendFormat": "__auto"
         }
       ],
       "gridPos": {
-        "x": 10,
+        "x": 12,
         "y": 1,
-        "w": 5,
+        "w": 6,
         "h": 4
       },
       "fieldConfig": {
@@ -189,21 +192,12 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "orange",
-                "value": 80
-              },
-              {
-                "color": "red",
-                "value": 90
               }
             ]
           },
           "color": {
             "mode": "thresholds"
-          },
-          "unit": "percent"
+          }
         },
         "overrides": []
       },
@@ -217,13 +211,16 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true
       }
     },
     {
       "id": 5,
       "type": "stat",
-      "title": "Load (1 min)",
+      "title": "Memory of all containers",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -235,14 +232,14 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "node_load1",
+          "expr": "sum(container_memory_working_set_bytes{name=~\"returnit-prod-.*\"})",
           "legendFormat": "__auto"
         }
       ],
       "gridPos": {
-        "x": 15,
+        "x": 18,
         "y": 1,
-        "w": 4,
+        "w": 6,
         "h": 4
       },
       "fieldConfig": {
@@ -253,25 +250,16 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "orange",
-                "value": 2
-              },
-              {
-                "color": "red",
-                "value": 4
               }
             ]
           },
           "color": {
             "mode": "thresholds"
           },
-          "unit": "short"
+          "unit": "bytes"
         },
         "overrides": []
       },
-      "description": "2 cores: above 2 the CPU is saturated.",
       "options": {
         "reduceOptions": {
           "calcs": [
@@ -282,69 +270,29 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value"
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true
       }
     },
     {
       "id": 6,
-      "type": "stat",
-      "title": "Up since",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "time() - node_boot_time_seconds",
-          "legendFormat": "__auto"
-        }
-      ],
+      "type": "row",
+      "title": "Per container",
+      "collapsed": false,
       "gridPos": {
-        "x": 19,
-        "y": 1,
-        "w": 5,
-        "h": 4
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 1
       },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value"
-      }
+      "panels": []
     },
     {
       "id": 7,
       "type": "timeseries",
-      "title": "CPU use",
+      "title": "CPU (1.0 = one full core)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -356,13 +304,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])))",
-          "legendFormat": "CPU"
+          "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{name=~\"returnit-prod-.*\"}[5m]))",
+          "legendFormat": "{{name}}"
         }
       ],
       "gridPos": {
         "x": 0,
-        "y": 5,
+        "y": 6,
         "w": 12,
         "h": 8
       },
@@ -380,13 +328,16 @@
           "color": {
             "mode": "palette-classic"
           },
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
+          "unit": "percentunit",
           "custom": {
             "lineWidth": 2,
-            "fillOpacity": 12,
-            "showPoints": "never"
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
           }
         },
         "overrides": []
@@ -399,7 +350,7 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       }
     },
@@ -418,22 +369,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes",
-          "legendFormat": "used"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "node_memory_MemTotal_bytes",
-          "legendFormat": "total"
+          "expr": "container_memory_working_set_bytes{name=~\"returnit-prod-.*\"}",
+          "legendFormat": "{{name}}"
         }
       ],
       "gridPos": {
         "x": 12,
-        "y": 5,
+        "y": 6,
         "w": 12,
         "h": 8
       },
@@ -454,8 +396,13 @@
           "unit": "bytes",
           "custom": {
             "lineWidth": 2,
-            "fillOpacity": 12,
-            "showPoints": "never"
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
           }
         },
         "overrides": []
@@ -468,14 +415,14 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       }
     },
     {
       "id": 9,
-      "type": "timeseries",
-      "title": "Disk use /",
+      "type": "bargauge",
+      "title": "Memory against limit (limited containers)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -487,289 +434,15 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * (1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})",
-          "legendFormat": "/"
+          "expr": "100 * container_memory_working_set_bytes{name=~\"returnit-prod-.*\"} / (container_spec_memory_limit_bytes{name=~\"returnit-prod-.*\"} > 0 < 1e15)",
+          "legendFormat": "{{name}}"
         }
       ],
       "gridPos": {
         "x": 0,
-        "y": 13,
+        "y": 14,
         "w": 12,
         "h": 8
-      },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 12,
-            "showPoints": "never"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 10,
-      "type": "timeseries",
-      "title": "Load average",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "node_load1",
-          "legendFormat": "1 min"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "node_load5",
-          "legendFormat": "5 min"
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "node_load15",
-          "legendFormat": "15 min"
-        }
-      ],
-      "gridPos": {
-        "x": 12,
-        "y": 13,
-        "w": 12,
-        "h": 8
-      },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "short",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 12,
-            "showPoints": "never"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 11,
-      "type": "row",
-      "title": "ReturnIt worker",
-      "collapsed": false,
-      "gridPos": {
-        "x": 0,
-        "y": 21,
-        "w": 24,
-        "h": 1
-      },
-      "panels": []
-    },
-    {
-      "id": 12,
-      "type": "stat",
-      "title": "Worker scraped",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "up{job=\"returnit-worker\"}",
-          "legendFormat": "__auto"
-        }
-      ],
-      "gridPos": {
-        "x": 0,
-        "y": 22,
-        "w": 4,
-        "h": 4
-      },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 0.5
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": []
-      },
-      "description": "1 = Prometheus can read the worker; 0 = worker down or unreachable.",
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value"
-      }
-    },
-    {
-      "id": 13,
-      "type": "stat",
-      "title": "Reminders overdue",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "returnit_notifications_overdue",
-          "legendFormat": "__auto"
-        }
-      ],
-      "gridPos": {
-        "x": 4,
-        "y": 22,
-        "w": 5,
-        "h": 4
-      },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "description": "Reminders due more than 5 minutes ago and still unsent.",
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value"
-      }
-    },
-    {
-      "id": 14,
-      "type": "stat",
-      "title": "Tasks given up",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(returnit_queue_tasks{state=\"archived\"})",
-          "legendFormat": "__auto"
-        }
-      ],
-      "gridPos": {
-        "x": 9,
-        "y": 22,
-        "w": 5,
-        "h": 4
       },
       "fieldConfig": {
         "defaults": {
@@ -782,136 +455,20 @@
               },
               {
                 "color": "orange",
-                "value": 1
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "description": "Background tasks that failed after every retry.",
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value"
-      }
-    },
-    {
-      "id": 15,
-      "type": "stat",
-      "title": "Failing jobs",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(returnit_object_deletions_failing) + sum(returnit_account_emails_failing) + sum(returnit_identity_deletions_failing)",
-          "legendFormat": "__auto"
-        }
-      ],
-      "gridPos": {
-        "x": 14,
-        "y": 22,
-        "w": 5,
-        "h": 4
-      },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
+                "value": 80
               },
               {
                 "color": "red",
-                "value": 1
+                "value": 95
               }
             ]
           },
           "color": {
             "mode": "thresholds"
           },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "description": "File deletions, account e-mails and identity deletions that keep failing.",
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value"
-      }
-    },
-    {
-      "id": 16,
-      "type": "stat",
-      "title": "Account erasures overdue",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "returnit_accounts_overdue_erasure",
-          "legendFormat": "__auto"
-        }
-      ],
-      "gridPos": {
-        "x": 19,
-        "y": 22,
-        "w": 5,
-        "h": 4
-      },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "short"
+          "unit": "percent",
+          "min": 0,
+          "max": 100
         },
         "overrides": []
       },
@@ -923,15 +480,15 @@
           "fields": "",
           "values": false
         },
-        "colorMode": "background",
-        "graphMode": "area",
-        "textMode": "value"
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "showUnfilled": true
       }
     },
     {
-      "id": 17,
+      "id": 10,
       "type": "timeseries",
-      "title": "Queue tasks by state",
+      "title": "OOM kills per container",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -943,91 +500,13 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (state) (returnit_queue_tasks)",
-          "legendFormat": "{{state}}"
-        }
-      ],
-      "gridPos": {
-        "x": 0,
-        "y": 26,
-        "w": 12,
-        "h": 8
-      },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "short",
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 12,
-            "showPoints": "never"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 18,
-      "type": "timeseries",
-      "title": "Pending work",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "returnit_object_deletions_pending",
-          "legendFormat": "file deletions"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "returnit_account_emails_pending",
-          "legendFormat": "account e-mails"
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "returnit_identity_deletions_pending",
-          "legendFormat": "identity deletions"
+          "expr": "increase(container_oom_events_total{name=~\"returnit-prod-.*\"}[1h])",
+          "legendFormat": "{{name}}"
         }
       ],
       "gridPos": {
         "x": 12,
-        "y": 26,
+        "y": 14,
         "w": 12,
         "h": 8
       },
@@ -1045,11 +524,16 @@
           "color": {
             "mode": "palette-classic"
           },
-          "unit": "short",
+          "decimals": 0,
           "custom": {
             "lineWidth": 2,
-            "fillOpacity": 12,
-            "showPoints": "never"
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
           }
         },
         "overrides": []
@@ -1062,7 +546,267 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Network in",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (name) (rate(container_network_receive_bytes_total{name=~\"returnit-prod-.*\"}[5m]))",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "Bps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Network out",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (name) (rate(container_network_transmit_bytes_total{name=~\"returnit-prod-.*\"}[5m]))",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 22,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "Bps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Restarts",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "changes(container_start_time_seconds{name=~\"returnit-prod-.*\"}[1h])",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Running for",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "time() - container_start_time_seconds{name=~\"returnit-prod-.*\"}",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 30,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       }
     }
@@ -1072,5 +816,19 @@
   },
   "annotations": {
     "list": []
-  }
+  },
+  "links": [
+    {
+      "type": "dashboards",
+      "tags": [
+        "returnit"
+      ],
+      "asDropdown": true,
+      "title": "ReturnIt dashboards",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link"
+    }
+  ]
 }

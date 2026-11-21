@@ -1,0 +1,5 @@
+# Caddy's Prometheus metrics for the monitoring stack, on the private compose network only (the tunnel has no route to
+# this port). Mounted by docker-compose.monitoring.yml.
+:9180 {
+	metrics
+}
