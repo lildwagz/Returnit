@@ -14,6 +14,9 @@ UPDOWN = [{'type': 'value', 'options': {'0': {'text': 'DOWN', 'color': 'red', 'i
 APP = 'name=~"returnit-prod-.*"'
 # cAdvisor sees containers as cgroups (Docker 29); container-info maps the cgroup id to the name.
 CG = 'id=~"/system.slice/docker-.*"'
+WARN_RETRY = [('custom.cellOptions', {'type': 'color-text'}), ('color', {'mode': 'thresholds'}), ('thresholds', {'mode': 'absolute', 'steps': [{'color': 'green', 'value': None}, {'color': 'orange', 'value': 1}]})]
+WARN_ARCHIVED = [('custom.cellOptions', {'type': 'color-text'}), ('color', {'mode': 'thresholds'}), ('thresholds', {'mode': 'absolute', 'steps': [{'color': 'green', 'value': None}, {'color': 'red', 'value': 1}]})]
+WARN_LATENCY = [('custom.cellOptions', {'type': 'color-text'}), ('color', {'mode': 'thresholds'}), ('thresholds', {'mode': 'absolute', 'steps': [{'color': 'green', 'value': None}, {'color': 'orange', 'value': 300}]})]
 NAMES = f'returnit_container_info{{{APP}}}'
 
 
@@ -142,6 +145,30 @@ class Board:
              ],
              'fieldConfig': {'defaults': {'custom': {'align': 'auto', 'cellOptions': {'type': 'auto'}, 'inspect': False},
                                           'thresholds': steps((None, 'green')), 'color': {'mode': 'thresholds'}},
+                             'overrides': overrides},
+             'options': {'showHeader': True, 'cellHeight': 'sm', 'footer': {'show': False}}}
+        if desc:
+            p['description'] = desc
+        self.panels.append(p)
+
+    def merge_table(self, title, key, columns, h=6, w=24, desc=None):
+        """One row per value of `key`, one column per instant query: columns = [(header, expr, props), ...]."""
+        targets, rename, order, overrides = [], {key: key.capitalize()}, {key: 0}, []
+        for i, (header, expr, props) in enumerate(columns):
+            ref = chr(65 + i)
+            targets.append({'refId': ref, 'datasource': DS, 'expr': expr, 'legendFormat': '__auto',
+                            'range': False, 'instant': True, 'format': 'table'})
+            rename['Value #' + ref] = header
+            order['Value #' + ref] = i + 1
+            overrides.append({'matcher': {'id': 'byName', 'options': header}, 'properties': [{'id': k, 'value': v} for k, v in props]})
+        p = {'id': len(self.panels) + 1, 'type': 'table', 'title': title, 'datasource': DS, 'targets': targets,
+             'gridPos': self._place(w, h),
+             'transformations': [{'id': 'merge', 'options': {}},
+                                 {'id': 'organize', 'options': {'excludeByName': {'Time': True}, 'renameByName': rename, 'indexByName': order}},
+                                 {'id': 'sortBy', 'options': {'sort': [{'field': key.capitalize()}]}}],
+             'fieldConfig': {'defaults': {'custom': {'align': 'auto', 'cellOptions': {'type': 'auto'}, 'inspect': False},
+                                          'thresholds': {'mode': 'absolute', 'steps': [{'color': 'green', 'value': None}]},
+                                          'color': {'mode': 'thresholds'}},
                              'overrides': overrides},
              'options': {'showHeader': True, 'cellHeight': 'sm', 'footer': {'show': False}}}
         if desc:
@@ -338,6 +365,13 @@ b.stat('Keys', 'sum(redis_db_keys)', w=5)
 b.stat('Evicted keys (24 h)', 'increase(redis_evicted_keys_total[24h])', w=5, thresholds=[(1, 'orange')], decimals=0)
 b.graph('Commands per second', 'rate(redis_commands_processed_total[5m])', unit='ops', legend='commands')
 b.graph('Memory', 'redis_memory_used_bytes', unit='bytes', legend='used')
+b.merge_table('Task queues (asynq)', 'queue', [
+    ('Pending', 'sum by (queue) (returnit_queue_tasks{state="pending"})', []),
+    ('Active', 'sum by (queue) (returnit_queue_tasks{state="active"})', []),
+    ('Retry', 'sum by (queue) (returnit_queue_tasks{state="retry"})', WARN_RETRY),
+    ('Given up', 'sum by (queue) (returnit_queue_tasks{state="archived"})', WARN_ARCHIVED),
+    ('Oldest waiting', 'max by (queue) (returnit_queue_latency_seconds)', [('unit', 's')] + WARN_LATENCY),
+], w=24, h=5, desc='Every Redis key belongs to these queues. default: reminders, e-mails, file deletions; push: phone notifications. Given up = failed after every retry.')
 b.row('MinIO (receipt files)')
 b.stat('Stored', 'max(minio_cluster_usage_total_bytes)', w=8, unit='bytes')
 b.stat('Files', 'max(minio_cluster_usage_object_total)', w=8)
