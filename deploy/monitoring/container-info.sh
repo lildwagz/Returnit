@@ -7,13 +7,14 @@
 #   returnit_container_running{name}           1 while running
 #   returnit_container_healthy{name}           1 healthy, 0 unhealthy or starting, absent without a health check
 # cAdvisor cannot read container names under Docker 29's containerd image store, so it reports cgroups only.
+# Health is read with `index`: Docker 29's CLI refuses `.State.Health` on containers that have no health check.
 set -eu
 out=/out/containers.prom
 while true; do
 	ids=$(docker ps -aq 2>/dev/null || true)
 	if [ -n "$ids" ]; then
 		# shellcheck disable=SC2086
-		docker inspect --format '{{.Id}}|{{.Name}}|{{.RestartCount}}|{{.State.OOMKilled}}|{{.State.Running}}|{{if .State.Health}}{{.State.Health.Status}}{{end}}' $ids 2>/dev/null |
+		docker inspect --format '{{.Id}}|{{.Name}}|{{.RestartCount}}|{{.State.OOMKilled}}|{{.State.Running}}|{{with index .State "Health"}}{{.Status}}{{end}}' $ids 2>/dev/null |
 			awk -F'|' '
 				BEGIN {
 					print "# HELP returnit_container_info Docker container cgroup id to name."
